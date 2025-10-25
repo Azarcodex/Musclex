@@ -1,0 +1,42 @@
+// controllers/admin/getUsers.js
+import User from "../../models/User.js";
+
+export const getUsers = async (req, res) => {
+  try {
+    // Extract page and limit from query params (default: page=1, limit=10)
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+
+    // Count total users
+    const totalUsers = await User.countDocuments();
+
+    // Calculate skip value
+    const skip = (page - 1) * limit;
+
+    // Fetch paginated users
+    const users = await User.find()
+      .sort({ createdAt: -1 }) // newest first
+      .skip(skip)
+      .limit(limit);
+
+    // Calculate total pages
+    const totalPages = Math.ceil(totalUsers / limit);
+
+    res.status(200).json({
+      success: true,
+      users,
+      pagination: {
+        totalUsers,
+        totalPages,
+        currentPage: page,
+        limit,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error fetching users",
+      error: error.message,
+    });
+  }
+};

@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import forget from "../../assets/forget.jpg";
 import { useForgetPassword } from "../../hooks/users/useForgetPassword";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 const Forget = () => {
   const navigate = useNavigate();
   const { register, handleSubmit } = useForm();
@@ -15,14 +15,14 @@ const Forget = () => {
         if (values.success) {
           toast.success(`${values.message}`);
           localStorage.setItem("email", values.email);
-          localStorage.setItem("userId",values.userId)
+          localStorage.setItem("userId", values.userId);
           navigate("/user/verifyForget");
         } else {
           toast.error(`${values.message}`);
         }
       },
       onError: (err) => {
-        console.log(err);
+        toast.error(`${err.response.data.message}`);
       },
     });
   };
@@ -37,17 +37,19 @@ const Forget = () => {
           <input
             type="text"
             name="email"
-            {...register("email", { required: "email is required" })}
+            {...register("email")}
             className="border-1 border-gray-500 outline-none p-1 w-[17rem] rounded-sm"
             placeholder="enter email here"
           />
           <div className="flex items-center gap-5">
-            <button
-              className="text-white border-1 border-white w-[8rem] p-1 rounded-sm"
-              style={{ background: "#000842" }}
-            >
-              cancel
-            </button>
+            <Link to={"/user/login"}>
+              <button
+                className="text-white border-1 border-white w-[8rem] p-1 rounded-sm"
+                style={{ background: "#000842" }}
+              >
+                cancel
+              </button>
+            </Link>
             <button
               type="submit"
               className="text-white border-1 border-white w-[8rem] p-1 rounded-sm"

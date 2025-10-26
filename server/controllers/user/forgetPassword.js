@@ -5,9 +5,15 @@ import { sendOtp } from "../../utils/sendOtp.js";
 export const forgetPassword = async (req, res) => {
   try {
     const { email } = req.body;
-    const user =await User.findOne({ email });
+    if (!email) {
+      console.log("no data");
+      return res
+        .status(400)
+        .json({ success: false, message: "Please provide your email" });
+    }
+    const user = await User.findOne({ email });
     if (!user) {
-      return res.json({ success:false,message: "User not exist" });
+      return res.json({ success: false, message: "User not exist" });
     }
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
     const otpExpire = new Date(Date.now() + 10 * 60 * 1000);
@@ -19,9 +25,14 @@ export const forgetPassword = async (req, res) => {
     });
     await newData.save();
     await sendOtp(email, otpCode);
-    res.json({success:true, message: "otp has been sent Pls confirm",email:email,userId:user._id });
+    res.json({
+      success: true,
+      message: "otp has been sent Pls confirm",
+      email: email,
+      userId: user._id,
+    });
   } catch (error) {
-    console.log(error)
-    res.status(500).json({success:false, message: "failed to sent" });
+    console.log(error);
+    res.status(500).json({ success: false, message: "failed to sent" });
   }
 };

@@ -16,6 +16,7 @@ import VendorDasboard from "./pages/vendor/VendorDasboard";
 import Panel from "./components/admin/Panel";
 import Users from "./pages/admin/Users";
 import Vendors from "./pages/admin/Vendors";
+import Home from "./pages/user/Home";
 const App = () => {
   return (
     <>
@@ -44,6 +45,7 @@ const App = () => {
           }
         /> */}
         //user side//
+        <Route path="/" element={<Home/>} />
         <Route path="/user/register" element={<Register />} />
         <Route path="/user/login" element={<LoginUser />} />
         <Route path="/user/verify" element={<VerifyOTP />} />

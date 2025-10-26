@@ -32,7 +32,7 @@ export const registerUser = async (req, res) => {
     });
     sendOtp(email, otpCode);
     res.status(201).json({
-      message: "otp has been sent pls verify it to login",
+      message: "otp has been sent pls verify it to login before 10 minutes",
       userId: newUser._id,
       email: newUser.email,
     });

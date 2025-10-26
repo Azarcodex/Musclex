@@ -1,48 +1,24 @@
-import React, { useState } from "react";
-import { useGetUsers } from "../../hooks/admin/useGetUsers";
+import { create } from "zustand";
 
-const Users = () => {
-  const [page, setPage] = useState(1);
-  const { data, isPending } = useGetUsers(page);
+export const useAuthStore = create((set, get) => ({
+  // token will load from localStorage (if exists)
+  token: localStorage.getItem("token") || null,
 
-  const handleNext = () => {
-    if (page < data?.pagination?.totalPages) {
-      setPage((prev) => prev + 1);
-    }
-  };
+  // ✅ Save token in Zustand + localStorage
+  setToken: (token) => {
+    localStorage.setItem("token", token);
+    set({ token });
+  },
 
-  const handlePrev = () => {
-    if (page > 1) setPage((prev) => prev - 1);
-  };
+  // ✅ Get token from Zustand (or localStorage if refreshed)
+  getToken: () => {
+    const token = get().token || localStorage.getItem("token");
+    return token;
+  },
 
-  return (
-    <div>
-      {/* Existing Table Code Here */}
-      {/* ... */}
-
-      {/* Pagination Controls */}
-      <div className="flex justify-center items-center gap-3 mt-4">
-        <button
-          onClick={handlePrev}
-          disabled={page === 1}
-          className="px-4 py-2 bg-gray-200 rounded-md disabled:opacity-50"
-        >
-          Previous
-        </button>
-
-        <span className="text-sm text-gray-700">
-          Page {data?.pagination?.currentPage} of{" "}
-          {data?.pagination?.totalPages}
-        </span>
-
-        <button
-          onClick={handleNext}
-          disabled={page === data?.pagination?.totalPages}
-          className="px-4 py-2 bg-gray-200 rounded-md disabled:opacity-50"
-        >
-          Next
-        </button>
-      </div>
-    </div>
-  );
-};
+  // ✅ Remove token from both (logout)
+  clearToken: () => {
+    localStorage.removeItem("token");
+    set({ token: null });
+  },
+}));

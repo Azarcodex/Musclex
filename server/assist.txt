@@ -1,42 +1,25 @@
-// controllers/admin/getUsers.js
-import User from "../../models/User.js";
+import express from "express";
+import Brand from "../../models/brand.js";
+import Category from "../../models/category.js";
 
-export const getUsers = async (req, res) => {
+const router = express.Router();
+
+router.get("/brands", async (req, res) => {
   try {
-    // Extract page and limit from query params (default: page=1, limit=10)
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-
-    // Count total users
-    const totalUsers = await User.countDocuments();
-
-    // Calculate skip value
-    const skip = (page - 1) * limit;
-
-    // Fetch paginated users
-    const users = await User.find()
-      .sort({ createdAt: -1 }) // newest first
-      .skip(skip)
-      .limit(limit);
-
-    // Calculate total pages
-    const totalPages = Math.ceil(totalUsers / limit);
-
-    res.status(200).json({
-      success: true,
-      users,
-      pagination: {
-        totalUsers,
-        totalPages,
-        currentPage: page,
-        limit,
-      },
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Error fetching users",
-      error: error.message,
-    });
+    const brands = await Brand.find({}).sort({ name: 1 });
+    res.json(brands);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch brands" });
   }
-};
+});
+
+router.get("/categories", async (req, res) => {
+  try {
+    const categories = await Category.find({ isActive: true }).sort({ catgName: 1 });
+    res.json(categories);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch categories" });
+  }
+});
+
+export default router;

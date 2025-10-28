@@ -29,6 +29,7 @@ export const addVariant = async (req, res) => {
     await variant.save();
     res.status(201).json({ success: true, message: "Variant added", variant });
   } catch (error) {
+    console.log(error)
     res.status(500).json({ success: false, message: "server error" });
   }
 };

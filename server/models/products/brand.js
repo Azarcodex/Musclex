@@ -7,6 +7,10 @@ const brandSchema = new mongoose.Schema(
       unique: true,
       trim: true,
     },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
   },
   { timestamps: { createdAt: true, updatedAt: false } }
 );

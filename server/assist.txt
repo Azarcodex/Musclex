@@ -1,25 +1,54 @@
-import express from "express";
-import Brand from "../../models/brand.js";
-import Category from "../../models/category.js";
+import Product from "../../models/products/product.js";
+import Variant from "../../models/products/variant.js";
 
-const router = express.Router();
-
-router.get("/brands", async (req, res) => {
+export const getAllProducts = async (req, res) => {
   try {
-    const brands = await Brand.find({}).sort({ name: 1 });
-    res.json(brands);
-  } catch (err) {
-    res.status(500).json({ message: "Failed to fetch brands" });
-  }
-});
+    // 1️⃣ Get all active, non-deleted products
+    const products = await Product.find({ isDeleted: false, status: "Active" })
+      .populate("brandID", "name")
+      .populate("catgid", "catgName")
+      .lean();
 
-router.get("/categories", async (req, res) => {
-  try {
-    const categories = await Category.find({ isActive: true }).sort({ catgName: 1 });
-    res.json(categories);
-  } catch (err) {
-    res.status(500).json({ message: "Failed to fetch categories" });
-  }
-});
+    // 2️⃣ Get all variants for these products
+    const productIds = products.map((p) => p._id);
+    const variants = await Variant.find({
+      productId: { $in: productIds },
+      isListed: true,
+    }).lean();
 
-export default router;
+    // 3️⃣ Merge variant data with each product
+    const result = products.map((prod) => {
+      const prodVariants = variants.filter(
+        (v) => v.productId.toString() === prod._id.toString()
+      );
+
+      // Extract sale prices
+      const prices = prodVariants.map((v) => v.salePrice);
+      const minPrice = prices.length ? Math.min(...prices) : null;
+      const maxPrice = prices.length ? Math.max(...prices) : null;
+
+      // Extract first variant image (or default)
+      const images = prodVariants.flatMap((v) => v.images || []);
+      const previewImage = images.length > 0 ? images[0] : "/placeholder.png";
+
+      return {
+        ...prod,
+        priceSummary: { minPrice, maxPrice },
+        previewImage, // 👈 use this in frontend
+        variants: prodVariants,
+      };
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch products",
+      error: error.message,
+    });
+  }
+};

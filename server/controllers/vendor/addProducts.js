@@ -4,7 +4,7 @@ import Product from "../../models/products/Product.js";
 
 export const addProduct = async (req, res) => {
   try {
-    const { name, description, discount, catgid, brandID } = req.body;
+    const { name, description, discount, catgid, brandID,Avgrating } = req.body;
     // const vendorID = req.user.id;
     if (!name || !catgid || !brandID) {
       return res
@@ -22,6 +22,7 @@ export const addProduct = async (req, res) => {
       discount,
       catgid,
       brandID,
+      Avgrating
       // vendorID,
     });
     await newProduct.save();

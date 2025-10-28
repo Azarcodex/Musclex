@@ -1,10 +1,10 @@
 import mongoose from "mongoose";
 const productVariantSchema = new mongoose.Schema(
   {
-    productid: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
+    productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
     color: { type: String },
     stock: { type: Number, default: 0, min: 0 },
-    oldprice: { type: Number, required: true, min: 0 },
+    oldPrice: { type: Number, required: true, min: 0 },
     discount: { type: Number, default: 0, min: 0 },
     salePrice: { type: Number, min: 0 },
     size: { type: String },

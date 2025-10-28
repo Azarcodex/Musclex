@@ -17,6 +17,7 @@ import Panel from "./components/admin/Panel";
 import Users from "./pages/admin/Users";
 import Vendors from "./pages/admin/Vendors";
 import Home from "./pages/user/Home";
+import Products from "./pages/user/Products";
 const App = () => {
   return (
     <>
@@ -45,7 +46,7 @@ const App = () => {
           }
         /> */}
         //user side//
-        <Route path="/" element={<Home/>} />
+        <Route path="/" element={<Home />} />
         <Route path="/user/register" element={<Register />} />
         <Route path="/user/login" element={<LoginUser />} />
         <Route path="/user/verify" element={<VerifyOTP />} />
@@ -53,6 +54,7 @@ const App = () => {
         <Route path="/user/verifyforget" element={<ForgetPassword />} />
         <Route path="/user/demo" element={<Demo />} />
         <Route path="/user/reset" element={<ResetPassword />} />
+        <Route path="/user/products" element={<Products />} />
         //vendor side//
         <Route path="/vendor/register" element={<RegisterVendor />} />
         <Route path="/vendor/login" element={<LoginVendor />} />

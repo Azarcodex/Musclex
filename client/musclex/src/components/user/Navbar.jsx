@@ -9,6 +9,7 @@ import {
   User2,
   LogOutIcon,
   LucideLogOut,
+  LucideBriefcaseBusiness,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { userAuthStore } from "../../hooks/users/zustand/useAuth";
@@ -90,8 +91,9 @@ export function Navbar() {
             </a>
             <a
               href="#"
-              className="bg-violet-900 p-0.5 py-1 rounded-sm text-white shadow-2xl hover:text-purple-600"
+              className="bg-gradient-to-r from-purple-700 via-purple-500 to-pink-500 px-2 py-1 rounded-ee-full rounded-l-4xl rounded-t-full rounded-br-xl flex items-center gap-2.5 text-white text-sm font-semibold shadow-lg hover:from-pink-500 hover:to-purple-600 hover:shadow-purple-400/50 transition-all duration-300"
             >
+              <LucideBriefcaseBusiness className="w-4 h-4" />
               become a seller
             </a>
           </div>
@@ -104,7 +106,7 @@ export function Navbar() {
                 placeholder="Search..."
                 className="px-4 py-2 outline-none w-64"
               />
-              <button className="bg-purple-600 text-white px-4 py-2 hover:bg-purple-700">
+              <button className="bg-purple-600 text-white px-4 py-2 rounded-2xl hover:bg-purple-700">
                 <SearchIcon className="w-5 h-5" />
               </button>
             </div>

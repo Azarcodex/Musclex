@@ -28,7 +28,7 @@ router.get("/category", getCategories);
 router.delete("/category/:id", DeleteCategory);
 //Brand
 router.post("/brand/add", addBrand);
-router.get("/brand", getBrands);
+// router.get("/brand", getBrands);
 router.delete("/brand/:id", deleteBrand);
 //Variants
 router.post("/variant/add",addVariant)

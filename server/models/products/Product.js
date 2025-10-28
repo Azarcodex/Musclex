@@ -3,7 +3,7 @@ const productSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
     description: { type: String },
-    Avgrating: { type: Number, default: 0, min: 0, max: 5 },
+    Avgrating: { type: Number,default:0, min: 0, max: 5},
     discount: { type: Number, default: 0, min: 0 },
     catgid: { type: mongoose.Schema.Types.ObjectId, ref: "Category" },
     isFeatured: { type: Boolean, default: false },

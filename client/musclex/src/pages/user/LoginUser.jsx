@@ -31,7 +31,7 @@ export default function LoginUser() {
         console.log("Login success:", data);
         toast.success("Google login successful!");
         setToken(data.token);
-        setAuthtoken(data.token, data.role);
+        setAuthtoken(data.token, data?.user.role);
         navigate("/");
       },
       onError: (error) => {

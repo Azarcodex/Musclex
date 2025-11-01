@@ -2,17 +2,12 @@ import React, { useEffect, useState } from "react";
 import { useGetUsers } from "../../hooks/admin/useGetUsers";
 import { CheckCircle, XCircle } from "lucide-react";
 import { useVerifyUser } from "../../hooks/admin/useVerifyUser";
+import { confirm } from "../../components/utils/Confirmation";
 
 const Users = () => {
   const [search, setSearch] = useState("");
   const [page, setpage] = useState(1);
   const { data, isPending } = useGetUsers(page, search);
-  // useEffect(() => {
-  //   if(data)
-  //   {
-  //   searchFn();
-  //   }
-  // }, [search]);
   const { mutate: toggleVerify, isPending: isToggling } = useVerifyUser();
   console.log(data?.users);
   const handlePrev = () => {
@@ -24,6 +19,11 @@ const Users = () => {
       setpage((prev) => prev + 1);
     }
   };
+  const HandleSearch=(e)=>
+  {
+    setSearch(e.target.value)
+    setpage(1)
+  }
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString("en-US", {
@@ -34,15 +34,23 @@ const Users = () => {
       minute: "2-digit",
     });
   };
+  const HandleToggle=async(id)=>
+  {
+    const wait=await confirm({message:"Do you want to make changes"})
+    if(wait)
+    {
+      toggleVerify(id)
+    }
+  }
   return (
     <div className="w-full">
-      <div className="bg-violet-300 place-self-end px-1 py-1.5 mb-1 rounded-sm focus:border border-gray-200">
+      <div className="bg-violet-100 place-self-end px-1 py-1.5 mb-1 rounded-sm focus:border border-gray-200">
         <input
           type="search"
           name="search"
           placeholder="search name/email"
-          onChange={(e) => setSearch(e.target.value)}
-          className="outline-0 border-0 rounded-md placeholder:text-sm"
+          onChange={(e) => HandleSearch(e)}
+          className="outline-0 px-1 py-0.5 border-0 rounded-md placeholder:text-sm"
           autoComplete="off"
         />
       </div>
@@ -109,7 +117,7 @@ const Users = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <button
-                      onClick={() => toggleVerify(user._id)}
+                      onClick={() => HandleToggle(user._id)}
                       disabled={isToggling}
                       className={`px-3 py-1 text-xs rounded-md font-medium transition ${
                         user.isVerified

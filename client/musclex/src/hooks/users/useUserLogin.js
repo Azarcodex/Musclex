@@ -12,7 +12,7 @@ export const useUserLogin = () => {
     mutationFn: loginUser,
     onSuccess: (data) => {
       if (data?.token) {
-        setAuthtoken(data.token, data.user.role);
+        setAuthtoken(data.token, data?.user.role);
         setToken(data.token);
         navigate("/");
       }

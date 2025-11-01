@@ -5,7 +5,6 @@ const productVariantSchema = new mongoose.Schema(
     color: { type: String },
     stock: { type: Number, default: 0, min: 0 },
     oldPrice: { type: Number, required: true, min: 0 },
-    discount: { type: Number, default: 0, min: 0 },
     salePrice: { type: Number, min: 0 },
     size: { type: String },
     flavour: { type: String },

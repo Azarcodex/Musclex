@@ -3,7 +3,7 @@ import Vendor from "../../models/vendors/Vendor.js";
 export const getVendors = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    console.log(page);
+    // console.log(page);
     const limit = parseInt(req.query.limit);
     const totalVendors = await Vendor.countDocuments();
     const skip = (page - 1) * limit;
@@ -11,7 +11,7 @@ export const getVendors = async (req, res) => {
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
-    const totalPages = totalVendors / limit;
+    const totalPages = Math.round(totalVendors / limit);
     res.status(200).json({
       success: true,
       vendors,

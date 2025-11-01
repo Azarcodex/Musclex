@@ -4,7 +4,7 @@ import { useGetVendors } from "../../hooks/admin/useGetVendors";
 import { useProductPermission } from "../../hooks/admin/useProductPermission";
 import { useStatusVendor } from "../../hooks/admin/useStatusVendor";
 import { toast } from "sonner";
-
+import { confirm } from "../../components/utils/Confirmation";
 // Helper: format date
 const formatDate = (dateStr) => {
   if (!dateStr) return "-";
@@ -105,36 +105,46 @@ export default function Vendors() {
   };
 
   // Toggle Can Add Product
-  const toggleCanAddProduct = (vendorId) => {
-    const vendor = vendors.find((v) => v.id === vendorId);
-    if (!vendor) return;
+  const toggleCanAddProduct = async (vendorId) => {
+    const message = vendors
+      .filter((v) => v._id === vendorId)
+      .map((v) =>
+        v.canAddProduct === true
+          ? "Do you want to deny permission"
+          : "Do you want to allow permission"
+      );
+    const wait = await confirm({ message: message });
+    if (wait) {
+      const vendor = vendors.find((v) => v.id === vendorId);
+      if (!vendor) return;
 
-    const backendId = vendor._id ?? vendor.id;
-    const prevValue = !!vendor.canAddProduct;
-    const newValue = !prevValue;
+      const backendId = vendor._id ?? vendor.id;
+      //copying the vendor previous state
+      const prevValue = !!vendor.canAddProduct;
+      const newValue = !prevValue;
+      // Optimistic UI
+      setVendors((prev) =>
+        prev.map((v) =>
+          v.id === vendorId ? { ...v, canAddProduct: newValue } : v
+        )
+      );
 
-    // Optimistic UI
-    setVendors((prev) =>
-      prev.map((v) =>
-        v.id === vendorId ? { ...v, canAddProduct: newValue } : v
-      )
-    );
-
-    productPermission(
-      { vendorId: backendId, id: backendId, canAddProduct: newValue },
-      {
-        onSuccess: () => toast.success("Product permission updated"),
-        onError: () => {
-          toast.error("Failed to update permission");
-          // rollback
-          setVendors((prev) =>
-            prev.map((v) =>
-              v.id === vendorId ? { ...v, canAddProduct: prevValue } : v
-            )
-          );
-        },
-      }
-    );
+      productPermission(
+        { vendorId: backendId, canAddProduct: newValue },
+        {
+          onSuccess: () => toast.success("Product permission updated"),
+          onError: () => {
+            toast.error("Failed to update permission");
+            // rollback
+            setVendors((prev) =>
+              prev.map((v) =>
+                v.id === vendorId ? { ...v, canAddProduct: prevValue } : v
+              )
+            );
+          },
+        }
+      );
+    }
   };
   const current = data?.pagination.currentPage;
   const limit = data?.pagination?.limit;
@@ -173,7 +183,7 @@ export default function Vendors() {
                   className="hover:bg-gray-50 transition-colors"
                 >
                   <td className="px-6 py-4 text-sm text-gray-700">
-                    {(current-1)*limit+index+1}
+                    {(current - 1) * limit + index + 1}
                   </td>
                   <td className="px-6 py-4 text-sm font-medium text-gray-900">
                     {vendor.shopName}

@@ -21,15 +21,17 @@ const Products = () => {
   const [priceRange, setPriceRange] = useState([0, 60000]);
   const [selectedRatings, setSelectedRatings] = useState([]);
   const [sortValue, setSortValue] = useState("");
-  console.log(sortValue);
-  console.log();
+  const [discountValue, setDiscountValue] = useState("");
+  // console.log(typeof discountValue);
   const { data, isPending } = useGetProducts(
     selectedCategory,
     selectedBrands,
     priceRange,
     selectedRatings,
-    sortValue
+    sortValue,
+    discountValue
   );
+    console.log(data)
   // console.log(data);
   // if(isPending) return <h1>loading</h1>
   return (
@@ -43,7 +45,7 @@ const Products = () => {
             value={sortValue}
             onChange={(e) => setSortValue(e.target.value)}
           >
-            <option value="default">default:</option>
+            <option value="default">view:</option>
             <option value="sortAZ">A-Z </option>
             <option value="sortZA">Z-A</option>
             <option value="sort01">ASC</option>
@@ -54,10 +56,16 @@ const Products = () => {
             <span>xxx</span>
             <ChevronDown className="w-4 h-4" />
           </h3>
-          <h3 className="flex items-center gap-2">
-            discount
-            <ChevronDown className="w-4 h-4" />
-          </h3>
+          <select
+            value={discountValue}
+            onChange={(e) => setDiscountValue(e.target.value)}
+          >
+            <option value="default">discount-</option>
+            <option value="50">More than 50%</option>
+            <option value="40">More than 40%</option>
+            <option value="30">More than 30%</option>
+            <option value="20">More than 20%</option>
+          </select>
         </div>
         <div className="flex items-start mt-20 justify-center flex-row min-h-screen px-20 py-10">
           <div>

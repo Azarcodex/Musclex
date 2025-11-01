@@ -49,7 +49,7 @@ function Panel() {
         {
           label: "Vendor Products",
           icon: <Package size={18} />,
-          path: "/admin/dashboard/vendors/products",
+          path: "/admin/dashboard/vendors/list/products",
         },
       ],
     },
@@ -71,6 +71,22 @@ function Panel() {
           label: "Referral",
           icon: <UserPlus size={18} />,
           path: "/dashboard/users/referral",
+        },
+      ],
+    },
+    {
+      label: "Category",
+      icon: <Users size={20} />,
+      children: [
+        {
+          label: "Category List",
+          icon: <UserCircle size={18} />,
+          path: "/admin/dashboard/category/list",
+        },
+        {
+          label: "add Category",
+          icon: <Tag size={18} />,
+          path: "/admin/dashboard/category/add",
         },
       ],
     },

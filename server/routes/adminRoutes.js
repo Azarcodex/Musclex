@@ -7,6 +7,7 @@ import { Protected } from "../middlewares/admin/authMiddleware.js";
 import { getDashboard } from "../controllers/admin/sample.js";
 import { getUsers, verifyUsers } from "../controllers/admin/getUsers.js";
 import { canAddProduct, getVendors, updateVendorStatus } from "../controllers/admin/getVendors.js";
+import { fetchVendorProducts, getVendorProducts } from "../controllers/admin/getVendorProducts.js";
 
 const router = express.Router();
 
@@ -24,6 +25,10 @@ router.get("/getVendors", getVendors);
 router.patch("/:id/status",updateVendorStatus)
 //product permission
 router.patch("/:id/allow",canAddProduct)
+//vendor products
+router.get("/vendor/products",getVendorProducts)
+//vendor indiv. products
+router.get("/vendor/products/:vendorId",fetchVendorProducts)
 //testing dashboard
 router.get("/dashboard", Protected, getDashboard);
 export default router;

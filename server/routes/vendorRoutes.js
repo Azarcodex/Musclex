@@ -6,31 +6,39 @@ import {
 import {
   addCategory,
   DeleteCategory,
+  editCategory,
   getCategories,
 } from "../controllers/vendor/categoryController.js";
 import {
   addBrand,
   deleteBrand,
   getBrands,
+  updateBrand,
 } from "../controllers/vendor/BrandController.js";
-import { addProduct } from "../controllers/vendor/addProducts.js";
+import { addProduct, getProducts } from "../controllers/vendor/addProducts.js";
 import { VendorProtection } from "../middlewares/vendors/authVendor.js";
-import { addVariant } from "../controllers/vendor/addVariant.js";
+import { upload } from "../utils/multerConfig.js";
+import { addVariant, getVariantsByProduct } from "../controllers/vendor/variantsController.js";
 const router = express.Router();
 
 router.post("/register", registerVendor);
 router.post("/login", loginVendor);
 //product
-router.post("/addProduct",VendorProtection,addProduct)
+router.get("/product",getProducts)
+router.post("/addProduct",VendorProtection, addProduct);
 //Category
 router.post("/category/add", addCategory);
 router.get("/category", getCategories);
 router.delete("/category/:id", DeleteCategory);
+router.patch("/category/update/:id", editCategory);
 //Brand
 router.post("/brand/add", addBrand);
+router.get("/brand", getBrands);
 // router.get("/brand", getBrands);
 router.delete("/brand/:id", deleteBrand);
+router.patch("/brand/update/:id", updateBrand);
 //Variants
-router.post("/variant/add",addVariant)
-
+router.post("/variant/add", upload.array("images", 5),addVariant );
+//get variants
+router.get("/variant/:productId", getVariantsByProduct);
 export default router;

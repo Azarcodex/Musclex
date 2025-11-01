@@ -5,6 +5,6 @@ export const useGetBrands=()=>
 {
     return useQuery({
         queryKey:["Brand"],
-        queryFn:fetchBrand
+        queryFn:fetchBrand,
     })
 }

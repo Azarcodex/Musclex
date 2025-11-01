@@ -5,7 +5,8 @@ export const getProducts = async (
   selectedBrands,
   priceRange,
   selectedRatings,
-  sortValue
+  sortValue,
+  discountValue
 ) => {
   const params = {};
   if (selectedCategory.length > 0) {
@@ -25,6 +26,9 @@ export const getProducts = async (
   }
   if (sortValue) {
     params.sortMode = sortValue;
+  }
+  if (discountValue) {
+    params.discountfav = discountValue;
   }
   const response = await api.get("/api/user/products/", { params });
   return response.data;

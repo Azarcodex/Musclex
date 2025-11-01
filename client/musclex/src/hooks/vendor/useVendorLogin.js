@@ -16,9 +16,10 @@ export const useVendorLogin = () => {
         localStorage.setItem("vendorToken", data.token);
         toast.success(`${data.message}`);
         navigate("/vendor/dashboard");
-      } else {
-        toast.error(`${data.message}`);
       }
+    },
+    onError: (err) => {
+      toast.error(`${err.response.data.message}`)
     },
   });
 };

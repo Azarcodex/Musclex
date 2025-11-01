@@ -11,12 +11,13 @@ export const useAdminLogin = () => {
     onSuccess: (data) => {
       console.log(data);
       if (data?.token) {
-        setAuthtoken(data.token);
+        setAuthtoken(data.token, data.admin.role);
         navigate("/admin/dashboard", { replace: true });
       }
     },
-    onError: () => {
-      console.log("error");
+    onError: (err) => {
+      console.log(err)
+      toast.error(err.response.data.message);
     },
   });
 };

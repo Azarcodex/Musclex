@@ -18,6 +18,16 @@ import Users from "./pages/admin/Users";
 import Vendors from "./pages/admin/Vendors";
 import Home from "./pages/user/Home";
 import Products from "./pages/user/Products";
+import ProductVendor from "./pages/admin/ProductVendor";
+import ProductsTable from "./pages/vendor/VendorProduct";
+import AddProductForm from "./pages/vendor/ProductForm";
+import AddCategoryForm from "./pages/vendor/CategoryForm";
+import AddBrandForm from "./pages/vendor/BrandForm";
+import VariantForm from "./pages/vendor/VariantForm";
+import CategoryList from "./pages/vendor/CategoryList";
+import BrandList from "./pages/vendor/BrandList";
+import VariantList from "./pages/vendor/VariantList";
+import OwnProducts from "./pages/admin/OwnProducts";
 const App = () => {
   return (
     <>
@@ -36,6 +46,10 @@ const App = () => {
         >
           <Route path="users/list" element={<Users />} />
           <Route path="vendors/list" element={<Vendors />} />
+          <Route path="vendors/list/products" element={<ProductVendor />} />
+          <Route path="vendors/list/products/:id" element={<OwnProducts />} />
+          <Route path="category/add" element={<AddCategoryForm />} />
+          <Route path="category/list" element={<CategoryList />} />
         </Route>
         {/* <Route
           path="*"
@@ -58,7 +72,14 @@ const App = () => {
         //vendor side//
         <Route path="/vendor/register" element={<RegisterVendor />} />
         <Route path="/vendor/login" element={<LoginVendor />} />
-        <Route path="/vendor/dashboard" element={<VendorDasboard />} />
+        <Route path="/vendor/dashboard" element={<VendorDasboard />}>
+          <Route path="products/list" element={<ProductsTable />} />
+          <Route path="products/add" element={<AddProductForm />} />
+          <Route path="brand/list" element={<BrandList />} />
+          <Route path="brand/add" element={<AddBrandForm />} />
+          <Route path="variant/add/:productId" element={<VariantForm />} />
+          <Route path="variant/:productId" element={<VariantList />} />
+        </Route>
       </Routes>
     </>
   );

@@ -3,10 +3,12 @@ import adminRoute from "./routes/adminRoutes.js";
 import userRoute from "./routes/userRoutes.js";
 import googleAuth from "./routes/authRoutes.js";
 import vendorRoute from "./routes/vendorRoutes.js";
+import path from 'path'
 import cors from "cors";
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 app.use(express.urlencoded({ extended: true }));
 //setting Up admin Prefix route
 app.use("/api/admin", adminRoute);

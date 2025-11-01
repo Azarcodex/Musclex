@@ -6,17 +6,27 @@ export const useGetProducts = (
   selectedBrands,
   priceRange,
   selectedRatings,
-sortValue
+  sortValue,
+  discountValue
 ) => {
   return useQuery({
-    queryKey: ["products", selectedCategory, selectedBrands, priceRange,selectedRatings,sortValue],
+    queryKey: [
+      "products",
+      selectedCategory,
+      selectedBrands,
+      priceRange,
+      selectedRatings,
+      sortValue,
+      discountValue,
+    ],
     queryFn: () =>
       getProducts(
         selectedCategory,
         selectedBrands,
         priceRange,
         selectedRatings,
-      sortValue
+        sortValue,
+        discountValue
       ),
     keepPreviousData: true,
   });

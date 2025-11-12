@@ -1,9 +1,9 @@
 import jwt from "jsonwebtoken";
-import User from "../../models/users/user";
+import User from "../../models/users/user.js";
 export const protectedUser = async (req, res, next) => {
   try {
     const headers = req.headers.authorization;
-    if (!headers || headers.startsWith("Bearer")) {
+    if (!headers || !headers.startsWith("Bearer")) {
       return res.status(401).json({ message: "No token provided" });
     }
     const extract = headers.split(" ")[1];
@@ -11,7 +11,7 @@ export const protectedUser = async (req, res, next) => {
     try {
       verify = jwt.verify(extract, process.env.JWT_SECRET);
     } catch (error) {
-      res
+      return res
         .status(400)
         .json({ success: false, message: "Invalid token detected" });
     }

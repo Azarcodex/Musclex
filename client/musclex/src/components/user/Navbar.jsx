@@ -10,12 +10,14 @@ import {
   LogOutIcon,
   LucideLogOut,
   LucideBriefcaseBusiness,
+  User2Icon,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { userAuthStore } from "../../hooks/users/zustand/useAuth";
 import { toast } from "sonner";
 
 export function Navbar() {
+  const navigate = useNavigate();
   const token = userAuthStore((state) => state.token);
   const { clearToken } = userAuthStore();
   const handleLogOut = () => {
@@ -54,12 +56,21 @@ export function Navbar() {
                 Logout
               </button>
             )}
-            <button className="flex items-center gap-1 hover:opacity-80">
+            <button
+              className="flex items-center gap-1 hover:opacity-80"
+              onClick={() => navigate("/user/wishlist")}
+            >
               <HeartIcon className="w-4 h-4" />
               <span>Wishlist</span>
             </button>
-            <button className="hover:opacity-80">
+            <button
+              className="hover:opacity-80"
+              onClick={() => navigate("/user/cart")}
+            >
               <ShoppingCartIcon className="w-4 h-4" />
+            </button>
+            <button onClick={() => navigate("/user/userdetails")}>
+              <User2Icon className="w-5 h-5 cursor-pointer" />
             </button>
           </div>
         </div>
@@ -77,9 +88,12 @@ export function Navbar() {
               Home
               <ChevronDownIcon className="w-4 h-4" />
             </button>
-            <a href="#" className="text-gray-700 hover:text-purple-600">
+            <Link
+              to={"/user/products"}
+              className="text-gray-700 hover:text-purple-600"
+            >
               Products
-            </a>
+            </Link>
             <a href="#" className="text-gray-700 hover:text-purple-600">
               Help
             </a>

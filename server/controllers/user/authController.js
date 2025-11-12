@@ -6,35 +6,45 @@ import nodemailer from "nodemailer";
 import { sendOtp } from "../../utils/sendOtp.js";
 export const registerUser = async (req, res) => {
   try {
-    const { name, email, phone, password } = req.body;
+    const { name, email, password } = req.body;
     console.log(req.body);
     const ExistingUser = await User.findOne({ email });
     if (ExistingUser) {
       return res.status(400).json({ message: "User already exists" });
     }
+    const pendingExist = await OTP.findOne({ "pendingData.email": email });
+    if (pendingExist) {
+      return res
+        .status(400)
+        .json({ message: "Otp has been already sent Pls Verify" });
+    }
     const hashPassword = await bcrypt.hash(password, 10);
-    const newUser = await User.create({
-      name,
-      email,
-      password: hashPassword,
-      phone,
-      isVerified: false,
-    });
+    // const newUser = await User.create({
+    //   name,
+    //   email,
+    //   password: hashPassword,
+    //   phone,
+    //   isVerified: false,
+    // });
     //otp generation
     const now = new Date();
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
     const otpExpire = new Date(Date.now() + 10 * 60 * 1000);
-    await OTP.create({
-      userId: newUser._id,
+    const pending = await OTP.create({
       otp: otpCode,
       otpCreated: now,
       expiresAt: otpExpire,
+      pendingData: {
+        name: name,
+        email: email,
+        password: hashPassword,
+      },
     });
     sendOtp(email, otpCode);
     res.status(201).json({
       message: "otp has been sent pls verify it to login before 10 minutes",
-      userId: newUser._id,
-      email: newUser.email,
+      pending: pending._id,
+      email,
     });
   } catch (error) {
     console.log(error);

@@ -12,6 +12,11 @@ import {
   Package,
   UserCircle,
   UserPlus,
+  Boxes,
+  Layers,
+  TicketPercent,
+  LogIn,
+  Home,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
@@ -48,7 +53,7 @@ function Panel() {
         },
         {
           label: "Vendor Products",
-          icon: <Package size={18} />,
+          icon: <Boxes size={18} />,
           path: "/admin/dashboard/vendors/list/products",
         },
       ],
@@ -64,7 +69,7 @@ function Panel() {
         },
         {
           label: "Coupon",
-          icon: <Tag size={18} />,
+          icon: <TicketPercent size={18} />,
           path: "/dashboard/users/coupon",
         },
         {
@@ -76,17 +81,12 @@ function Panel() {
     },
     {
       label: "Category",
-      icon: <Users size={20} />,
+      icon: <Layers size={20} />,
       children: [
         {
           label: "Category List",
-          icon: <UserCircle size={18} />,
-          path: "/admin/dashboard/category/list",
-        },
-        {
-          label: "add Category",
-          icon: <Tag size={18} />,
-          path: "/admin/dashboard/category/add",
+          icon: <FileText size={18} />,
+          path: "/admin/dashboard/category",
         },
       ],
     },
@@ -97,7 +97,7 @@ function Panel() {
     },
     {
       label: "Coupon",
-      icon: <Tag size={20} />,
+      icon: <TicketPercent size={20} />,
       path: "/dashboard/coupon",
     },
     {

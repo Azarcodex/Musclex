@@ -3,6 +3,9 @@ import Category from "../../models/products/category.js";
 export const addCategory = async (req, res) => {
   try {
     const { catgName } = req.body;
+    if (!catgName) {
+      return res.status(401).json({ message: "Please enter valid category" });
+    }
     const existing = await Category.findOne({ catgName });
     if (existing)
       return res.status(400).json({ message: "Category already exists" });

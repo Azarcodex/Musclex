@@ -1,11 +1,39 @@
 import React, { useState } from "react";
-import { Search, Edit2, Eye, Trash2, Plus } from "lucide-react";
+import { Search, Edit2, Eye, Trash2, Plus, EyeOff } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useGetProducts } from "../../hooks/vendor/useGetProducts";
+import { useProductVisible } from "../../hooks/vendor/useProductVisible";
+import { confirm } from "../../components/utils/Confirmation";
+import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
+import { useProductDelete } from "../../hooks/vendor/useProductDelete";
 
 const ProductsTable = () => {
   const navigate = useNavigate();
-  const { data, isLoading } = useGetProducts();
+  const queryClient = useQueryClient();
+  const [page, setPage] = useState(1);
+  const { data, isLoading } = useGetProducts(page);
+  const { mutate: Delete } = useProductDelete();
+  console.log(data?.data);
+  const { mutate: visibility } = useProductVisible();
+  // console.log(data);
+  const HandleVisible = async (id) => {
+    const wait = await confirm({ message: "Do you want to make changes" });
+    if (wait) {
+      visibility(
+        { id: id },
+        {
+          onSuccess: (data) => {
+            toast.message(`${data?.message}`);
+            queryClient.invalidateQueries(["products"]);
+          },
+          onError: (err) => {
+            toast.error(`${err.response.data?.message}`);
+          },
+        }
+      );
+    }
+  };
   const [searchQuery, setSearchQuery] = useState("");
   console.log(data?.data);
   if (isLoading)
@@ -16,7 +44,30 @@ const ProductsTable = () => {
   // const filteredProducts = products.filter((p) =>
   //   p.name.toLowerCase().includes(searchQuery.toLowerCase())
   // );
-
+  const HandlePrev = () => {
+    if (page > 1) {
+      setPage((prev) => prev - 1);
+    }
+  };
+  const HandleNext = () => {
+    if (page < data?.totalPages) {
+      setPage((prev) => prev + 1);
+    }
+  };
+  const HandleDelete = async (id) => {
+    const wait = await confirm({ message: "Do you want to delete it" });
+    if (wait) {
+      Delete(
+        { id: id },
+        {
+          onSuccess: (data) => {
+            toast.message(`${data.message}`);
+            queryClient.invalidateQueries(["products"]);
+          },
+        }
+      );
+    }
+  };
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
@@ -86,17 +137,30 @@ const ProductsTable = () => {
                   </td>
                   <td className="py-4 px-6">
                     <div className="flex items-center gap-2">
-                      <button className="p-2 hover:bg-gray-100 rounded-md">
+                      <button
+                        onClick={() =>
+                          navigate(`/vendor/dashboard/products/edit/${p._id}`, {
+                            state: { product: p },
+                          })
+                        }
+                        className="p-2 hover:bg-gray-100 rounded-md"
+                      >
                         <Edit2 size={16} />
-                      </button>
-                      <button className="p-2 hover:bg-gray-100 rounded-md">
-                        <Eye size={16} />
-                      </button>
-                      <button className="p-2 hover:bg-gray-100 rounded-md">
-                        <Trash2 size={16} />
                       </button>
                       <button
                         className="p-2 hover:bg-gray-100 rounded-md"
+                        onClick={() => HandleVisible(p._id)}
+                      >
+                        {p.isDeleted ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                      <button
+                        className="p-2 hover:bg-gray-100 rounded-md"
+                        onClick={() => HandleDelete(p._id)}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                      <button
+                        className="p-2 bg-purple-700 rounded-sm text-white hover:bg-purple-400"
                         onClick={() =>
                           navigate(`/vendor/dashboard/variant/add/${p._id}`)
                         }
@@ -104,12 +168,12 @@ const ProductsTable = () => {
                         Add Variant
                       </button>
                       <button
-                        className="p-2 hover:bg-gray-100 rounded-md"
+                        className="p-2 bg-pink-500 text-white hover:bg-pink-400 rounded-sm"
                         onClick={() =>
                           navigate(`/vendor/dashboard/variant/${p._id}`)
                         }
                       >
-                        Variants
+                        All variants
                       </button>
                     </div>
                   </td>
@@ -123,6 +187,28 @@ const ProductsTable = () => {
         <div className="mt-4 text-sm text-gray-600 text-right">
           Showing {products.length} Products
         </div>
+      </div>
+      {/* Pagination */}
+      <div className="flex justify-between items-center mt-4">
+        <button
+          onClick={HandlePrev}
+          disabled={page <= 1}
+          className="px-3 py-1 border rounded disabled:opacity-50"
+        >
+          Prev
+        </button>
+
+        <span className="font-bold text-purple-900">
+          Page {page} of {data?.totalPages}
+        </span>
+
+        <button
+          onClick={HandleNext}
+          // disabled={page >= totalPages}
+          className="px-3 py-1 border rounded disabled:opacity-50"
+        >
+          Next
+        </button>
       </div>
     </div>
   );

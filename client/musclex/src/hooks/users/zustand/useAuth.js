@@ -15,3 +15,16 @@ export const userAuthStore = create((set, get) => ({
     set({ token: null });
   },
 }));
+
+//vendor
+export const usevendorAuthStore = create((set, get) => ({
+  token: localStorage.getItem("vendor") || null,
+  getToken: () => {
+    const token = get().token;
+    return token;
+  },
+  clearToken: () => {
+    localStorage.removeItem("vendor");
+    set({ token: null });
+  },
+}));

@@ -25,7 +25,7 @@ const Login = () => {
     login(values);
   };
   useEffect(() => {
-    const token = localStorage.getItem("admin_token");
+    const token = localStorage.getItem("admin");
     if (token) {
       navigate("/admin/dashboard", { replace: true });
     }

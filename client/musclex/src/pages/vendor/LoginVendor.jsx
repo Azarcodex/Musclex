@@ -5,6 +5,8 @@ import { GoogleLogin } from "@react-oauth/google";
 import { Link, useNavigate } from "react-router-dom";
 import { useVendorLogin } from "../../hooks/vendor/useVendorLogin";
 import { toast } from "sonner";
+import { useEffect } from "react";
+import { setAuthtoken } from "../../api/axios";
 export default function LoginVendor() {
   const navigate = useNavigate();
   const {
@@ -14,7 +16,21 @@ export default function LoginVendor() {
   } = useForm();
   const { mutate, isError, error, isPending } = useVendorLogin();
   const submitLogin = (data) => {
-    mutate(data);
+    mutate(data, {
+      onSuccess: (data) => {
+        console.log(data);
+        if (data?.token) {
+          setAuthtoken(data.token, data?.vendor.role);
+          toast.success(`${data.message}`);
+          setTimeout(() => {
+            navigate("/vendor/dashboard", { replace: true });
+          }, 120);
+        }
+      },
+      onError: (err) => {
+        toast.error(`${err.response.data.message}`);
+      },
+    });
   };
   return (
     <div className="min-h-screen flex">

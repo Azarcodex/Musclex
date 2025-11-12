@@ -1,19 +1,10 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Navbar } from "../../components/user/Navbar";
 import Footer from "../../components/user/Footer";
-import { useGetProducts } from "../../hooks/users/useGetProducts";
+// import { useGetProducts } from "../../hooks/users/useGetProducts";
 import ProductCard from "../../components/user/ProductCard";
-import {
-  ArrowDown10,
-  ArrowDownAZ,
-  ArrowDownIcon,
-  ArrowRightFromLineIcon,
-  ChevronDown,
-  DropletIcon,
-  MoveRightIcon,
-  WindArrowDown,
-} from "lucide-react";
 import FilterSidebar from "../../components/user/FilterSide";
+import { useProductFetch } from "../../hooks/users/useProductFetch";
 
 const Products = () => {
   const [selectedCategory, setSelectedCategory] = useState([]);
@@ -23,22 +14,33 @@ const Products = () => {
   const [sortValue, setSortValue] = useState("");
   const [discountValue, setDiscountValue] = useState("");
   // console.log(typeof discountValue);
-  const { data, isPending } = useGetProducts(
+  // const { data, isPending } = useGetProducts(
+  //   selectedCategory,
+  //   selectedBrands,
+  //   priceRange,
+  //   selectedRatings,
+  //   sortValue,
+  //   discountValue
+  // );
+  const { data } = useProductFetch(
     selectedCategory,
     selectedBrands,
     priceRange,
     selectedRatings,
-    sortValue,
-    discountValue
+    sortValue
   );
-    console.log(data)
-  // console.log(data);
-  // if(isPending) return <h1>loading</h1>
+  console.log(data);
+  // const dispatch = useDispatch();
+  // useEffect(() => {
+  //   if (data?.result) {
+  //     dispatch(setVariants(data?.result));
+  //   }
+  // }, [data, dispatch]);
   return (
     <div className="min-h-screen w-full">
       <Navbar />
       <div>
-        <div className="mt-10 bg-gradient-to-br from-purple-50 to-blue-50 border-b-2 border-purple-950 flex items-center justify-between w-1/2 mx-auto px-3">
+        <div className="mt-10 bg-white border-b-2 border-purple-950 flex items-center justify-evenly w-1/2 mx-auto px-3">
           {/*Extra filter options */}
 
           <select
@@ -52,10 +54,10 @@ const Products = () => {
             <option value="sort10">DESC</option>
           </select>
 
-          <h3 className="flex items-center gap-2">
+          {/* <h3 className="flex items-center gap-2">
             <span>xxx</span>
             <ChevronDown className="w-4 h-4" />
-          </h3>
+          </h3> */}
           <select
             value={discountValue}
             onChange={(e) => setDiscountValue(e.target.value)}

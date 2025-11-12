@@ -11,8 +11,8 @@ export default function VerifyOTP() {
     handleSubmit,
     formState: { errors },
   } = useForm();
-  const { mutate, isPending, error, isError} = useOTP();
-  const { mutate: resend, isPending: isLoading ,data} = useResendOTP();
+  const { mutate, isPending, error, isError } = useOTP();
+  const { mutate: resend, isPending: isLoading, data } = useResendOTP();
   const userId = localStorage.getItem("userId");
   const email = localStorage.getItem("email");
   const [time, setTime] = useState(0);
@@ -29,7 +29,7 @@ export default function VerifyOTP() {
   //---
   const onSubmit = (data) => {
     mutate(
-      { ...data, userId },
+      { ...data, email },
       {
         onSuccess: () => {
           toast.success("otp has been Verified");
@@ -53,7 +53,7 @@ export default function VerifyOTP() {
       { email, userId },
       {
         onSuccess: (data) => {
-          console.log(data)
+          console.log(data);
           toast.info(`${data.message}`);
           setTime(30);
         },
@@ -122,8 +122,9 @@ export default function VerifyOTP() {
             {/* Resend Button */}
             <button
               type="button"
-              className="w-full bg-blue-900 hover:bg-blue-800 text-white font-semibold py-3 px-4 rounded-md transition duration-200 text-sm uppercase tracking-wide"
+              className="disabled:bg-gray-400  disabled:cursor-not-allowed w-full bg-blue-900 hover:bg-blue-800 text-white font-semibold py-3 px-4 rounded-md transition duration-200 text-sm uppercase tracking-wide"
               onClick={HandleResend}
+              disabled={time > 0}
             >
               {isLoading ? "RESENDING" : "RESEND OTP"}
             </button>

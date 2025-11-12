@@ -21,13 +21,22 @@ import Products from "./pages/user/Products";
 import ProductVendor from "./pages/admin/ProductVendor";
 import ProductsTable from "./pages/vendor/VendorProduct";
 import AddProductForm from "./pages/vendor/ProductForm";
-import AddCategoryForm from "./pages/vendor/CategoryForm";
 import AddBrandForm from "./pages/vendor/BrandForm";
 import VariantForm from "./pages/vendor/VariantForm";
-import CategoryList from "./pages/vendor/CategoryList";
 import BrandList from "./pages/vendor/BrandList";
 import VariantList from "./pages/vendor/VariantList";
 import OwnProducts from "./pages/admin/OwnProducts";
+import Category from "./pages/admin/Category";
+import EditProduct from "./pages/vendor/EditProduct";
+import VendorRoute, { VendorProtection } from "./components/vendor/vendorRoute";
+import ProductList from "./pages/user/ProductList";
+import WishList from "./pages/user/WishList";
+import EditVariant from "./pages/vendor/EditVariant";
+import Profile from "./pages/user/UserPage/Profile";
+import UserProfile from "./pages/user/UserPage/UserProfile";
+import AddressesPage from "./pages/user/UserPage/Address";
+import CartPage from "./pages/user/CartPage";
+import CheckoutPage from "./pages/user/CheckoutPage";
 const App = () => {
   return (
     <>
@@ -48,8 +57,7 @@ const App = () => {
           <Route path="vendors/list" element={<Vendors />} />
           <Route path="vendors/list/products" element={<ProductVendor />} />
           <Route path="vendors/list/products/:id" element={<OwnProducts />} />
-          <Route path="category/add" element={<AddCategoryForm />} />
-          <Route path="category/list" element={<CategoryList />} />
+          <Route path="category" element={<Category />} />
         </Route>
         {/* <Route
           path="*"
@@ -69,16 +77,43 @@ const App = () => {
         <Route path="/user/demo" element={<Demo />} />
         <Route path="/user/reset" element={<ResetPassword />} />
         <Route path="/user/products" element={<Products />} />
+        <Route path="/user/products/:id" element={<ProductList />} />
+        <Route path="/user/wishlist" element={<WishList />} />
+        <Route path="/user/cart" element={<CartPage />} />
+        <Route path="/user/checkout" element={<CheckoutPage />} />
+        <Route path="/user/userdetails" element={<UserProfile />}>
+          <Route path="profile" element={<Profile />} />
+          <Route path="address" element={<AddressesPage />} />
+        </Route>
         //vendor side//
         <Route path="/vendor/register" element={<RegisterVendor />} />
-        <Route path="/vendor/login" element={<LoginVendor />} />
-        <Route path="/vendor/dashboard" element={<VendorDasboard />}>
+        <Route
+          path="/vendor/login"
+          element={
+            <VendorProtection>
+              <LoginVendor />
+            </VendorProtection>
+          }
+        />
+        <Route
+          path="/vendor/dashboard"
+          element={
+            <VendorRoute>
+              <VendorDasboard />
+            </VendorRoute>
+          }
+        >
           <Route path="products/list" element={<ProductsTable />} />
           <Route path="products/add" element={<AddProductForm />} />
+          <Route path="products/edit/:productId" element={<EditProduct />} />
           <Route path="brand/list" element={<BrandList />} />
           <Route path="brand/add" element={<AddBrandForm />} />
           <Route path="variant/add/:productId" element={<VariantForm />} />
           <Route path="variant/:productId" element={<VariantList />} />
+          <Route
+            path="variant/:productId/edit/:variantId"
+            element={<EditVariant />}
+          />
         </Route>
       </Routes>
     </>

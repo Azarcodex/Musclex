@@ -34,6 +34,7 @@ export const registerVendor = async (req, res) => {
 export const loginVendor = async (req, res) => {
   try {
     const { email, password } = req.body;
+    console.log(email,password)
     const vendor = await Vendor.findOne({ email });
     if (!vendor) {
       return res.json({ success: false, message: "Vendor not exist" });
@@ -60,6 +61,7 @@ export const loginVendor = async (req, res) => {
       vendor: vendor,
     });
   } catch (error) {
+    console.log(error)
     res.status(500).json({ error: error.error });
   }
 };

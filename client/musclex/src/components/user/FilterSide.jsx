@@ -17,11 +17,11 @@ export default function FilterSidebar({
   const [isCategoryOpen, setIsCategoryOpen] = useState(true);
   const { data, isPending } = usegetCategories();
   const { data: Brands, isPending: isLoading } = useGetBrands();
+  // console.log(selectedRatings)
   const toggleCategory = (id) => {
     setSelectedCategory((prev) =>
       prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]
     );
-    console.log(selectedRatings);
   };
   // console.log(selectedRatings)
   const toggleRating = (rating) => {

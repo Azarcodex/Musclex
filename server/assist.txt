@@ -1,10 +1,76 @@
-import express from "express";
-import { upload } from "../utils/multerConfig.js";
-import { addVariant, getVariantsByProduct } from "../controllers/variantController.js";
+import Order from "../../models/user/Order.js";
+import Cart from "../../models/user/Cart.js";
+import Address from "../../models/user/Address.js";
 
-const router = express.Router();
+export const placeOrder = async (req, res) => {
+  try {
+    const userID = req.user._id; // assuming user is authenticated
+    const { addressID, paymentMethod } = req.body;
 
-router.post("/", upload.array("images", 5), addVariant);
-router.get("/:productId", getVariantsByProduct);
+    // 1️⃣ Fetch user's cart
+    const cartItems = await Cart.find({ userID })
+      .populate("productID", "name")
+      .populate("variantID", "size flavour");
 
-export default router;
+    if (!cartItems.length) {
+      return res.status(400).json({ success: false, message: "Cart is empty" });
+    }
+
+    // 2️⃣ Fetch address snapshot
+    const address = await Address.findById(addressID);
+    if (!address) {
+      return res.status(404).json({ success: false, message: "Address not found" });
+    }
+
+    // 3️⃣ Create shipping snapshot
+    const shippingAddress = {
+      fullName: address.fullName,
+      phone: address.phone,
+      pincode: address.pincode,
+      state: address.state,
+      city: address.city,
+      addressLine: address.addressLine,
+      landmark: address.landmark,
+      addressType: address.addressType,
+    };
+
+    // 4️⃣ Map ordered items
+    const orderedItems = cartItems.map((item) => ({
+      productID: item.productID._id,
+      variantID: item.variantID._id,
+      quantity: item.quantity,
+      price: item.price,
+    }));
+
+    // 5️⃣ Calculate totals
+    const totalPrice = orderedItems.reduce(
+      (acc, curr) => acc + curr.price * curr.quantity,
+      0
+    );
+
+    const order = new Order({
+      userID,
+      addressID,
+      orderedItems,
+      shippingAddress,
+      totalPrice,
+      finalAmount: totalPrice, // no discount for now
+      paymentMethod,
+      paymentStatus: paymentMethod === "COD" ? "Pending" : "Paid",
+    });
+
+    await order.save();
+
+    // 6️⃣ Clear the user's cart
+    await Cart.deleteMany({ userID });
+
+    res.status(201).json({
+      success: true,
+      message: "Order placed successfully",
+      order,
+    });
+  } catch (error) {
+    console.error("Order error:", error);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};

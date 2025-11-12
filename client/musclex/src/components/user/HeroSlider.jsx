@@ -4,35 +4,36 @@ import spot from "../../assets/spot.png";
 const slides = [
   {
     id: 1,
-    tagline: "Premium Gym Essentials For Every Athlete...",
-    title: "Upgrade Your Fitness Gear",
+    tagline: "Train Hard, Stay Strong.",
+    title: "Build Your Ultimate Home Gym",
     description:
-      "Discover the latest dumbbells, shoes, and supplements to elevate your workout. High-quality gym essentials for every fitness enthusiast. Gear up for strength, endurance, and style.",
+      "From adjustable dumbbells to durable mats, get everything you need to train like a pro right at home. Designed for endurance, precision, and peak performance.",
     image:
       "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800&q=80",
-    discount: "50% off",
+    discount: "35% off",
   },
   {
     id: 2,
-    tagline: "Premium Gym Essentials For Every Athlete...",
-    title: "Upgrade Your Fitness Gear",
+    tagline: "Fuel Every Rep, Every Set.",
+    title: "Top-Quality Gym Accessories",
     description:
-      "Discover the latest dumbbells, shoes, and supplements to elevate your workout. High-quality gym essentials for every fitness enthusiast. Gear up for strength, endurance, and style.",
+      "Discover gloves, straps, and gear that keep up with your toughest workouts. Built for comfort, grip, and long-lasting support — made for serious lifters.",
     image:
       "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800&q=80",
-    discount: "50% off",
+    discount: "25% off",
   },
   {
     id: 3,
-    tagline: "Premium Gym Essentials For Every Athlete...",
-    title: "Upgrade Your Fitness Gear",
+    tagline: "Stronger Every Day.",
+    title: "Level Up Your Fitness Routine",
     description:
-      "Discover the latest dumbbells, shoes, and supplements to elevate your workout. High-quality gym essentials for every fitness enthusiast. Gear up for strength, endurance, and style.",
+      "Upgrade your daily grind with elite equipment that inspires progress. Whether you're bulking, cutting, or maintaining, find tools that match your goals.",
     image:
       "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800&q=80",
     discount: "50% off",
   },
 ];
+
 
 export function HeroSlider() {
   const [currentSlide, setCurrentSlide] = useState(0);

@@ -3,24 +3,42 @@ import User from "../../models/users/user.js";
 
 export const otpController = async (req, res) => {
   try {
-    const { userId, otp } = req.body;
-    const user = await User.findById( userId );
-    if (!user) {
-      return res.status(404).json({ message: "User not Found" });
+    const { email, otp } = req.body;
+    console.log(email,otp)
+    if (!email || !otp) {
+      return res.status(400).json({ message: "No email and token" });
     }
-    const otpData = await OTP.findOne({ userId, otp });
-    if (!otpData) {
-      return res.status(400).json({ message: "Otp is invalid" });
+    const pending = await OTP.findOne({ "pendingData.email": email });
+    if (!pending) {
+      return res.status(400).json({ message: "no pending registration" });
     }
-    if (otpData.expiresAt < Date.now()) {
-      return res.status(400).json({ message: "Otp is expired" });
+    const verify = await OTP.findOne({ otp: otp });
+    if (!verify) {
+      return res.status(400).json({ message: "Invalid otp detected" });
     }
-    user.isVerified = true;
-    await user.save();
-    await otpData.deleteOne();
-    res.json({ success: true, message: "OTP is correct,Account is activated" });
+    if (pending.expiresAt && pending.expiresAt < new Date()) {
+      await OTP.deleteOne({ _id: pending._id });
+      return res.status(410).json({ message: "otp is expired" });
+    }
+    const { name, password } = pending.pendingData;
+    const exist = await User.findOne({ email: email });
+    if (exist) {
+      await OTP.deleteOne({ _id: pending._id });
+      return res.status(400).json({ message: "User already exists" });
+    }
+    const newUser = await User.create({
+      name,
+      email,
+      password,
+      isVerified: true,
+    });
+    await OTP.deleteOne({ _id: pending._id });
+    return res.status(201).json({
+      message: "Registration complete. User created and verified.",
+      user: newUser,
+    });
   } catch (error) {
-    console.log(error)
+    console.log(error);
     res.status(500).json({ message: error.error });
   }
 };

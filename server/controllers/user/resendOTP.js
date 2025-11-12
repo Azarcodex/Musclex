@@ -16,15 +16,15 @@ export const resendOTP = async (req, res) => {
       const otpCreatedx = otp.otpCreated ?? otp.createdAt ?? null;
       const otpCreatedDate = new Date(otpCreatedx);
       const diff = (now - otpCreatedDate) / 1000;
-      console.log(diff);
-      if (diff < 60) {
-        console.log("hi");
-        const wait = Math.ceil(60 - diff);
-        console.log(wait);
-        return res.json({
-          message: `Please wait for ${wait} to resend OTP`,
-        });
-      }
+      console.log("kkk"+diff);
+      // if (diff < 60) {
+      //   console.log("hi");
+      //   const wait = Math.ceil(60 - diff);
+      //   console.log(wait);
+      //   return res.json({
+      //     message: `Please wait for ${wait} to resend OTP`,
+      //   });
+      // }
     }
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
     const otpExpire = new Date(Date.now() + 10 * 60 * 1000);

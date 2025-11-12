@@ -3,143 +3,109 @@ import Variant from "../../../models/products/Variant.js";
 
 export const getProducts = async (req, res) => {
   try {
-    const {
-      categories,
-      brands,
-      minPrice,
-      maxPrice,
-      rating,
-      sortMode,
-      discountfav,
-    } = req.query;
+    const URL = process.env.BASE_URL;
+    const { category, brands, minPrice, maxPrice, rating, sortValue } =
+      req.query;
 
-    // Base URL for image linking
-    const baseURL = process.env.BASE_URL || "http://localhost:5000";
-
-    // STEP 1️⃣ → Build variant filter
+    // Base queries
+    const productQuery = { isDeleted: false };
     const variantQuery = { isListed: true };
 
     if (minPrice && maxPrice) {
-      variantQuery.salePrice = {
+      variantQuery["size.salePrice"] = {
         $gte: Number(minPrice),
         $lte: Number(maxPrice),
       };
     }
 
-    let discountApplied = false;
-    if (discountfav && !isNaN(discountfav) && Number(discountfav) > 0) {
-      discountApplied = true;
-      variantQuery.discount = { $gte: Number(discountfav) };
-    }
-
-    // STEP 2️⃣ → Fetch variants
     const variants = await Variant.find(variantQuery).lean();
 
-    // STEP 3️⃣ → Extract product IDs from variants
-    const productIds = [
-      ...new Set(variants.map((v) => v.productId.toString())),
-    ];
+    // Map product IDs from variants
+    const variantProductIds = variants.map((v) => v.productId.toString());
+    const productIds = [...new Set(variantProductIds)];
 
-    // STEP 4️⃣ → Build product filter
-    const productQuery = { isDeleted: false, status: "Active" };
-
-    if (discountApplied && productIds.length > 0) {
-      productQuery._id = { $in: productIds };
-    }
-
-    if (categories) {
-      const catArray = Array.isArray(categories)
-        ? categories
-        : categories.split(",");
+    if (category) {
+      const catArray = Array.isArray(category) ? category : category.split(",");
       productQuery.catgid = { $in: catArray };
     }
-
     if (brands) {
       const brandArray = Array.isArray(brands) ? brands : brands.split(",");
       productQuery.brandID = { $in: brandArray };
     }
-
     if (rating) {
-      const rateArray = Array.isArray(rating) ? rating : rating.split(",");
-      productQuery.Avgrating = { $in: rateArray };
+      const ratingArray = Array.isArray(rating) ? rating : rating.split(",");
+      productQuery.Avgrating = { $in: ratingArray };
     }
 
-    // STEP 5️⃣ → Fetch products with populated brand & category
     const products = await Product.find(productQuery)
-      .populate("brandID", "brand_name")
       .populate("catgid", "catgName")
+      .populate("brandID", "brand_name")
       .lean();
 
-    // STEP 6️⃣ → Merge products with their variants
     const result = products
       .map((product) => {
-        const productVariants = variants
+        const relatedVariants = variants
           .filter((v) => v.productId.toString() === product._id.toString())
           .map((v) => ({
             ...v,
-            images: (v.images || []).map(
-              (img) => `http://localhost:3000${img}`
-            ),
+            images: (v.images || []).map((img) => `${URL}${img}`),
+
+            sizes: v.size?.map((s) => ({
+              ...s,
+              salePrice: Number(s.salePrice),
+              oldPrice: Number(s.oldPrice),
+              discount: Math.floor(
+                ((s.oldPrice - s.salePrice) / s.oldPrice) * 100
+              ),
+            })),
           }));
 
-        // Pick default variant (first one)
-        const defaultVariant = productVariants[0];
-
+        const defaultVariant = relatedVariants[0];
         if (!defaultVariant) return null;
 
-        // Determine sale price
-        const salePrice = defaultVariant.salePrice || 0;
-
-        // Pick first image or placeholder
-        const prevImage = defaultVariant.images?.[0] || `${baseURL}/place.png`;
-
-        // Calculate discount if not already in variant
-        const discount = defaultVariant.oldPrice
-          ? Math.round(
-              ((defaultVariant.oldPrice - defaultVariant.salePrice) /
-                defaultVariant.oldPrice) *
-                100
-            )
-          : 0;
+        const defaultSize = defaultVariant.sizes?.[0];
+        if (!defaultSize) return null;
 
         return {
           ...product,
-          brand: product.brandID?.brand_name || "Unknown Brand",
-          category: product.catgid?.catgName || "Unknown Category",
-          prevImage,
-          salePrice,
-          discount,
-          variants: productVariants,
+          brand: product.brandID?.brand_name,
+          category: product.catgid?.catgName,
+          prevImage: defaultVariant.images?.[0],
+          discount: defaultSize.discount || 0,
+          variants: defaultVariant,
+          size: defaultSize,
         };
       })
-      .filter(Boolean); // remove nulls (products without variants)
+      .filter(Boolean);
 
-    // STEP 7️⃣ → Sorting
-    switch (sortMode) {
+    switch (sortValue) {
       case "sortAZ":
         result.sort((a, b) => a.name.localeCompare(b.name));
         break;
       case "sortZA":
         result.sort((a, b) => b.name.localeCompare(a.name));
         break;
-      case "sort01": // price low → high
-        result.sort((a, b) => (a.salePrice || 0) - (b.salePrice || 0));
+      case "sort01":
+        result.sort((a, b) => {
+          const aPrice = a.variants[0]?.sizes?.[0]?.salePrice || 0;
+          const bPrice = b.variants[0]?.sizes?.[0]?.salePrice || 0;
+          return aPrice - bPrice;
+        });
         break;
-      case "sort10": // price high → low
-        result.sort((a, b) => (b.salePrice || 0) - (a.salePrice || 0));
+      case "sort10":
+        result.sort((a, b) => {
+          const aPrice = a.variants[0]?.sizes?.[0]?.salePrice || 0;
+          const bPrice = b.variants[0]?.sizes?.[0]?.salePrice || 0;
+          return bPrice - aPrice;
+        });
         break;
       default:
         result.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     }
 
-    // STEP 8️⃣ → Send response
     res.status(200).json({ success: true, result });
-  } catch (err) {
-    console.error("❌ getProducts error:", err);
-    res.status(500).json({
-      success: false,
-      message: "Cannot load products",
-      error: err.message,
-    });
+  } catch (error) {
+    console.error("getProducts error:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 };

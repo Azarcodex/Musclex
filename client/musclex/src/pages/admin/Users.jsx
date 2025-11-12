@@ -6,24 +6,30 @@ import { confirm } from "../../components/utils/Confirmation";
 
 const Users = () => {
   const [search, setSearch] = useState("");
+  const [debounce, setDebounce] = useState(search);
   const [page, setpage] = useState(1);
-  const { data, isPending } = useGetUsers(page, search);
+  const { data, isPending } = useGetUsers(page, debounce);
   const { mutate: toggleVerify, isPending: isToggling } = useVerifyUser();
   console.log(data?.users);
   const handlePrev = () => {
     if (page > 1) setpage((prev) => prev - 1);
   };
   const handleNext = () => {
-    console.log("clicked");
+    // console.log("clicked");
     if (page < data?.pagination?.totalPages) {
       setpage((prev) => prev + 1);
     }
   };
-  const HandleSearch=(e)=>
-  {
-    setSearch(e.target.value)
-    setpage(1)
-  }
+  const HandleSearch = (e) => {
+    setSearch(e.target.value);
+    setpage(1);
+  };
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setDebounce(search);
+    }, 500);
+    return () => clearTimeout(timeout);
+  });
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString("en-US", {
@@ -34,14 +40,12 @@ const Users = () => {
       minute: "2-digit",
     });
   };
-  const HandleToggle=async(id)=>
-  {
-    const wait=await confirm({message:"Do you want to make changes"})
-    if(wait)
-    {
-      toggleVerify(id)
+  const HandleToggle = async (id) => {
+    const wait = await confirm({ message: "Do you want to make changes" });
+    if (wait) {
+      toggleVerify(id);
     }
-  }
+  };
   return (
     <div className="w-full">
       <div className="bg-violet-100 place-self-end px-1 py-1.5 mb-1 rounded-sm focus:border border-gray-200">

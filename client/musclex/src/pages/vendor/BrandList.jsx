@@ -67,8 +67,8 @@ const BrandList = () => {
         {/* Table */}
         <div className="overflow-x-auto p-6">
           <table className="w-full border-collapse">
-            <thead>
-              <tr className="bg-purple-100 text-purple-800 text-left">
+            {/* <thead>
+              <tr className="bg-purple-100 text-purple-800">
                 <th className="py-3 px-4 font-semibold flex items-center gap-2">
                   <Hash className="w-4 h-4" /> Index
                 </th>
@@ -77,13 +77,14 @@ const BrandList = () => {
                 </th>
                 {/* <th className="py-3 px-4 font-semibold flex items-center gap-2">
                   <Boxes className="w-4 h-4" /> No. of Products
-                </th> */}
-                <th className="py-3 px-4 font-semibold flex items-center gap-2">
-                  <Calendar className="w-4 h-4" /> Created Date
-                </th>
+                // </th> */}
+                {/* // <th className="py-3 px-4 font-semibold flex items-center gap-2">
+                //   <Calendar className="w-4 h-4" /> Created Date
+                // </th> */}
                 {/* <th className="py-3 px-4 font-semibold">Action</th> */}
-              </tr>
-            </thead>
+              {/* </tr>
+            </thead> */} 
+            
             <tbody>
               {data?.map((brand, index) => (
                 <tr

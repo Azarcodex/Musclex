@@ -1,24 +1,14 @@
 import api from "../../api/axios";
 
 // ✅ Add variant (with multiple images)
-export const addVariant = async (data) => {
-  const formData = new FormData();
-  Object.keys(data).forEach((key) => {
-    if (key === "images") {
-      for (let i = 0; i < data.images.length; i++) {
-        formData.append("images", data.images[i]);
-      }
-    } else {
-      formData.append(key, data[key]);
-    }
+export const addVariant = async (formdata) => {
+  const response = await api.post(`/api/vendor/variant/add`, formdata, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
   });
-// router.post("/variant/add", upload.array("images", 5),addVariant );
-  const res = await api.post("api/vendor/variant/add", formData, {
-    headers: { "Content-Type": "multipart/form-data" },
-  });
-  return res.data;
+  return response.data;
 };
-
 
 // ✅ Get variants by productId
 export const getVariantsByProduct = async (productId) => {
@@ -26,3 +16,28 @@ export const getVariantsByProduct = async (productId) => {
   return res.data.variants;
 };
 
+export const productRelatedVariants = async (productId) => {
+  const res = await api.get(`/api/vendor/variant/product/${productId}`);
+  // console.log(res.data)
+  return res.data;
+};
+//edit the variant
+export const variantEdit = async ({ variantId, formdata }) => {
+  const res = await api.patch(
+    `/api/vendor/variant/edit/${variantId}`,
+    formdata,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    }
+  );
+  return res.data;
+};
+//delete variant image
+export const variantImageRemove = async (variantId, src) => {
+  const res = await api.delete(`/api/vendor/variant/image`, {
+    data: { variantId, src },
+  });
+  return res.data;
+};

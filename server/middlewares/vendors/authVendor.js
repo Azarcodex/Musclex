@@ -4,6 +4,7 @@ import Vendor from "../../models/vendors/Vendor.js";
 export const VendorProtection = async (req, res, next) => {
   try {
     const headers = req.headers.authorization;
+    // console.log(headers)
     if (!headers || !headers.startsWith("Bearer")) {
       return res.status(401).json({ message: "No token Provided" });
     }

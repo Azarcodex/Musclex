@@ -5,9 +5,11 @@ export const getVendors = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     // console.log(page);
     const limit = parseInt(req.query.limit);
+    const {search}=req.query
+    const query=search?{$or:[{shopName:{$regex:search,$options:"i"}},{email:{$regex:search,$options:"i"}}]}:{}
     const totalVendors = await Vendor.countDocuments();
     const skip = (page - 1) * limit;
-    const vendors = await Vendor.find()
+    const vendors = await Vendor.find(query)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);

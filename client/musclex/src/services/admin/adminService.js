@@ -13,13 +13,15 @@ export const VerifyUsers = async (userId) => {
   return response.data;
 };
 //fetch vendors
-export const fetchVendors = async ({ page }) => {
-  const response = await api.get(`/api/admin/getVendors?page=${page}&limit=4`);
+export const fetchVendors = async ({ page, search }) => {
+  const response = await api.get(
+    `/api/admin/getVendors?page=${page}&limit=4&search=${search}`
+  );
   return response.data;
 };
 //status control Vendors
 export const UpdateStatusVendors = async ({ vendorId, status }) => {
-  const response = await api.patch(`/api/admin/${vendorId}/status`, { status });
+  const response = await api.patch(`/api/admin/${vendorId}/status`, { status },);
   return response.data;
 };
 //product permission controller
@@ -29,13 +31,25 @@ export const ProductPermission = async ({ vendorId }) => {
 };
 
 //fetch vendor products
-export const vendorProducts = async () => {
-  const response = await api.get("/api/admin/vendor/products");
+export const vendorProducts = async ({ page, limit, debounce }) => {
+  const response = await api.get(
+    `/api/admin/vendor/products?page=${page}&limit=${limit}&search=${debounce}`
+  );
   return response.data;
 };
 
 //fetch own vendor products
 export const vendorOwnProducts = async (id) => {
   const response = await api.get(`/api/admin/vendor/products/${id}`);
+  return response.data;
+};
+//category controller
+export const categoryController = async ({ id }) => {
+  const response = await api.post(`/api/admin/category/view/${id}`);
+  return response.data;
+};
+
+export const getCategoryAdmin = async () => {
+  const response = await api.get(`/api/admin/category/all`);
   return response.data;
 };

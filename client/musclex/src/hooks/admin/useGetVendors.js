@@ -1,10 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { fetchVendors } from "../../services/admin/adminService";
 
-export const useGetVendors = (page) => {
+export const useGetVendors = (page, search) => {
   return useQuery({
-    queryKey: ["vendors", page],
-    queryFn: () => fetchVendors({page}),
+    queryKey: ["vendors", page, search],
+    queryFn: () => fetchVendors({ page, search }),
     keepPreviousData: true,
   });
 };

@@ -1,0 +1,43 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  AddtoCart,
+  getCart,
+  QuantityChange,
+  removeFromCart,
+} from "../../services/user/Cart";
+export const useAddToCart = () => {
+  return useMutation({
+    mutationFn: AddtoCart,
+  });
+};
+//get cart
+export const useGetCart = () => {
+  return useQuery({
+    queryKey: ["cart"],
+    queryFn: getCart,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    staleTime: 0,
+  });
+};
+//delete
+export const useRemoveCart = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: removeFromCart,
+    onSuccess: () => {
+      queryClient.invalidateQueries(["cart"]);
+    },
+  });
+};
+//quantitychange
+export const useQuantityChange = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, action }) => QuantityChange(id, action),
+    onSuccess: () => {
+      queryClient.invalidateQueries(["cart"]);
+    },
+  });
+};

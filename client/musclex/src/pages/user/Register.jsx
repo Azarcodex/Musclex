@@ -13,59 +13,6 @@ const Register = () => {
     formState: { errors },
   } = useForm();
   const { mutate, isError, error, isPending } = useRegister();
-  //   return (
-  //     // <div className="min-h-screen flex justify-center items-center bg-gray-100">
-  //     //   <form
-  //     //     // onSubmit={handleSubmit(onSubmit)}
-  //     //     className="p-8 bg-white shadow-lg rounded-md w-full max-w-sm space-y-4"
-  //     //   >
-  //     //     <h2 className="text-2xl font-bold text-center text-violet-800">
-  //     //       Register
-  //     //     </h2>
-
-  //     //     <input
-  //     //       {...register("name", { required: true })}
-  //     //       type="text"
-  //     //       placeholder="Name"
-  //     //       className="border w-full p-2 rounded"
-  //     //     />
-
-  //     //     <input
-  //     //       {...register("email", { required: true })}
-  //     //       type="email"
-  //     //       placeholder="Email"
-  //     //       className="border w-full p-2 rounded"
-  //     //     />
-
-  //     //     <input
-  //     //       {...register("password", { required: true })}
-  //     //       type="password"
-  //     //       placeholder="Password"
-  //     //       className="border w-full p-2 rounded"
-  //     //     />
-
-  //     //     <input
-  //     //       {...register("phoneNumber", { required: true })}
-  //     //       type="text"
-  //     //       placeholder="Phone Number"
-  //     //       className="border w-full p-2 rounded"
-  //     //     />
-
-  //     //     <button
-  //     //       type="submit"
-  //     //       className="bg-violet-700 text-white w-full py-2 rounded hover:bg-violet-800"
-  //     //       //   disabled={isLoading}
-  //     //     >
-  //     //       {/* {isLoading ? "Registering..." : "Register"} */}
-  //     //       register
-  //     //     </button>
-
-  //     //     {/* {isError && (
-  //     //       <p className="text-red-600 text-sm">{error?.response?.data?.message}</p>
-  //     //     )} */}
-  //     //   </form>
-  //     // </div>
-  //   );
 
   const onSubmit = (values) => {
     mutate(values, {

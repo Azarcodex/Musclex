@@ -16,10 +16,10 @@ export const editCategory = async ({ id, data }) => {
   return response.data;
 };
 
-export const controlCategory = async ({ id }) => {
-  const response = await api.patch(`/api/vendor/category/control/${id}`);
-  return response.data;
-};
+// export const controlCategory = async ({ id }) => {
+//   const response = await api.patch(`/api/vendor/category/control/${id}`);
+//   return response.data;
+// };
 
 export const deleteCategory = async ({ id }) => {
   const response = await api.delete(`/api/vendor/category/${id}`);

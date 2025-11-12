@@ -35,6 +35,14 @@ const getStatusBadge = (status) => {
 
 export default function Vendors() {
   const [page, setpage] = useState(1);
+  const [search, setSearch] = useState("");
+  const [debounce, setDebounce] = useState(search);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebounce(search);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [search]);
   const handlePrev = () => {
     if (page > 1) setpage((prev) => prev - 1);
   };
@@ -44,7 +52,11 @@ export default function Vendors() {
       setpage((prev) => prev + 1);
     }
   };
-  const { data, isPending } = useGetVendors(page);
+  const HandleSearch = (e) => {
+    setSearch(e.target.value);
+    setpage(1);
+  };
+  const { data, isPending } = useGetVendors(page, debounce);
   const { mutate: updateStatus } = useStatusVendor();
   const { mutate: productPermission } = useProductPermission();
 
@@ -62,15 +74,6 @@ export default function Vendors() {
       );
     }
   }, [data]);
-  // useEffect(() => {
-  //   if (data?.vendors) {
-  //     const mapping = data.vendors.map((v, i) => ({
-  //       ...v,
-  //       id: v.id ?? v._id ?? `vendor-${i}`,
-  //     }));
-  //     console.log(mapping);
-  //   }
-  // }, [data]);
 
   // Handle status change
   const handleStatusChange = (vendorId, newStatus) => {
@@ -152,6 +155,17 @@ export default function Vendors() {
 
   return (
     <div className="w-full">
+      <div className="bg-violet-100 place-self-end px-1 py-1.5 mb-1 rounded-sm focus:border border-gray-200">
+        <input
+          type="search"
+          name="search"
+          value={search}
+          placeholder="search shopname/email"
+          onChange={(e) => HandleSearch(e)}
+          className="outline-0 px-1 py-0.5 border-0 rounded-md placeholder:text-sm"
+          autoComplete="off"
+        />
+      </div>
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto max-h-[80vh] overflow-y-auto">
           <table className="w-full border-collapse">

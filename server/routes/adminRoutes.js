@@ -15,8 +15,16 @@ import {
   fetchVendorProducts,
   getVendorProducts,
 } from "../controllers/admin/getVendorProducts.js";
-import { categoryViewController, getAllCategoryAdmin } from "../controllers/admin/categoryViewController.js";
-
+import {
+  categoryViewController,
+  getAllCategoryAdmin,
+} from "../controllers/admin/categoryViewController.js";
+import {
+  addCategory,
+  DeleteCategory,
+  editCategory,
+  getCategories,
+} from "../controllers/admin/categoryController.js";
 const router = express.Router();
 
 // register
@@ -40,7 +48,12 @@ router.get("/vendor/products/:vendorId", fetchVendorProducts);
 //testing dashboard
 // router.get("/dashboard", Protected, getDashboard);
 //category view controller
-router.post("/category/view/:id", categoryViewController);
+//Category
+router.post("/category/add", Protected, addCategory);
+router.get("/category", Protected, getCategories);
+router.delete("/category/:id", Protected, DeleteCategory);
+router.patch("/category/update/:id", Protected, editCategory);
+router.post("/category/view/:id", Protected, categoryViewController);
 //all category
-router.get("/category/all", getAllCategoryAdmin)
+router.get("/category/all", Protected, getAllCategoryAdmin);
 export default router;

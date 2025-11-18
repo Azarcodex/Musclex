@@ -5,6 +5,7 @@ import {
   QuantityChange,
   removeFromCart,
 } from "../../services/user/Cart";
+import { toast } from "sonner";
 export const useAddToCart = () => {
   return useMutation({
     mutationFn: AddtoCart,
@@ -38,6 +39,9 @@ export const useQuantityChange = () => {
     mutationFn: ({ id, action }) => QuantityChange(id, action),
     onSuccess: () => {
       queryClient.invalidateQueries(["cart"]);
+    },
+    onError: (err) => {
+      toast.error(err.response.data.message);
     },
   });
 };

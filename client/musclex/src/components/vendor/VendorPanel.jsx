@@ -48,7 +48,7 @@ function VendorPanel() {
         },
       ],
     },
-     {
+    {
       label: "Brand",
       icon: <Users size={20} />,
       children: [
@@ -67,12 +67,12 @@ function VendorPanel() {
     {
       label: "Orders",
       icon: <LayoutTemplate size={20} />,
-      path: "/dashboard/banners",
+      path: "/vendor/dashboard/orders/list",
     },
     {
       label: "sales Reports",
       icon: <Tag size={20} />,
-      path: "/dashboard/coupon",
+      path: "/vendor/dashboard/sales/report",
     },
     {
       label: "Logout",

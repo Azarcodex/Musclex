@@ -7,8 +7,9 @@ const userSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
-    image: {
+    profileImage: {
       type: String,
+      default: "",
     },
     email: {
       type: String,
@@ -26,6 +27,10 @@ const userSchema = new mongoose.Schema(
       default: "user",
     },
     isVerified: {
+      type: Boolean,
+      default: false,
+    },
+    isBlocked: {
       type: Boolean,
       default: false,
     },

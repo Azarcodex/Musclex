@@ -1,28 +1,23 @@
-import Order from "../../models/user/Order.js";
-import Cart from "../../models/user/Cart.js";
-import Address from "../../models/user/Address.js";
-
-export const placeOrder = async (req, res) => {
+export const OrderController = async (req, res) => {
   try {
-    const userID = req.user._id; // assuming user is authenticated
-    const { addressID, paymentMethod } = req.body;
+    const userId = req.user._id;
+    const { addressId, paymentMethod } = req.body;
 
-    // 1️⃣ Fetch user's cart
-    const cartItems = await Cart.find({ userID })
-      .populate("productID", "name")
-      .populate("variantID", "size flavour");
+    const cartitems = await Cart.find({ userId })
+      .populate("productId", "name")
+      .populate("variantId", "size flavour");
 
-    if (!cartItems.length) {
+    if (!cartitems.length) {
       return res.status(400).json({ success: false, message: "Cart is empty" });
     }
 
-    // 2️⃣ Fetch address snapshot
-    const address = await Address.findById(addressID);
+    const address = await Address.findOne({ _id: addressId });
     if (!address) {
-      return res.status(404).json({ success: false, message: "Address not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Address not found" });
     }
 
-    // 3️⃣ Create shipping snapshot
     const shippingAddress = {
       fullName: address.fullName,
       phone: address.phone,
@@ -31,38 +26,48 @@ export const placeOrder = async (req, res) => {
       city: address.city,
       addressLine: address.addressLine,
       landmark: address.landmark,
-      addressType: address.addressType,
     };
 
-    // 4️⃣ Map ordered items
-    const orderedItems = cartItems.map((item) => ({
-      productID: item.productID._id,
-      variantID: item.variantID._id,
-      quantity: item.quantity,
-      price: item.price,
-    }));
+    const expectedDelivery = new Date();
+    expectedDelivery.setDate(expectedDelivery.getDate() + 5);
 
-    // 5️⃣ Calculate totals
+    const orderedItems = cartitems.map((item) => {
+      if (!item.productId || !item.variantId) {
+        throw new Error("Product or Variant missing in cart");
+      }
+
+      return {
+        productID: item.productId._id,
+        variantID: item.variantId._id,
+        quantity: item.quantity,
+        price: item.price,
+      };
+    });
+
     const totalPrice = orderedItems.reduce(
-      (acc, curr) => acc + curr.price * curr.quantity,
+      (acc, val) => acc + val.price * val.quantity,
       0
     );
 
     const order = new Order({
-      userID,
-      addressID,
+      userID: userId,
+      addressID: addressId,
       orderedItems,
       shippingAddress,
       totalPrice,
-      finalAmount: totalPrice, // no discount for now
+      discount: 0,
+      finalAmount: totalPrice,
       paymentMethod,
       paymentStatus: paymentMethod === "COD" ? "Pending" : "Paid",
+
+      // NEW ORDER LEVEL STATUS
+      orderStatus: "Pending",
+
+      expectedDelivery,
     });
 
     await order.save();
-
-    // 6️⃣ Clear the user's cart
-    await Cart.deleteMany({ userID });
+    await Cart.deleteMany({ userId });
 
     res.status(201).json({
       success: true,
@@ -70,7 +75,7 @@ export const placeOrder = async (req, res) => {
       order,
     });
   } catch (error) {
-    console.error("Order error:", error);
+    console.log(error);
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };

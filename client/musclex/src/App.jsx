@@ -28,7 +28,7 @@ import VariantList from "./pages/vendor/VariantList";
 import OwnProducts from "./pages/admin/OwnProducts";
 import Category from "./pages/admin/Category";
 import EditProduct from "./pages/vendor/EditProduct";
-import VendorRoute, { VendorProtection } from "./components/vendor/vendorRoute";
+import VendorRoute from "./components/vendor/vendorRoute";
 import ProductList from "./pages/user/ProductList";
 import WishList from "./pages/user/WishList";
 import EditVariant from "./pages/vendor/EditVariant";
@@ -37,6 +37,12 @@ import UserProfile from "./pages/user/UserPage/UserProfile";
 import AddressesPage from "./pages/user/UserPage/Address";
 import CartPage from "./pages/user/CartPage";
 import CheckoutPage from "./pages/user/CheckoutPage";
+import OrderSuccessPage from "./pages/user/OrderSuccessPage";
+import VendorOrders from "./pages/vendor/Orders";
+import UserOrdersPage from "./pages/user/UserOrders";
+import UserOrderTrack from "./pages/user/UserOrderTrack";
+import ChangePassword from "./pages/user/ChangePassword";
+import SalesReport from "./pages/vendor/SalesReport";
 const App = () => {
   return (
     <>
@@ -81,20 +87,22 @@ const App = () => {
         <Route path="/user/wishlist" element={<WishList />} />
         <Route path="/user/cart" element={<CartPage />} />
         <Route path="/user/checkout" element={<CheckoutPage />} />
+        <Route path="/user/ordersuccess/:id" element={<OrderSuccessPage />} />
         <Route path="/user/userdetails" element={<UserProfile />}>
           <Route path="profile" element={<Profile />} />
           <Route path="address" element={<AddressesPage />} />
         </Route>
-        //vendor side//
-        <Route path="/vendor/register" element={<RegisterVendor />} />
+        <Route path="/user/changePassword" element={<ChangePassword />} />
+        <Route path="/user/orders" element={<UserOrdersPage />} />
         <Route
-          path="/vendor/login"
-          element={
-            <VendorProtection>
-              <LoginVendor />
-            </VendorProtection>
-          }
+          path="/user/orders/track/:orderId"
+          element={<UserOrderTrack />}
         />
+        //invoice
+        
+        //🏪🏪vendor side//
+        <Route path="/vendor/register" element={<RegisterVendor />} />
+        <Route path="/vendor/login" element={<LoginVendor />} />
         <Route
           path="/vendor/dashboard"
           element={
@@ -114,6 +122,8 @@ const App = () => {
             path="variant/:productId/edit/:variantId"
             element={<EditVariant />}
           />
+          <Route path="orders/list" element={<VendorOrders />} />
+          <Route path="sales/report" element={<SalesReport />} />
         </Route>
       </Routes>
     </>

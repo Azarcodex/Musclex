@@ -107,7 +107,7 @@ const Users = () => {
                     {formatDate(user.createdAt)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    {user.isVerified ? (
+                    {!user.isBlocked ? (
                       <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
                         <CheckCircle size={14} />
                         available
@@ -124,12 +124,12 @@ const Users = () => {
                       onClick={() => HandleToggle(user._id)}
                       disabled={isToggling}
                       className={`px-3 py-1 text-xs rounded-md font-medium transition ${
-                        user.isVerified
+                        user.isBlocked
                           ? "bg-red-100 text-red-700 hover:bg-red-200"
                           : "bg-green-100 text-green-700 hover:bg-green-200"
                       }`}
                     >
-                      {user.isVerified ? "block" : "Unblock"}
+                      {!user.isBlocked ? "block" : "Unblock"}
                     </button>
                   </td>
                 </tr>

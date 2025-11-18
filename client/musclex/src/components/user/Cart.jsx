@@ -7,7 +7,8 @@ import { useNavigate } from "react-router-dom";
 
 export default function Cart({ cartData }) {
   const shipping = 0;
-  const navigate=useNavigate()
+  const navigate = useNavigate();
+  console.log(cartData);
   const total = cartData?.totalAmount + shipping;
   const { mutate: RemoveCart } = useRemoveCart();
   const { mutate: updateQuantity } = useQuantityChange();
@@ -17,6 +18,9 @@ export default function Cart({ cartData }) {
       RemoveCart(id, {
         onSuccess: (data) => {
           toast.message(`${data.message}`);
+        },
+        onError: (err) => {
+          toast.error(`${err.response.data.message}`);
         },
       });
     }
@@ -75,6 +79,9 @@ export default function Cart({ cartData }) {
                       </p>
                       <p className="text-xs text-gray-600 mb-3">
                         Size: {item.sizeLabel}
+                      </p>
+                      <p className="text-xs text-purple-600 mb-3 underline">
+                        {item.stock > 0 ? "IN STOCK" : "OUT OF STOCK"}
                       </p>
 
                       <div className="flex items-center justify-between">
@@ -150,8 +157,10 @@ export default function Cart({ cartData }) {
                 </div>
               </div>
 
-              <button className="w-full bg-violet-500 hover:bg-red-600 text-white font-medium py-3 rounded-lg flex items-center justify-center gap-2 transition-colors"
-              onClick={()=>navigate("/user/checkout")}>
+              <button
+                className="w-full bg-violet-500 hover:bg-red-600 text-white font-medium py-3 rounded-lg flex items-center justify-center gap-2 transition-colors"
+                onClick={() => navigate("/user/checkout")}
+              >
                 <ShoppingCart size={20} />
                 CHECKOUT
               </button>

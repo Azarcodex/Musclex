@@ -5,7 +5,6 @@ export const getVariantsByProduct = async (req, res) => {
   try {
     const { productId } = req.params;
     const variants = await Variant.find({ productId });
-
     res.json({ success: true, variants });
   } catch (error) {
     console.error("Error fetching variants:", error);
@@ -14,70 +13,54 @@ export const getVariantsByProduct = async (req, res) => {
 };
 export const addVariant = async (req, res) => {
   try {
-    console.log(req.body);
-    const { productId, flavour, sku } = req.body;
-    const payload = JSON.parse(req.body.size);
-    // console.log(payload);
-    // console.log(payload);
-    // console.log(req.files)
-    // attach uploaded image URLs
-    // if (req.files && req.files.length > 0) {
-    //   payload.images = req.files.map((f) => `/uploads/${f.filename}`);
-    // }
-    // const variant = new Variant({
-    //   productId: productId,
-    //   flavour: flavour,
-    //   size: payload,
-    //   sku: sku,
-    //   images: req.files.map((f) => `/uploads/${f.filename}`),
-    // });
+    const { productId } = req.body;
+    let flavour = (req.body.flavour || "default").trim();
 
-    // await variant.save();
-
-    // res.status(201).json({ success: true, variant, message: "variant added" });
-    // if (!productId || !flavour || !size?.length) {
-    //   return res
-    //     .status(400)
-    //     .json({ success: false, message: "Missing fields" });
-    // }
-    const uploadedImages = req.files?.length
-      ? req.files.map((f) => `/uploads/${f.filename}`)
-      : [];
-    const existingVariant = await Variant.findOne({ productId, flavour });
-    if (existingVariant) {
-      for (const s of payload) {
-        const alreadyExist = existingVariant.size.some(
-          (existingSize) => existingSize.label === s.label
-        );
-        if (!alreadyExist) {
-          existingVariant.size.push(s);
-        }
+    if (!productId) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+    let sizes = [];
+    try {
+      sizes = JSON.parse(req.body.size);
+      if (sizes.length === 0) {
+        return res.status(400).json({ message: "Size files is empty" });
       }
-      uploadedImages.forEach((img) => {
-        if (!existingVariant.images.includes(img)) {
-          existingVariant.images.push(img);
-        }
-      });
-      await existingVariant.save();
+    } catch (error) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid JSON format for sizes." });
+    }
+    //image handle
+    const imageData =
+      req.files?.map((file) => `/uploads/${file.filename}`) || [];
+
+    //existing check
+    const existing = await Variant.findOne({ flavour, productId });
+    if (existing) {
+      const existingSize = existing.size.map((exist) => exist.label);
+      const newSize = sizes.filter((size) => !existingSize.includes(size));
+      if (newSize.length === 0) {
+        return res
+          .status(400)
+          .json({ message: "Size already exist in these flavour" });
+      }
+      existing.size.push(...sizes);
+      await existing.save();
       return res.status(200).json({
         success: true,
-        message: "Variant updated with new size",
-        variant: existingVariant,
+        message: "New sizes added to existing flavour.",
+        variant: existing,
       });
     }
-    const newVariant = new Variant({
-      productId,
-      flavour,
-      sku:sku,
-      size: payload,
-      images: uploadedImages,
+    const newVariant = await Variant.create({
+      productId: productId,
+      flavour: flavour,
+      size: sizes,
+      images: imageData,
     });
-
-    await newVariant.save();
-
     return res.status(201).json({
       success: true,
-      message: "New variant created successfully",
+      message: "New  variant added successfully!",
       variant: newVariant,
     });
   } catch (error) {
@@ -107,7 +90,6 @@ export const EditVariant = async (req, res) => {
     const { flavour } = req.body;
     const payload = JSON.parse(req.body.size);
     const files = req.files;
-    console.log(payload, files);
     const variant = await Variant.findById(variantId);
     if (!variant) {
       return res
@@ -148,3 +130,5 @@ export const editVariantImage = async (req, res) => {
       .json({ success: false, message: "Internal server occurred" });
   }
 };
+
+export const DeleteVariant = async () => {};

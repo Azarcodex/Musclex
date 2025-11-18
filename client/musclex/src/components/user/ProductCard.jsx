@@ -8,10 +8,9 @@ import { useQueryClient } from "@tanstack/react-query";
 import { userAuthStore } from "../../hooks/users/zustand/useAuth";
 import { useAddToCart, useGetCart } from "../../hooks/users/useAddCart";
 import { toast } from "sonner";
+import { useSelector } from "react-redux";
 export default function ProductCard({ product }) {
   const navigate = useNavigate();
-  // const token = userAuthStore((state) => state.getToken());
-  // console.log(token);
   const { mutate: addWishList } = useAddWishList();
   const { mutate: deleteWishList } = useRemoveWishList();
   const { mutate: addcart } = useAddToCart();
@@ -20,7 +19,7 @@ export default function ProductCard({ product }) {
   console.log(data);
   const [like, setLike] = useState(false);
   const queryClient = useQueryClient();
-
+  const { token } = useSelector((state) => state.userAuth);
   const existItem = data?.wishList?.find(
     (item) =>
       String(item.productId?._id) === String(product?._id) &&
@@ -39,6 +38,10 @@ export default function ProductCard({ product }) {
   }, [data, product]);
 
   const HandleWishList = (product, variant) => {
+    if (!token) {
+      toast.message("Please Login to continue");
+      return;
+    }
     if (!existItem) {
       addWishList(
         { productId: product, variantId: variant },
@@ -65,6 +68,10 @@ export default function ProductCard({ product }) {
   };
   //cart management
   const HandleCart = (product) => {
+    if (!token) {
+      toast.message("Please Login to continue");
+      return;
+    }
     const payload = {
       variantId: product.variants._id,
       productId: product.variants.productId,

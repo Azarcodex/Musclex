@@ -2,7 +2,6 @@ import mongoose from "mongoose";
 const productVariantSchema = new mongoose.Schema(
   {
     productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
-    color: { type: String },
     flavour: { type: String },
     images: [{ type: String }],
     reviewsCount: { type: Number, default: 0 },

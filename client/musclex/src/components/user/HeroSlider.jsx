@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import spot from "../../assets/spot.png";
+import { useSearch } from "../../hooks/users/useSearch";
+import { useSelector } from "react-redux";
+import SearchData from "./SearchData";
 const slides = [
   {
     id: 1,
@@ -34,7 +37,6 @@ const slides = [
   },
 ];
 
-
 export function HeroSlider() {
   const [currentSlide, setCurrentSlide] = useState(0);
 
@@ -56,9 +58,41 @@ export function HeroSlider() {
   const prevSlide = () => {
     setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
   };
+  //search
+  const { query } = useSelector((state) => state.search);
+  const [debounce, setDebounce] = useState(query);
+  useEffect(() => {
+    const timeOut = setTimeout(() => {
+      setDebounce(query);
+    }, 500);
+    return () => clearTimeout(timeOut);
+  }, [query]);
+  const { data: searching, isPending: isLoading } = useSearch(debounce);
+  // if (!query.trim()) return null;
+  const isSearch = Boolean(debounce) && isLoading;
+  // useEffect(() => {
+  //   if (searching) {
+  //     const { count} = searching;
+  //   }
+  // }, [searching]);
+
+  if (isSearch) {
+    return <p>Loading data</p>;
+  }
 
   return (
     <div className="relative w-full bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 overflow-hidden px-28 py-10">
+      <div className="absolute right-40 z-50 top-1">
+        {searching?.results?.length > 0 && (
+          <p className="text-right font-semibold text-xs text-pink-600">
+            {searching.count} data found
+          </p>
+        )}
+        {searching?.results &&
+          searching?.results.map((seach, idx) => (
+            <SearchData item={seach} key={seach._id} />
+          ))}
+      </div>
       <div className="absolute left-0 top-0">
         <img src={spot} alt="" className="w-40" />
       </div>

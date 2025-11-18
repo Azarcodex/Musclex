@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   MailIcon,
   PhoneIcon,
@@ -13,19 +13,25 @@ import {
   User2Icon,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { userAuthStore } from "../../hooks/users/zustand/useAuth";
 import { toast } from "sonner";
+import { useDispatch, useSelector } from "react-redux";
+import { setSearchQuery } from "../../store/features/searchSlice";
+import { clearUserToken } from "../../store/features/userSlice";
 
 export function Navbar() {
+  const [active, setActive] = useState("home");
+  const dispatch = useDispatch();
   const navigate = useNavigate();
-  const token = userAuthStore((state) => state.token);
-  const { clearToken } = userAuthStore();
+  const isAuth = useSelector((state) => state.userAuth.isAuth);
   const handleLogOut = () => {
-    clearToken();
+    dispatch(clearUserToken());
     toast.success("logged out successfully");
   };
+  const HandleChange = (e) => {
+    dispatch(setSearchQuery(e.target.value));
+  };
   return (
-    <nav className="w-full">
+    <nav className="w-full relative">
       {/* Top Header Bar */}
       <div className="bg-gradient-to-r from-purple-600 to-purple-500 text-white py-2 px-4">
         <div className="max-w-7xl mx-auto flex justify-between items-center text-sm">
@@ -40,7 +46,7 @@ export function Navbar() {
             </div>
           </div>
           <div className="flex items-center gap-4">
-            {!token ? (
+            {!isAuth ? (
               <Link to={"/user/login"}>
                 <button className="flex items-center gap-1 hover:opacity-80">
                   <User2 className="w-4 h-4" />
@@ -69,7 +75,7 @@ export function Navbar() {
             >
               <ShoppingCartIcon className="w-4 h-4" />
             </button>
-            <button onClick={() => navigate("/user/userdetails")}>
+            <button onClick={() => navigate("/user/userdetails/profile")}>
               <User2Icon className="w-5 h-5 cursor-pointer" />
             </button>
           </div>
@@ -84,13 +90,24 @@ export function Navbar() {
 
           {/* Navigation */}
           <div className="flex items-center gap-8">
-            <button className="flex items-center gap-1 text-purple-600 font-medium hover:text-purple-700">
+            <Link
+              to={"/"}
+              onClick={() => setActive("home")}
+              className={`flex items-center gap-1  font-medium hover:text-purple-700 ${
+                active === "home" ? "text-purple-900" : ""
+              }`}
+            >
+              {" "}
               Home
               <ChevronDownIcon className="w-4 h-4" />
-            </button>
+              {/* </button> */}
+            </Link>
             <Link
               to={"/user/products"}
-              className="text-gray-700 hover:text-purple-600"
+              className={`text-gray-700 hover:text-purple-600 ${
+                active === "product" ? "text-purple-900" : ""
+              }`}
+              onClick={() => setActive("product")}
             >
               Products
             </Link>
@@ -103,22 +120,23 @@ export function Navbar() {
             <a href="#" className="text-gray-700 hover:text-purple-600">
               Contact
             </a>
-            <a
-              href="#"
+            <Link
+              to={"/vendor/login"}
               className="bg-gradient-to-r from-purple-700 via-purple-500 to-pink-500 px-2 py-1 rounded-ee-full rounded-l-4xl rounded-t-full rounded-br-xl flex items-center gap-2.5 text-white text-sm font-semibold shadow-lg hover:from-pink-500 hover:to-purple-600 hover:shadow-purple-400/50 transition-all duration-300"
             >
               <LucideBriefcaseBusiness className="w-4 h-4" />
               become a seller
-            </a>
+            </Link>
           </div>
 
           {/* Search Bar */}
-          <div className="flex items-center">
+          <div className="flex items-center ">
             <div className="flex items-center border border-gray-300 rounded-md overflow-hidden">
               <input
                 type="text"
                 placeholder="Search..."
                 className="px-4 py-2 outline-none w-64"
+                onChange={HandleChange}
               />
               <button className="bg-purple-600 text-white px-4 py-2 rounded-2xl hover:bg-purple-700">
                 <SearchIcon className="w-5 h-5" />

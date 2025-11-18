@@ -6,6 +6,7 @@ import { usegetCategories } from "../../hooks/users/usegetCategories";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useEditProducts } from "../../hooks/vendor/useEditProducts";
 import { toast } from "sonner";
+import { useGetVendorCategory } from "../../hooks/vendor/useGetCategory";
 
 const ProductForm = () => {
   const { productId } = useParams();
@@ -22,7 +23,7 @@ const ProductForm = () => {
   const productData = location.state?.product;
   console.log(productData);
   const { data: brands, isLoading: brandLoading } = useGetBrands();
-  const { data: categories, isLoading: catLoading } = usegetCategories();
+  const { data: categories, isLoading: catLoading } = useGetVendorCategory();
   useEffect(() => {
     if (productData) {
       setValue("name", productData.name) || "";
@@ -90,7 +91,7 @@ const ProductForm = () => {
             className="border border-purple-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-300 outline-none p-3 w-full rounded-xl transition-all bg-white"
           >
             <option value="">Select Category</option>
-            {categories?.map((cat) => (
+            {categories?.category?.map((cat) => (
               <option key={cat._id} value={cat._id}>
                 {cat.catgName}
               </option>

@@ -40,7 +40,7 @@ const Products = () => {
     <div className="min-h-screen w-full">
       <Navbar />
       <div>
-        <div className="mt-10 bg-white border-b-2 border-purple-950 flex items-center justify-evenly w-1/2 mx-auto px-3">
+        <div className="mt-10 bg-white   flex items-center justify-end-safe  mr-40">
           {/*Extra filter options */}
 
           <select
@@ -58,7 +58,7 @@ const Products = () => {
             <span>xxx</span>
             <ChevronDown className="w-4 h-4" />
           </h3> */}
-          <select
+          {/* <select
             value={discountValue}
             onChange={(e) => setDiscountValue(e.target.value)}
           >
@@ -67,7 +67,7 @@ const Products = () => {
             <option value="40">More than 40%</option>
             <option value="30">More than 30%</option>
             <option value="20">More than 20%</option>
-          </select>
+          </select> */}
         </div>
         <div className="flex items-start mt-20 justify-center flex-row min-h-screen px-20 py-10">
           <div>

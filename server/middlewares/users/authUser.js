@@ -19,9 +19,20 @@ export const protectedUser = async (req, res, next) => {
     if (!user) {
       return res.status(401).json({ message: "User not exist" });
     }
+    if (user.isBlocked) {
+      return res.status(403).json({ message: "User is being blocked" });
+    }
     req.user = user;
     next();
   } catch (error) {
     res.status(500).json({ success: false, message: error.error });
   }
+};
+
+//user exist
+export const AuthUser = async (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({ message: "Login required" });
+  }
+  next();
 };

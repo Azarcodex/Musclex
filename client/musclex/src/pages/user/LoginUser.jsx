@@ -7,11 +7,13 @@ import { GoogleLogin } from "@react-oauth/google";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useEffect } from "react";
-import { userAuthStore } from "../../hooks/users/zustand/useAuth";
 import { setAuthtoken } from "../../api/axios";
+import { useDispatch } from "react-redux";
+import { setUserAuthToken } from "../../store/features/userSlice";
 export default function LoginUser() {
   const navigate = useNavigate();
-  const { setToken } = userAuthStore();
+  // const { setToken } = userAuthStore();
+  const dispatch = useDispatch();
   const {
     register,
     handleSubmit,
@@ -30,8 +32,8 @@ export default function LoginUser() {
       onSuccess: (data) => {
         console.log("Login success:", data);
         toast.success("Google login successful!");
-        setToken(data.token);
-        setAuthtoken(data.token, data?.user.role);
+        setAuthtoken(data?.token);
+        dispatch(setUserAuthToken(data?.token));
         navigate("/");
       },
       onError: (error) => {
@@ -94,7 +96,7 @@ export default function LoginUser() {
                 type="text"
                 {...register("email")}
                 className="w-full px-4 py-3 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-transparent"
-                placeholder="Enter your username or email"
+                placeholder="Enter your email"
               />
             </div>
 

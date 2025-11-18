@@ -4,7 +4,7 @@ import User from "../../models/users/user.js";
 export const otpController = async (req, res) => {
   try {
     const { email, otp } = req.body;
-    console.log(email,otp)
+    console.log(email, otp);
     if (!email || !otp) {
       return res.status(400).json({ message: "No email and token" });
     }

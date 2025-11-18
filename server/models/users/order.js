@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import crypto from "crypto"; 
+import crypto from "crypto";
 
 const orderedItemSchema = new mongoose.Schema({
   productID: {
@@ -7,24 +7,14 @@ const orderedItemSchema = new mongoose.Schema({
     ref: "Product",
     required: true,
   },
-  variantID: { type: mongoose.Schema.Types.ObjectId, ref: "Variant" },
+  variantID: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Variant",
+    required: true,
+  },
   quantity: { type: Number, required: true, min: 1 },
   price: { type: Number, required: true },
-  status: {
-    type: String,
-    enum: [
-      "Pending",
-      "Processing",
-      "Shipped",
-      "Delivered",
-      "Cancelled",
-      "Returned",
-    ],
-    default: "Pending",
-  },
-  deliveryDate: { type: Date },
-  cancellationReason: { type: String },
-  returnReason: { type: String },
+  sizeLabel: { type: String, required: true },
 });
 
 const shippingAddressSchema = new mongoose.Schema({
@@ -39,41 +29,68 @@ const shippingAddressSchema = new mongoose.Schema({
 
 const orderSchema = new mongoose.Schema(
   {
-    orderId: { type: String, unique: true }, // 🆕 Human-readable unique order ID
+    // Human readable unique order ID
+    orderId: { type: String, unique: true },
+
     userID: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
     },
+
     addressID: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Address",
       required: true,
     },
+
+    // ORDER LEVEL STATUS
+    orderStatus: {
+      type: String,
+      enum: [
+        "Pending",
+        "Confirmed",
+        "Processing",
+        "Shipped",
+        "Out for Delivery",
+        "Delivered",
+        "Cancelled",
+        "Returned",
+      ],
+      default: "Pending",
+    },
+
     orderedItems: [orderedItemSchema],
+
     shippingAddress: shippingAddressSchema,
+
     paymentMethod: {
       type: String,
       enum: ["Razorpay", "COD", "Wallet"],
       required: true,
     },
+
     paymentStatus: {
       type: String,
       enum: ["Pending", "Paid", "Failed", "Refunded"],
       default: "Pending",
     },
+
     totalPrice: { type: Number, required: true },
     discount: { type: Number, default: 0 },
     finalAmount: { type: Number, required: true },
+
+    expectedDelivery: { type: Date },
+    deliveredDate: { type: Date },
   },
   { timestamps: true }
 );
 
-//  Generate a unique readable order ID before saving
-orderSchema.pre("save", async function (next) {
+// Generate unique human readable orderId
+orderSchema.pre("save", function (next) {
   if (!this.orderId) {
     const randomSuffix = crypto.randomBytes(3).toString("hex").toUpperCase();
-    const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+    const datePart = new Date().toISOString().split("T")[0].replace(/-/g, "");
     this.orderId = `ORD-${datePart}-${randomSuffix}`;
   }
   next();

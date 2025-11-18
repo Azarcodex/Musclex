@@ -4,6 +4,7 @@ import { usegetCategories } from "../../hooks/users/usegetCategories";
 import { useGetBrands } from "../../hooks/users/useGetBrands";
 import { Range } from "react-range";
 import PriceRangeSlider from "./Slider";
+import { useGetVendorCategory } from "../../hooks/vendor/useGetCategory";
 export default function FilterSidebar({
   selectedCategory,
   setSelectedCategory,
@@ -15,7 +16,7 @@ export default function FilterSidebar({
   setSelectedRatings,
 }) {
   const [isCategoryOpen, setIsCategoryOpen] = useState(true);
-  const { data, isPending } = usegetCategories();
+  const { data, isPending } = useGetVendorCategory();
   const { data: Brands, isPending: isLoading } = useGetBrands();
   // console.log(selectedRatings)
   const toggleCategory = (id) => {
@@ -65,7 +66,7 @@ export default function FilterSidebar({
 
         {isCategoryOpen && (
           <div className="space-y-3">
-            {data?.map((cat) => (
+            {data?.category?.map((cat) => (
               <label
                 key={cat._id}
                 className="flex items-center gap-2 cursor-pointer"

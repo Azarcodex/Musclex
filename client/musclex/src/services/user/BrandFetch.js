@@ -1,6 +1,6 @@
 import api from "../../api/axios";
 
 export const fetchBrand = async () => {
-  const response = await api.get("/api/user/brand");
+  const response = await api.get("/api/vendor/brand");
   return response.data;
 };

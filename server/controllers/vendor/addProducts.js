@@ -1,13 +1,19 @@
 import Brand from "../../models/products/brand.js";
 import Category from "../../models/products/category.js";
 import Product from "../../models/products/Product.js";
-
+import Variant from "../../models/products/Variant.js";
+import Vendor from "../../models/vendors/Vendor.js";
 export const addProduct = async (req, res) => {
   try {
     const { name, description, catgid, brandID } = req.body;
     const vendorID = req.vendor.id;
+    const vendor = await Vendor.findById(vendorID);
+    if (!vendor.canAddProduct) {
+      return res
+        .status(401)
+        .json({ message: "Admin have not allowed you to add Product" });
+    }
     console.log(vendorID);
-    console.log("---------------");
     console.log(req.vendor);
     if (!name || !catgid || !brandID) {
       return res
@@ -40,20 +46,28 @@ export const addProduct = async (req, res) => {
 
 export const getProducts = async (req, res) => {
   try {
-    const page = parseInt(req.query.page);
-    const limit = 5;
+    const page = parseInt(req.query.page) || 1;
+    const { query } = req.query;
+    const limit = 6;
     const skip = (page - 1) * limit;
     const vendor = req.vendor;
-    // console.log(vendor);
-    const products = await Product.find({ vendorID: vendor._id })
+    const search = query
+      ? { $or: [{ name: { $regex: query, $options: "i" } }] }
+      : {};
+    const filter = {
+      vendorID: vendor._id,
+      ...search,
+    };
+    const products = await Product.find(filter)
       .populate("catgid", "catgName")
       .populate("brandID", "brand_name")
       .skip(skip)
       .limit(limit)
       .sort({ createdAt: -1 });
-    const totalProduct = products.length;
+    const totalProduct = await Product.countDocuments({ vendorID: vendor._id });
+    // console.log(totalProduct);
     const totalPages = Math.ceil(totalProduct / limit);
-    console.log(totalProduct);
+    //  console.log(totalPages)
     res.status(200).json({
       success: true,
       message: "Products fetched successfully",
@@ -122,7 +136,7 @@ export const productVisibility = async (req, res) => {
   }
 };
 
-export const deleteProduct = async (req,res) => {
+export const deleteProduct = async (req, res) => {
   try {
     const { productId } = req.params;
     const product = await Product.findByIdAndDelete(productId);
@@ -131,5 +145,33 @@ export const deleteProduct = async (req,res) => {
       .json({ success: true, message: "product deleted successfully" });
   } catch (err) {
     res.status(500).json({ message: "Server down" });
+  }
+};
+//featured Product
+export const FeaturedProducts = async (req, res) => {
+  try {
+    const featuredproduct = await Product.find({
+      isDeleted: false,
+      isFeatured: true,
+    })
+      .populate("brandID", "brand_name")
+      .populate("catgid", "catgName")
+      .lean();
+
+    const result = await Promise.all(
+      featuredproduct.map(async (product) => {
+        const variant = await Variant.findOne({
+          productId: product._id,
+        }).lean();
+        return {
+          ...product,
+          variant,
+        };
+      })
+    );
+
+    res.status(200).json({ success: true, product: result });
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error" });
   }
 };

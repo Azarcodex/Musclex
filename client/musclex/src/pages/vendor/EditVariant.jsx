@@ -1,185 +1,256 @@
 import React, { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useFieldArray } from "react-hook-form";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { useAddVariant } from "../../hooks/vendor/useAddVariant";
-import { useRelatedVariantProduct } from "../../hooks/vendor/useRelatedVariantProcuct";
-import { Camera, LucideCamera, X } from "lucide-react";
+import { LucideCamera, X, PlusCircle } from "lucide-react";
 import { useGetVariants } from "../../hooks/vendor/useGetVariant";
 import { useVariantImageRemove } from "../../hooks/vendor/useVariantImageRemove";
-import { confirm } from "../../components/utils/Confirmation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEditVariant } from "../../hooks/vendor/useEditVariant";
+import { confirm } from "../../components/utils/Confirmation";
+import { useRelatedVariantProduct } from "../../hooks/vendor/useRelatedVariantProcuct";
 
 const EditVariant = () => {
-  const { productId } = useParams();
+  const { productId, variantId } = useParams();
   const navigate = useNavigate();
   const PORT = import.meta.env.VITE_API_URL;
-  const [selectedFiles, setSelectedFiles] = useState([]);
-  const [previewImage, setPreviewImage] = useState([]);
-  const [trackKey, setTrackKey] = useState(Date.now());
+  const { data: productList } = useRelatedVariantProduct(productId);
+  const isSupplement =
+    productList?.product?.catgid?.catgName?.toLowerCase() === "supplements";
+  const { data: variants } = useGetVariants(productId);
+  const variant = variants?.find((item) => item._id === variantId);
+  const queryClient = useQueryClient();
+
   const { mutate: deleteImg } = useVariantImageRemove();
   const { mutate: editVariant } = useEditVariant();
-  const HandleImageChange = (e) => {
-    const files = Array.from(e.target.files);
-    if (!files.length) return;
-    previewImage.forEach((url) => URL.revokeObjectURL(url));
-    const allFiles = [...selectedFiles, ...files];
-    setSelectedFiles(allFiles);
-    setPreviewImage(allFiles.map((file) => URL.createObjectURL(file)));
-    setTrackKey(Date.now());
-  };
-  const HandleDeleteimg = (idx) => {
-    URL.revokeObjectURL(previewImage[idx]);
-    const updatedFiles = selectedFiles.filter((_, id) => id !== idx);
-    const updated = previewImage.filter((_, id) => id !== idx);
-    setSelectedFiles(updatedFiles);
-    setPreviewImage(updated);
-    setPreviewImage(allFiles.map((file) => URL.createObjectURL(file)));
-  };
 
-  const { data: variants } = useGetVariants(productId);
-  const queryKey = useQueryClient();
-  const { variantId } = useParams();
-  const variant = variants?.find((item) => item._id === variantId);
-  const { register, handleSubmit, reset } = useForm();
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [previewImage, setPreviewImage] = useState([]);
   const [existingImg, setExistingImg] = useState([]);
-  const inputFields = [
-    { field: "flavour", pl: "flavour" },
-    { field: "size", pl: "Size label (e.g. 1kg, 500ml)" },
-    { field: "oldPrice", pl: "Old Price" },
-    { field: "salePrice", pl: "Sale Price" },
-    { field: "stock", pl: "Stock count" },
-  ];
+
+  const { register, handleSubmit, reset, control } = useForm({
+    defaultValues: {
+      flavour: isSupplement ? "" : "default",
+      sizes: [{ label: "", oldPrice: "", salePrice: "", stock: "" }],
+    },
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: "sizes",
+  });
+
+  // ✅ Populate form with existing variant data
   useEffect(() => {
     if (variant) {
       reset({
-        flavour: variant?.flavour,
-        size: variant?.size[0].label,
-        oldPrice: variant?.size[0].oldPrice,
-        salePrice: variant?.size[0].salePrice,
-        stock: variant?.size[0].stock,
+        flavour: variant.flavour,
+        sizes: variant.size?.map((s) => ({
+          label: s.label,
+          oldPrice: s.oldPrice,
+          salePrice: s.salePrice,
+          stock: s.stock,
+        })) || [{ label: "", oldPrice: "", salePrice: "", stock: "" }],
       });
-      setExistingImg(variant?.images);
+      setExistingImg(variant.images);
     }
   }, [variant, reset]);
-  const HandleDelete = async (src) => {
-    const wait = await confirm({
-      message: "are you sure you want to remove these image",
-    });
-    if (wait) {
-      setExistingImg((prev) => prev.filter((s) => s !== src));
+
+  // ✅ Handle new images
+  const handleImageChange = (e) => {
+    const files = Array.from(e.target.files);
+    setSelectedFiles(files);
+    setPreviewImage(files.map((file) => URL.createObjectURL(file)));
+  };
+
+  // ✅ Delete existing image from backend
+  const handleDeleteImage = async (src) => {
+    const confirmed = await confirm({ message: "Remove this image?" });
+    if (confirmed) {
       deleteImg(
-        { variantId: variantId, src },
+        { variantId, src },
         {
           onSuccess: (data) => {
-            queryKey.invalidateQueries(["variants"]);
-            toast.message(`${data.message}`);
+            setExistingImg((prev) => prev.filter((img) => img !== src));
+            queryClient.invalidateQueries(["variants"]);
+            toast.success(data.message);
           },
         }
       );
     }
   };
-  //submitting
+
+  // ✅ Submit form
   const onSubmit = (data) => {
-    console.log(data);
-    const size_Array = [
-      {
-        label: data.size,
-        oldPrice: Number(data.oldPrice),
-        salePrice: Number(data.salePrice),
-        stock: Number(data.stock),
-      },
-    ];
     const formdata = new FormData();
     formdata.append("flavour", data.flavour);
-    formdata.append("size", JSON.stringify(size_Array));
+    formdata.append("size", JSON.stringify(data.sizes));
     selectedFiles.forEach((file) => formdata.append("images", file));
+
     editVariant(
       { variantId, formdata },
       {
-        onSuccess: (data) => {
-          toast.success(`${data.message}`);
+        onSuccess: (res) => {
+          toast.success(res.message);
+          queryClient.invalidateQueries(["variants"]);
           navigate(`/vendor/dashboard/variant/${productId}`);
+        },
+        onError: (err) => {
+          toast.error(err.response?.data?.message || "Error updating variant");
         },
       }
     );
   };
+
   return (
     <div>
-      <h1 className="capitalize text-purple-800 text-2xl font-semibold font-mono">
+      <h1 className="capitalize text-purple-800 text-2xl font-semibold font-mono mb-4">
         Edit Variant
       </h1>
-      <form onSubmit={handleSubmit(onSubmit)} className="bg-purple-50 p-5">
-        <div className="grid grid-cols-2 items-center mt-20 gap-10">
-          {inputFields.map((inp, id) => (
-            <input
-              key={id}
-              {...register(inp.field)}
-              placeholder={inp.pl}
-              className="border-b-2 border-purple-950 outline-0"
-              autoComplete="off"
-            />
-          ))}
-        </div>
-        <div className="flex items-center justify-center mt-20 flex-col">
-          {existingImg && existingImg.length > 0 && (
-            <div className="flex items-center justify-evenly w-full">
-              {existingImg.map((src, idx) => (
-                <div key={idx} className="w-40 h-40">
-                  <span onClick={() => HandleDelete(src)}>
-                    <X className="w-4 h-4 text-pink-600 float-right" />
-                  </span>
-                  <img
-                    src={`${PORT}${src}`}
-                    alt="Image"
-                    className="h-full w-full"
-                  />
-                </div>
-              ))}
-            </div>
-          )}
-          <div>
-            <label
-              htmlFor="images"
-              className="flex flex-col items-center cursor-pointer bg-purple-600 text-white font-medium px-4 py-2 mt-20 rounded-lg hover:bg-purple-700 transition duration-200 w-fit"
-            >
-              <LucideCamera className="w-5 h-5" />
-              add Images
+
+      <form
+        onSubmit={handleSubmit(onSubmit)}
+        className="bg-purple-50 p-5 rounded-lg shadow"
+      >
+        {/* Flavour */}
+        {isSupplement && (
+          <div className="mb-6">
+            <label className="block text-sm font-semibold text-purple-800 mb-1">
+              Flavour
             </label>
             <input
-              id="images"
-              key={trackKey}
-              type="file"
-              multiple
-              accept="image/*"
-              onChange={HandleImageChange}
-              className="hidden"
+              {...register("flavour")}
+              placeholder="Flavour name (e.g. Strawberry)"
+              className="border-b-2 border-purple-950 outline-0 bg-transparent p-2 w-full"
+              autoComplete="off"
             />
           </div>
-          {previewImage && previewImage.length > 0 && (
-            <div className="flex items-center justify-evenly">
-              {previewImage.map((src, idx) => (
-                <div key={idx} className="w-50 h-50">
-                  <X
-                    className="w-4 h-4 text-pink-600 float-right"
-                    onClick={() => HandleDeleteimg(idx)}
-                  />
-                  <img
-                    src={src}
-                    alt="Image"
-                    key={idx}
-                    className="h-full w-full"
-                  />
-                </div>
-              ))}
-            </div>
-          )}
-          <div className="flex items-center justify-center w-full py-2 mt-10">
-            <button className="border-2 border-purple-900 px-3 py-3 rounded-md bg-violet-600 uppercase text-white w-1/4 hover:bg-purple-900">
-              Update variant
+        )}
+
+        {/* Size Variants Section */}
+        <div className="mb-6">
+          <div className="flex justify-between items-center mb-3">
+            <h2 className="text-purple-700 font-semibold text-lg">
+              Size Variants
+            </h2>
+            <button
+              type="button"
+              onClick={() =>
+                append({ label: "", oldPrice: "", salePrice: "", stock: "" })
+              }
+              className="flex items-center gap-2 text-sm text-purple-700 hover:text-purple-900 transition"
+            >
+              <PlusCircle className="w-4 h-4" />
+              Add Size
             </button>
           </div>
+
+          {fields.map((field, index) => (
+            <div
+              key={field.id}
+              className="grid grid-cols-4 gap-3 items-center mb-3 border-b border-purple-200 pb-2"
+            >
+              <input
+                {...register(`sizes.${index}.label`)}
+                placeholder="Label (e.g. 1kg)"
+                className="border-b border-purple-400 outline-none bg-transparent p-1"
+              />
+              <input
+                {...register(`sizes.${index}.oldPrice`)}
+                placeholder="Old Price"
+                className="border-b border-purple-400 outline-none bg-transparent p-1"
+              />
+              <input
+                {...register(`sizes.${index}.salePrice`)}
+                placeholder="Sale Price"
+                className="border-b border-purple-400 outline-none bg-transparent p-1"
+              />
+              <div className="flex gap-2 items-center">
+                <input
+                  {...register(`sizes.${index}.stock`)}
+                  placeholder="Stock"
+                  className="border-b border-purple-400 outline-none bg-transparent p-1 flex-1"
+                />
+                <button
+                  type="button"
+                  onClick={() => remove(index)}
+                  className="text-red-600 hover:text-red-800"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Existing Images */}
+        <div className="flex flex-wrap gap-4 justify-center mt-6">
+          {existingImg.map((src, idx) => (
+            <div key={idx} className="relative w-32 h-32">
+              <img
+                src={`${PORT}${src}`}
+                alt="variant"
+                className="w-full h-full object-cover rounded-md"
+              />
+              <button
+                type="button"
+                onClick={() => handleDeleteImage(src)}
+                className="absolute top-1 right-1 bg-red-600 text-white rounded-full p-1"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          ))}
+        </div>
+
+        {/* New Images Upload */}
+        <div className="flex flex-col items-center justify-center mt-8">
+          <label
+            htmlFor="images"
+            className="flex flex-col items-center cursor-pointer bg-purple-600 text-white font-medium px-4 py-2 rounded-lg hover:bg-purple-700 transition duration-200"
+          >
+            <LucideCamera className="w-5 h-5" />
+            Add Images
+          </label>
+          <input
+            id="images"
+            type="file"
+            multiple
+            accept="image/*"
+            onChange={handleImageChange}
+            className="hidden"
+          />
+        </div>
+
+        {/* Preview New Images */}
+        {previewImage.length > 0 && (
+          <div className="flex flex-wrap gap-4 justify-center mt-4">
+            {previewImage.map((src, idx) => (
+              <div key={idx} className="relative w-32 h-32">
+                <img
+                  src={src}
+                  alt="preview"
+                  className="w-full h-full object-cover rounded-md"
+                />
+                <button
+                  type="button"
+                  onClick={() =>
+                    setPreviewImage(previewImage.filter((_, i) => i !== idx))
+                  }
+                  className="absolute top-1 right-1 bg-pink-600 text-white rounded-full p-1"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Submit */}
+        <div className="flex items-center justify-center w-full py-2 mt-10">
+          <button className="border-2 border-purple-900 px-3 py-3 rounded-md bg-violet-600 uppercase text-white w-1/4 hover:bg-purple-900 transition">
+            Update Variant
+          </button>
         </div>
       </form>
     </div>

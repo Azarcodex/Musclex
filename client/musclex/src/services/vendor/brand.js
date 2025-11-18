@@ -14,8 +14,13 @@ export const deleteBrand = async ({ id }) => {
   return response.data;
 };
 
-export const editBrand=async({id,data})=>
-{
-  const response=await api.patch(`/api/vendor/brand/update/${id}`,data)
-  return response.data
-}
+export const editBrand = async ({ id, data }) => {
+  const response = await api.patch(`/api/vendor/brand/update/${id}`, data);
+  return response.data;
+};
+
+//visibility
+export const brandVisibility = async (id) => {
+  const response = await api.patch(`/api/vendor/brand/visible/${id}`);
+  return response.data;
+};

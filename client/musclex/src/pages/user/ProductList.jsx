@@ -62,7 +62,7 @@ const ProductList = () => {
             <Swiper
               modules={[Navigation, Pagination, Autoplay]}
               spaceBetween={20}
-              slidesPerView={4}
+              slidesPerView={2}
               navigation
               pagination={{ clickable: true }}
               autoplay={{
@@ -79,7 +79,7 @@ const ProductList = () => {
             >
               {data?.relatedProducts?.map((item, index) => (
                 <SwiperSlide key={index}>
-                  <RelatedProduct key={id} data={related} />
+                  <RelatedProduct  data={related} />
                 </SwiperSlide>
               ))}
             </Swiper>

@@ -16,27 +16,29 @@ import { useForm } from "react-hook-form";
 import { useEditBrand } from "../../hooks/vendor/useEditBrand.js";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { useVisibleBrand } from "../../hooks/vendor/useGetBrands.js";
 
 const BrandList = () => {
   const { data } = useGetBrands();
   const { mutate: Remove } = useDeleteBrand();
   const { mutate: Update } = useEditBrand();
+  const { mutate: Visible } = useVisibleBrand();
   const [brands, setBrands] = useState(null);
   const { register, handleSubmit, reset } = useForm();
   console.log(data);
-  const HandleDelete = async (id) => {
-    const result = await confirm({
-      message: "Are you sure You want to delete these",
-    });
-    if (result) {
-      Remove({ id: id });
-    }
-  };
+  // const HandleDelete = async (id) => {
+  //   const result = await confirm({
+  //     message: "Are you sure You want to delete these",
+  //   });
+  //   if (result) {
+  //     Remove({ id: id });
+  //   }
+  // };
   //edit feature
   const querClient = useQueryClient();
   const HandleEdit = (brands) => {
     setBrands(brands);
-    console.log(brands);
+    // console.log(brands);
     reset({ brand_name: brands.brand_name });
   };
   const onSubmit = (data) => {
@@ -55,8 +57,24 @@ const BrandList = () => {
       }
     );
   };
+  //visibility
+  const HandleVisible = async (id) => {
+    const wait = await confirm({
+      message: "Do you want to unvisible these brand",
+    });
+    if (wait) {
+      Visible(id, {
+        onSuccess: (data) => {
+          toast.message(data.message);
+        },
+        onError: (err) => {
+          toast.error(err.response.data.message);
+        },
+      });
+    }
+  };
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-white p-8">
+    <div className=" bg-gradient-to-br from-purple-50 to-white p-8">
       <div className="max-w-5xl mx-auto bg-white rounded-3xl shadow-xl border border-purple-100 overflow-hidden">
         {/* Header */}
         <div className="bg-gradient-to-r from-purple-600 to-purple-500 p-6">
@@ -67,24 +85,6 @@ const BrandList = () => {
         {/* Table */}
         <div className="overflow-x-auto p-6">
           <table className="w-full border-collapse">
-            {/* <thead>
-              <tr className="bg-purple-100 text-purple-800">
-                <th className="py-3 px-4 font-semibold flex items-center gap-2">
-                  <Hash className="w-4 h-4" /> Index
-                </th>
-                <th className="py-3 px-4 font-semibold flex items-center gap-2">
-                  <Tag className="w-4 h-4" /> Brand Name
-                </th>
-                {/* <th className="py-3 px-4 font-semibold flex items-center gap-2">
-                  <Boxes className="w-4 h-4" /> No. of Products
-                // </th> */}
-                {/* // <th className="py-3 px-4 font-semibold flex items-center gap-2">
-                //   <Calendar className="w-4 h-4" /> Created Date
-                // </th> */}
-                {/* <th className="py-3 px-4 font-semibold">Action</th> */}
-              {/* </tr>
-            </thead> */} 
-            
             <tbody>
               {data?.map((brand, index) => (
                 <tr
@@ -106,7 +106,9 @@ const BrandList = () => {
                     })}
                   </td>
                   <td>
-                    <Eye />
+                    <button onClick={() => HandleVisible(brand._id)}>
+                      <Eye className={`w-5 h-5 ${brand.isActive?"text-green-600":"text-red-600"}`} />
+                    </button>
                   </td>
                   <td>
                     <Pencil
@@ -114,9 +116,9 @@ const BrandList = () => {
                       className="w-4 h-4 hover:text-violet-600 hover:border-b-2 hover:border-black"
                     />
                   </td>
-                  <td>
+                  {/* <td>
                     <Trash2 onClick={() => HandleDelete(brand._id)} />
-                  </td>
+                  </td> */}
                 </tr>
               ))}
             </tbody>

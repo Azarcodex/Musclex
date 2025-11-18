@@ -9,12 +9,12 @@ export const VendorProtection = async (req, res, next) => {
       return res.status(401).json({ message: "No token Provided" });
     }
     const split = headers.split(" ")[1];
-    let verify
+    let verify;
     try {
       verify = jwt.verify(split, process.env.JWT_SECRET);
     } catch (error) {
-      res
-        .status(400)
+      return res
+        .status(401)
         .json({ success: false, message: "Invalid token detected" });
     }
     const vendor = await Vendor.findById(verify.id).select("-password");

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Search, Edit2, Eye, Trash2, Plus, EyeOff } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useGetProducts } from "../../hooks/vendor/useGetProducts";
@@ -12,9 +12,8 @@ const ProductsTable = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
-  const { data, isLoading } = useGetProducts(page);
   const { mutate: Delete } = useProductDelete();
-  console.log(data?.data);
+  // console.log(data?.data);
   const { mutate: visibility } = useProductVisible();
   // console.log(data);
   const HandleVisible = async (id) => {
@@ -35,6 +34,14 @@ const ProductsTable = () => {
     }
   };
   const [searchQuery, setSearchQuery] = useState("");
+  const [debounce, setDebounce] = useState(searchQuery);
+  const { data, isLoading } = useGetProducts(page, debounce);
+  useEffect(() => {
+    const interval = setTimeout(() => {
+      setDebounce(searchQuery);
+    }, 600);
+    return () => clearTimeout(interval);
+  }, [searchQuery]);
   console.log(data?.data);
   if (isLoading)
     return <div className="text-center mt-10 text-gray-600">Loading...</div>;
@@ -45,7 +52,7 @@ const ProductsTable = () => {
   //   p.name.toLowerCase().includes(searchQuery.toLowerCase())
   // );
   const HandlePrev = () => {
-    if (page > 1) {
+    if (page > 0) {
       setPage((prev) => prev - 1);
     }
   };
@@ -75,7 +82,7 @@ const ProductsTable = () => {
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-semibold text-gray-800">Products</h1>
           <button
-            onClick={() => navigate("/add-product")}
+            onClick={() => navigate("/vendor/dashboard/products/add")}
             className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-5 py-2 rounded-md font-medium transition-colors"
           >
             <Plus size={18} />

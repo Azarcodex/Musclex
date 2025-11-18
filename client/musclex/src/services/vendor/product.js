@@ -5,8 +5,10 @@ export const addProduct = async (data) => {
   return res.data;
 };
 
-export const getProducts = async ({ page }) => {
-  const response = await api.get(`/api/vendor/product?page=${page}`);
+export const getProducts = async ({ page, debounce }) => {
+  const response = await api.get(
+    `/api/vendor/product?page=${page}&query=${debounce}`
+  );
   return response.data;
 };
 

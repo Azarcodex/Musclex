@@ -7,8 +7,12 @@ import { useVendorLogin } from "../../hooks/vendor/useVendorLogin";
 import { toast } from "sonner";
 import { useEffect } from "react";
 import { setAuthtoken } from "../../api/axios";
+import { useDispatch, useSelector } from "react-redux";
+import { setVendorToken } from "../../store/features/vendorSlice";
 export default function LoginVendor() {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const { token } = useSelector((state) => state.vendorAuth);
   const {
     register,
     handleSubmit,
@@ -18,13 +22,14 @@ export default function LoginVendor() {
   const submitLogin = (data) => {
     mutate(data, {
       onSuccess: (data) => {
-        console.log(data);
+        // console.log(data);
         if (data?.token) {
-          setAuthtoken(data.token, data?.vendor.role);
+          setAuthtoken(data.token);
+          dispatch(setVendorToken(data?.token));
           toast.success(`${data.message}`);
-          setTimeout(() => {
-            navigate("/vendor/dashboard", { replace: true });
-          }, 120);
+          queueMicrotask(() =>
+            navigate("/vendor/dashboard", { replace: true })
+          );
         }
       },
       onError: (err) => {
@@ -32,6 +37,11 @@ export default function LoginVendor() {
       },
     });
   };
+  useEffect(() => {
+    if (token) {
+      navigate("/vendor/dashboard", { replace: true });
+    }
+  }, [token]);
   return (
     <div className="min-h-screen flex">
       {/* Left Side - Image Placeholder */}

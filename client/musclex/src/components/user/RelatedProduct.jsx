@@ -1,11 +1,16 @@
 import { Star, DollarSign } from "lucide-react";
 import React from "react";
+import { useNavigate } from "react-router-dom";
 
 const RelatedProduct = ({ data }) => {
+  const navigate = useNavigate();
   const PORT = import.meta.env.VITE_API_URL;
 
   return (
-    <div className="group bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow cursor-pointer w-56">
+    <div
+      onClick={() => navigate(`/user/products/${data._id}`)}
+      className="group bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow cursor-pointer w-56"
+    >
       {/* Image */}
       <div className="relative w-full h-48 bg-gray-50 overflow-hidden rounded-t-lg">
         <img
@@ -37,7 +42,7 @@ const RelatedProduct = ({ data }) => {
         </div>
 
         {/* Price */}
-        <div className="flex items-center gap-2">
+        {/* <div className="flex items-center gap-2">
           <span className="flex items-center text-lg font-bold text-gray-900">
             <DollarSign className="w-4 h-4" />
             {data.salePrice}
@@ -48,7 +53,7 @@ const RelatedProduct = ({ data }) => {
               {data.oldPrice}
             </span>
           )}
-        </div>
+        </div> */}
       </div>
     </div>
   );

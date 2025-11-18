@@ -10,18 +10,52 @@ export const SearchData = async (req, res) => {
         .json({ success: false, message: "Search query is required" });
     }
     const regex = new RegExp(query, "i");
-    const products = await Product.find({
-      isDeleted: false,
-      $or: [
-        { name: regex },
-        { description: regex },
-        { "brandID.brand_name": regex },
-        { "catgid.catgName": regex },
-      ],
-    })
-      .populate("brandID", "brand_name")
-      .populate("catgid", "catgName");
-
+    // const products = await Product.find({
+    //   isDeleted: false,
+    //   $or: [
+    //     { name: regex },
+    //     { description: regex },
+    //     { "brandID.brand_name": regex },
+    //     { "catgid.catgName": regex },
+    //   ],
+    // })
+    //   .populate("brandID", "brand_name")
+    //   .populate("catgid", "catgName").lean();
+    const products = await Product.aggregate([
+      { $match: { isDeleted: false } },
+      {
+        $lookup: {
+          from: "brands",
+          localField: "brandID",
+          foreignField: "_id",
+          as: "brands",
+        },
+      },
+      {
+        $lookup: {
+          from: "categories",
+          localField: "catgid",
+          foreignField: "_id",
+          as: "category",
+        },
+      },
+      {
+        $unwind: { path: "$brands" },
+      },
+      {
+        $unwind: { path: "$category" },
+      },
+      {
+        $match: {
+          $or: [
+            { name: regex },
+            { description: regex },
+            { "brands.brand_name": regex },
+            { "category.catgName": regex },
+          ],
+        },
+      },
+    ]);
     if (products.length === 0) {
       return res
         .status(404)
@@ -36,9 +70,12 @@ export const SearchData = async (req, res) => {
           ...product,
           variant,
           image: variant?.images?.[0],
-        };
+          count:products.length        };
       })
     );
+    res
+      .status(200)
+      .json({ success: true, count: ProductList.length, results: ProductList });
   } catch (e) {
     res.status(500).json({ success: false, message: "Server error" });
   }

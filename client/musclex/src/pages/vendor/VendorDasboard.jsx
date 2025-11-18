@@ -4,12 +4,15 @@ import { Navbar } from "../../components/user/Navbar";
 import { Outlet, useNavigate } from "react-router-dom";
 import { Bell, LogOutIcon } from "lucide-react";
 import { usevendorAuthStore } from "../../hooks/users/zustand/useAuth";
+import { useDispatch } from "react-redux";
+import { clearToken } from "../../store/features/vendorSlice";
 
 const VendorDasboard = () => {
   const navigate = useNavigate();
-  const { clearToken } = usevendorAuthStore();
+  const dispatch = useDispatch();
+  // const { clearToken } = usevendorAuthStore();
   const HandleLogout = () => {
-    clearToken();
+    dispatch(clearToken());
     navigate("/vendor/login");
   };
   return (

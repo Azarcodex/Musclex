@@ -22,10 +22,15 @@ export const fetchProducts = async (
   if (selectedRatings && selectedRatings.length > 0) {
     params.rating = selectedRatings.join(",");
   }
-  if(sortValue)
-  {
-    params.sortValue=sortValue
+  if (sortValue) {
+    params.sortValue = sortValue;
   }
   const response = await api.get(`/api/user/products/`, { params });
+  return response.data;
+};
+
+//featured
+export const featured = async () => {
+  const response = await api.get("/api/user/products/featured");
   return response.data;
 };

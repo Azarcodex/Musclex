@@ -1,15 +1,22 @@
 import { buttonBaseClasses } from "@mui/material";
 import { DollarSign, Star, ShoppingCart, Zap } from "lucide-react";
 import React, { useEffect, useState } from "react";
+import { useAddToCart } from "../../hooks/users/useAddCart";
+import { toast } from "sonner";
+import { useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
 
 const ProductListCard = ({ data }) => {
   const PORT = import.meta.env.VITE_API_URL;
+  const navigate = useNavigate();
   const [currentVariant, setCurrentVariant] = useState(null);
   const [image, setImage] = useState("");
   const [selectedVariantIndex, setSelectedVariantIndex] = useState(0);
   const [currentSize, setCurrentSize] = useState(null);
   const [selectedSizeIndex, setSelectedSizeindex] = useState(0);
-  // console.log(data)
+  const { token } = useSelector((state) => state.userAuth);
+  const { mutate: AddCart } = useAddToCart();
+  // console.log(data);
   useEffect(() => {
     if (data?.variants?.length > 0) {
       const firstVariant = data.variants[0];
@@ -27,7 +34,7 @@ const ProductListCard = ({ data }) => {
       setImage(`${PORT}${currentVariant.images[0]}`);
     }
   }, [currentVariant, PORT]);
-  console.log(currentVariant);
+  // console.log(currentVariant);
   const handleVariantChange = (variant, index) => {
     setCurrentVariant(variant);
     setSelectedVariantIndex(index);
@@ -51,7 +58,28 @@ const ProductListCard = ({ data }) => {
             100
         )
       : 0;
-
+  //handling cart
+  const HandleAddToCart = () => {
+    if (!token) {
+      toast.message("please login to continue");
+      return;
+    }
+    const payload = {
+      variantId: currentVariant?._id,
+      productId: data?.products?._id,
+      sizeLabel: currentSize?.label,
+      price: currentSize?.salePrice,
+    };
+    AddCart(payload, {
+      onSuccess: (data) => {
+        toast.success(`${data.message}`);
+        queryClient.invalidateQueries(["cart"]);
+      },
+      onError: (err) => {
+        toast.message(`${err.response.data.message}`);
+      },
+    });
+  };
   return (
     <div className="max-w-3xl  mx-auto  rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300">
       <div className="flex flex-col md:flex-row">
@@ -69,29 +97,6 @@ const ProductListCard = ({ data }) => {
               className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
             />
           </div>
-
-          {/* Thumbnail Images */}
-          {/* {currentVariant?.images?.length > 1 && (
-            <div className="flex gap-2 mt-4 justify-center">
-              {currentVariant.images.map((img, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => setImage(`${PORT}${img}`)}
-                  className={`w-16 h-16 rounded-lg overflow-hidden border-2 transition-all duration-200 hover:scale-105 ${
-                    image === `${PORT}${img}`
-                      ? "border-purple-500 shadow-md"
-                      : "border-gray-200 opacity-70 hover:opacity-100"
-                  }`}
-                >
-                  <img
-                    src={`${PORT}${img}`}
-                    alt={`Thumbnail ${idx + 1}`}
-                    className="w-full h-full object-cover"
-                  />
-                </button>
-              ))}
-            </div>
-          )} */}
           {currentVariant?.images?.length > 1 && (
             <div className="flex gap-2 mt-4 justify-center overflow-x-auto">
               {currentVariant.images.slice(0, 3).map((img, idx) => (
@@ -167,6 +172,17 @@ const ProductListCard = ({ data }) => {
                   {(currentSize.oldPrice - currentSize.salePrice).toFixed(2)}!
                 </p>
               )}
+              <p
+                className={`font-semibold underline ${
+                  currentSize.stock <= 0 ? "text-red-700" : "text-purple-800"
+                } text-xs`}
+              >
+                {currentSize.stock <= 0
+                  ? "out of stock !!"
+                  : currentSize.stock === 1
+                  ? "only 1 avaialable !!"
+                  : "in stock"}
+              </p>
             </div>
           )}
 
@@ -225,11 +241,27 @@ const ProductListCard = ({ data }) => {
 
           {/* Action Buttons */}
           <div className="mt-3 flex flex-col sm:flex-row gap-3">
-            <button className="flex-1 bg-gray-900 hover:bg-gray-800 text-white font-semibold py-1.5 px-2 rounded-md transition-colors duration-200 text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg">
+            <button
+              onClick={HandleAddToCart}
+              className="flex-1 bg-gray-900 hover:bg-gray-800 text-white font-semibold py-1.5 px-2 rounded-md transition-colors duration-200 text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+            >
               <ShoppingCart className="w-4 h-4" />
               Add to Cart
             </button>
-            <button className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-semibold py-1.5 px-2 rounded-lg text-sm transition-colors duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg">
+            <button
+              onClick={() =>
+                navigate("/user/checkout", {
+                  state: {
+                    buyNow: true,
+                    productID: data?.products._id,
+                    variantID: currentVariant,
+                    quantity: 1,
+                    price: currentSize?.salePrice,
+                  },
+                })
+              }
+              className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-semibold py-1.5 px-2 rounded-lg text-sm transition-colors duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+            >
               <Zap className="w-4 h-4" />
               Buy Now
             </button>

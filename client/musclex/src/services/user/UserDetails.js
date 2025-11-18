@@ -11,3 +11,17 @@ export const updateuserName = async (id, data) => {
   const response = await api.patch("/api/user/userEdit", id, data);
   return response.data;
 };
+
+//update password
+export const changePassword = async (payload) => {
+  // console.log(payload);
+  const response = await api.patch("/api/user/changePassword", payload);
+  return response.data;
+};
+//upload image
+export const uploadImage = async (formdata) => {
+  console.log(formdata)
+  const response = await api.put(`/api/user/profile/image`, formdata, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+};

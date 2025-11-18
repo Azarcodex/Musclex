@@ -62,6 +62,11 @@ export const loginUser = async (req, res) => {
     }
     const user = await User.findOne({ email });
     if (!user) {
+      return res.status(400).json({ message: "Email not found" });
+    }
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      // console.log("no match");
       return res.status(400).json({ message: "Invalid Credentials" });
     }
     if (!user.isVerified) {
@@ -69,9 +74,8 @@ export const loginUser = async (req, res) => {
         .status(403)
         .json({ message: "Account not verified.Verify OTP" });
     }
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(400).json({ message: "Invalid Credentials" });
+    if (user.isBlocked) {
+      return res.status(403).json({ message: "Your account is being blocked" });
     }
     const token = jwt.sign(
       { id: user._id, role: user.role },

@@ -5,15 +5,14 @@ export const categoryViewController = async (req, res) => {
   try {
     const { id } = req.params;
     // console.log(id);
-    const category = await Category.findById(id);
-    category.isActive = !category.isActive;
-    await category.save();
+    const category = await Category.findOne({ _id: id });
+    const newStatus = !category.isActive;
+    await Category.findByIdAndUpdate(id, { isActive: newStatus });
+    await Product.updateMany({ catgid: id }, { isActive: newStatus });
     res.status(200).json({
       success: true,
       message: `${
-        category.isActive
-          ? "catgeory is been activated"
-          : "category Deactivated"
+        newStatus ? "catgeory is been activated" : "category Deactivated"
       }`,
     });
   } catch (err) {
@@ -34,7 +33,7 @@ export const getAllCategoryAdmin = async (req, res) => {
         },
       },
       { $addFields: { totalCount: { $size: { $ifNull: ["$products", []] } } } },
-      { $project: { catgName: 1, createdAt: 1, totalCount: 1,isActive:1 } },
+      { $project: { catgName: 1, createdAt: 1, totalCount: 1, isActive: 1 } },
     ]);
     res.status(200).json({ category });
   } catch (error) {

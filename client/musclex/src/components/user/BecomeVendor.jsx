@@ -1,85 +1,86 @@
-import React, { useState } from 'react';
-import { UserPlus, Store, Package, TrendingUp, BarChart3, DollarSign, Settings, Headphones, CheckCircle } from 'lucide-react';
+import React, { useState } from "react";
+import {
+  UserPlus,
+  Store,
+  Package,
+  TrendingUp,
+  BarChart3,
+  DollarSign,
+  Settings,
+  Headphones,
+  CheckCircle,
+} from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const ProcessStep = ({ number, icon: Icon, title, description }) => {
   const [isHovered, setIsHovered] = useState(false);
-
   return (
-    <div 
+    <div
       className="relative text-center"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* Step Number */}
       <div className="flex justify-center mb-4">
-        <div 
+        <div
           className="relative w-20 h-20 rounded-full flex items-center justify-center transition-all duration-300"
           style={{
-            backgroundColor: isHovered ? '#7c3aed' : '#ede9fe',
-            transform: isHovered ? 'scale(1.1)' : 'scale(1)',
+            backgroundColor: isHovered ? "#7c3aed" : "#ede9fe",
+            transform: isHovered ? "scale(1.1)" : "scale(1)",
           }}
         >
-          <span 
-            className="absolute -top-2 -right-2 w-8 h-8 bg-purple-600 text-white rounded-full flex items-center justify-center text-sm font-bold shadow-lg"
-          >
+          <span className="absolute -top-2 -right-2 w-8 h-8 bg-purple-600 text-white rounded-full flex items-center justify-center text-sm font-bold shadow-lg">
             {number}
           </span>
-          <Icon 
+          <Icon
             className="w-10 h-10 transition-colors duration-300"
             style={{
-              color: isHovered ? '#ffffff' : '#7c3aed',
+              color: isHovered ? "#ffffff" : "#7c3aed",
             }}
           />
         </div>
       </div>
 
       {/* Title */}
-      <h3 className="text-lg font-bold text-gray-900 mb-2">
-        {title}
-      </h3>
+      <h3 className="text-lg font-bold text-gray-900 mb-2">{title}</h3>
 
       {/* Description */}
-      <p className="text-sm text-gray-600">
-        {description}
-      </p>
+      <p className="text-sm text-gray-600">{description}</p>
     </div>
   );
 };
 
 const BenefitCard = ({ icon: Icon, title, description }) => {
   const [isHovered, setIsHovered] = useState(false);
-
   return (
-    <div 
+    <div
       className="bg-white rounded-xl p-6 transition-all duration-300 cursor-pointer"
       style={{
-        boxShadow: isHovered ? '0 20px 40px rgba(124, 58, 237, 0.15)' : '0 4px 15px rgba(0, 0, 0, 0.05)',
-        transform: isHovered ? 'translateY(-8px)' : 'translateY(0)',
+        boxShadow: isHovered
+          ? "0 20px 40px rgba(124, 58, 237, 0.15)"
+          : "0 4px 15px rgba(0, 0, 0, 0.05)",
+        transform: isHovered ? "translateY(-8px)" : "translateY(0)",
       }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       <div className="flex items-start gap-4">
-        <div 
+        <div
           className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-300"
           style={{
-            backgroundColor: isHovered ? '#7c3aed' : '#ede9fe',
+            backgroundColor: isHovered ? "#7c3aed" : "#ede9fe",
           }}
         >
-          <Icon 
+          <Icon
             className="w-6 h-6 transition-colors duration-300"
             style={{
-              color: isHovered ? '#ffffff' : '#7c3aed',
+              color: isHovered ? "#ffffff" : "#7c3aed",
             }}
           />
         </div>
         <div>
-          <h4 className="text-lg font-semibold text-gray-900 mb-2">
-            {title}
-          </h4>
-          <p className="text-sm text-gray-600">
-            {description}
-          </p>
+          <h4 className="text-lg font-semibold text-gray-900 mb-2">{title}</h4>
+          <p className="text-sm text-gray-600">{description}</p>
         </div>
       </div>
     </div>
@@ -87,60 +88,72 @@ const BenefitCard = ({ icon: Icon, title, description }) => {
 };
 
 const BecomeVendor = () => {
+  const navigate = useNavigate();
+
   const steps = [
     {
       icon: UserPlus,
       title: "Register Account",
-      description: "Create your vendor account with basic details and business information"
+      description:
+        "Create your vendor account with basic details and business information",
     },
     {
       icon: CheckCircle,
       title: "Get Verified",
-      description: "Submit your documents for quick verification and approval process"
+      description:
+        "Submit your documents for quick verification and approval process",
     },
     {
       icon: Store,
       title: "Setup Store",
-      description: "Customize your store profile, add logo, banner and business details"
+      description:
+        "Customize your store profile, add logo, banner and business details",
     },
     {
       icon: Package,
       title: "Start Selling",
-      description: "Add your products and start receiving orders from customers"
-    }
+      description:
+        "Add your products and start receiving orders from customers",
+    },
   ];
 
   const benefits = [
     {
       icon: Package,
       title: "Add Products Easily",
-      description: "Simple product management system. Add unlimited products with images, descriptions, pricing, and inventory tracking."
+      description:
+        "Simple product management system. Add unlimited products with images, descriptions, pricing, and inventory tracking.",
     },
     {
       icon: BarChart3,
       title: "Sales Reports",
-      description: "Comprehensive sales analytics with daily, weekly, and monthly reports. Track your revenue and growth trends."
+      description:
+        "Comprehensive sales analytics with daily, weekly, and monthly reports. Track your revenue and growth trends.",
     },
     {
       icon: TrendingUp,
       title: "Order Analytics",
-      description: "Detailed insights into order patterns, customer behavior, and peak sales periods to optimize your business."
+      description:
+        "Detailed insights into order patterns, customer behavior, and peak sales periods to optimize your business.",
     },
     {
       icon: DollarSign,
       title: "Revenue Tracking",
-      description: "Real-time revenue monitoring with automated payment processing and transparent transaction history."
+      description:
+        "Real-time revenue monitoring with automated payment processing and transparent transaction history.",
     },
     {
       icon: Settings,
       title: "Store Management",
-      description: "Complete control over your store settings, shipping options, return policies, and promotional campaigns."
+      description:
+        "Complete control over your store settings, shipping options, return policies, and promotional campaigns.",
     },
     {
       icon: Headphones,
       title: "Dedicated Support",
-      description: "24/7 vendor support team to help you with technical issues, marketing strategies, and business growth."
-    }
+      description:
+        "24/7 vendor support team to help you with technical issues, marketing strategies, and business growth.",
+    },
   ];
 
   return (
@@ -152,9 +165,13 @@ const BecomeVendor = () => {
             Become a <span className="text-purple-600">Vendor</span>
           </h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Join thousands of successful sellers on MuscleX. Start your online fitness business today and reach millions of customers.
+            Join thousands of successful sellers on MuscleX. Start your online
+            fitness business today and reach millions of customers.
           </p>
-          <button className="mt-8 bg-purple-600 text-white px-8 py-4 rounded-full font-semibold text-lg hover:bg-purple-700 transition-colors shadow-lg hover:shadow-xl">
+          <button
+            onClick={() => navigate("/vendor/register")}
+            className="mt-8 bg-purple-600 text-white px-8 py-4 rounded-full font-semibold text-lg hover:bg-purple-700 transition-colors shadow-lg hover:shadow-xl"
+          >
             Register as Vendor
           </button>
         </div>
@@ -170,10 +187,13 @@ const BecomeVendor = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 relative">
             {/* Connecting Line */}
-            <div className="hidden lg:block absolute top-10 left-0 right-0 h-0.5 bg-gradient-to-r from-purple-200 via-purple-400 to-purple-200" style={{ width: '80%', left: '10%' }} />
-            
+            <div
+              className="hidden lg:block absolute top-10 left-0 right-0 h-0.5 bg-gradient-to-r from-purple-200 via-purple-400 to-purple-200"
+              style={{ width: "80%", left: "10%" }}
+            />
+
             {steps.map((step, index) => (
-              <ProcessStep 
+              <ProcessStep
                 key={index}
                 number={index + 1}
                 icon={step.icon}
@@ -195,7 +215,7 @@ const BecomeVendor = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {benefits.map((benefit, index) => (
-              <BenefitCard 
+              <BenefitCard
                 key={index}
                 icon={benefit.icon}
                 title={benefit.title}

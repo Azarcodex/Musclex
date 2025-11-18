@@ -2,14 +2,14 @@ import React from "react";
 import { useForm } from "react-hook-form";
 import { useAddProduct } from "../../hooks/vendor/useAddProduct";
 import { useGetBrands } from "../../hooks/users/useGetBrands";
-import { usegetCategories } from "../../hooks/users/usegetCategories";
+import { useGetVendorCategory } from "../../hooks/vendor/useGetCategory";
 
 const ProductForm = () => {
   const { register, handleSubmit, reset } = useForm();
   const { mutate, isPending } = useAddProduct();
   const { data: brands, isLoading: brandLoading } = useGetBrands();
-  const { data: categories, isLoading: catLoading } = usegetCategories();
-
+  const { data: category, isLoading: catLoading } = useGetVendorCategory();
+  // console.log(category);
   const onSubmit = (data) => {
     console.log(data);
     mutate(data);
@@ -60,7 +60,7 @@ const ProductForm = () => {
             className="border border-purple-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-300 outline-none p-3 w-full rounded-xl transition-all bg-white"
           >
             <option value="">Select Category</option>
-            {categories?.map((cat) => (
+            {category?.category?.map((cat) => (
               <option key={cat._id} value={cat._id}>
                 {cat.catgName}
               </option>

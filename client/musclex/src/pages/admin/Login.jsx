@@ -4,6 +4,7 @@ import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
 import { useAdminLogin } from "../../hooks/admin/useAdminLogin";
 import { Navigate, useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -19,17 +20,17 @@ const Login = () => {
   });
 
   const { mutate: login, isLoading, isError, error, data } = useAdminLogin();
-
+  const { token } = useSelector((state) => state.adminAuth);
+  // console.log(token);
   const onSubmit = (values) => {
     console.log(values);
     login(values);
   };
   useEffect(() => {
-    const token = localStorage.getItem("admin");
     if (token) {
       navigate("/admin/dashboard", { replace: true });
     }
-  }, [navigate]);
+  }, [navigate,token]);
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 px-4 sm:px-6 lg:px-8">
       {/* Header */}

@@ -1,5 +1,10 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { updateuserName, userData } from "../../services/user/UserDetails";
+import {
+  changePassword,
+  updateuserName,
+  uploadImage,
+  userData,
+} from "../../services/user/UserDetails";
 
 export const useGetUserdata = () => {
   return useQuery({
@@ -12,5 +17,19 @@ export const useGetUserdata = () => {
 export const useEditUsername = () => {
   return useMutation({
     mutationFn: updateuserName,
+  });
+};
+
+//edit password
+export const useChangePassword = () => {
+  return useMutation({
+    mutationFn: changePassword,
+  });
+};
+
+//change image
+export const useUploadImage = () => {
+  return useMutation({
+    mutationFn: uploadImage,
   });
 };

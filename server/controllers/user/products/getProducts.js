@@ -8,7 +8,7 @@ export const getProducts = async (req, res) => {
       req.query;
 
     // Base queries
-    const productQuery = { isDeleted: false };
+    const productQuery = { isDeleted: false, isActive: true };
     const variantQuery = { isListed: true };
 
     if (minPrice && maxPrice) {

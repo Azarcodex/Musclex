@@ -37,11 +37,11 @@ export const loginVendor = async (req, res) => {
     console.log(email,password)
     const vendor = await Vendor.findOne({ email });
     if (!vendor) {
-      return res.json({ success: false, message: "Vendor not exist" });
+      return res.status(401).json({ success: false, message: "Vendor not exist" });
     }
     const isMatch = await bcrypt.compare(password, vendor.password);
     if (!isMatch) {
-      return res.json({ success: false, message: "Invalid Credentials" });
+      return res.status(401).json({ success: false, message: "Invalid Credentials" });
     }
     if (vendor.status !== "approved") {
       return res

@@ -1,10 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   cancelOrder,
+  cancelProductOrder,
   fetchOrderTracking,
   getOrderList,
   orderSummary,
   placeOrder,
+  returnOrder,
 } from "../../services/user/Order";
 
 export const useOrder = () => {
@@ -43,7 +45,6 @@ export const usegetOrderTrack = (id) => {
 
 //cancel order
 export const useCancelOrder = () => {
-  const queryClient = useQueryClient();
   {
     return useMutation({
       mutationFn: cancelOrder,
@@ -52,4 +53,26 @@ export const useCancelOrder = () => {
       },
     });
   }
+};
+
+//cancel product order
+export const useCancelProductOrder = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: cancelProductOrder,
+    onSuccess: () => {
+      queryClient.invalidateQueries(["userOrders"]);
+    },
+  });
+};
+
+//return order
+export const useReturnOrder = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: returnOrder,
+    onSuccess: () => {
+      queryClient.invalidateQueries(["userOrders"]);
+    },
+  });
 };

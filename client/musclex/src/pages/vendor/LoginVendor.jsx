@@ -33,6 +33,7 @@ export default function LoginVendor() {
         }
       },
       onError: (err) => {
+        console.log(err.message);
         toast.error(`${err.response.data.message}`);
       },
     });

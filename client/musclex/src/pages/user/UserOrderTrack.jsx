@@ -7,12 +7,12 @@ import {
   Calendar,
 } from "lucide-react";
 import { usegetOrderTrack } from "../../hooks/users/useOrder";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
 export default function UserOrderTrack() {
   const orderId = useParams();
   const { data } = usegetOrderTrack(orderId);
-  console.log(data);
+  const navigate = useNavigate();
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString("en-IN", {
@@ -54,6 +54,9 @@ export default function UserOrderTrack() {
     "Shipped",
     "Out for Delivery",
     "Delivered",
+    "Cancelled",
+    "Returned",
+    ,
   ];
 
   const statusIndex = (orderStatus) => statusSteps.indexOf(orderStatus);
@@ -61,6 +64,20 @@ export default function UserOrderTrack() {
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8">
       <div className="max-w-5xl mx-auto space-y-6">
+        <div className="float-right flex items-center gap-3">
+          <button
+            onClick={() => navigate("/user/orders")}
+            className="bg-purple-600 rounded-sm p-1 text-white"
+          >
+            show all my orders
+          </button>
+          <button
+            onClick={() => navigate("/user/products")}
+            className="bg-pink-600 text-white rounded-sm p-1"
+          >
+            back to home
+          </button>
+        </div>
         <h1 className="text-2xl font-bold text-gray-900">My Orders</h1>
 
         {data?.message?.map((order) => (

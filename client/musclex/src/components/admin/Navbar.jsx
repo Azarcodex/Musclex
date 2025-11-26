@@ -1,10 +1,13 @@
 import React from "react";
 import { Bell, CircleUser, LogOutIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { clearAdminToken } from "../../store/features/adminSlice";
 const Navbar = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const HandleLogout = () => {
-    localStorage.removeItem("admin");
+    dispatch(clearAdminToken());
     navigate("/admin/login");
   };
   return (

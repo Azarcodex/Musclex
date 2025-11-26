@@ -1,10 +1,9 @@
-import { useQuery } from "@tanstack/react-query"
-import { fetchBrand } from "../../services/user/BrandFetch"
+import { useQuery } from "@tanstack/react-query";
+import { fetchUserBrand } from "../../services/user/BrandFetch";
 
-export const useGetBrands=()=>
-{
-    return useQuery({
-        queryKey:["Brand"],
-        queryFn:fetchBrand,
-    })
-}
+export const useGetBrands = () => {
+  return useQuery({
+    queryKey: ["Brand"],
+    queryFn: fetchUserBrand,
+  });
+};

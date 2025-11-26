@@ -10,7 +10,7 @@ import { useQueryClient } from "@tanstack/react-query";
 
 const WishList = () => {
   const { data: wishList } = usegetWishList();
-  console.log(wishList?.wishList)
+  console.log(wishList?.wishList);
   const { mutate: Remove } = useRemoveWishList();
   const queryClient = useQueryClient();
   const HandleDelete = async (id) => {
@@ -67,7 +67,6 @@ const WishList = () => {
               <div className="col-span-3">Product name(brand)</div>
               <div className="col-span-2">Unit price</div>
               <div className="col-span-2">category</div>
-              <div className="col-span-2">Stock status</div>
               <div className="col-span-2">created</div>
             </div>
 
@@ -105,24 +104,30 @@ const WishList = () => {
                   </span>
                 </div>
                 <div className="col-span-2">
-                  <span className="text-gray-400 line-through mr-2 flex items-center gap-2">
+                  {/* <span className="text-gray-400 line-through mr-2 flex items-center gap-2">
                     <IndianRupee className="w-3 h-3" />
                     {item.variantId?.size[0].oldPrice}
-                  </span>
-
-                  <span className=" text-teal-600 font-semibold flex items-center gap-2">
-                    <IndianRupee className="w-3 h-3" />
-                    {item.variantId?.size[0].salePrice}
-                  </span>
+                  </span> */}
+                  {item.variantId?.size[0].offerApplied ? (
+                    <span className=" text-teal-600 font-semibold flex items-center gap-2">
+                      <IndianRupee className="w-3 h-3" />
+                      {item.variantId?.size[0].finalPrice}
+                    </span>
+                  ) : (
+                    <span className=" text-teal-600 font-semibold flex items-center gap-2">
+                      <IndianRupee className="w-3 h-3" />
+                      {item.variantId?.size[0].salePrice}
+                    </span>
+                  )}
                 </div>
                 <div className="col-span-2">
                   <span className="text-gray-900">
                     {item.productId?.catgid?.catgName}
                   </span>
                 </div>
-                <div className="col-span-2">
+                {/* <div className="col-span-2">
                   <span className="text-gray-900">{item.variantId?.size[0].stock}</span>
-                </div>
+                </div> */}
                 <div className="col-span-2 text-right">
                   <div className="text-xs text-gray-500 mb-2">
                     Added: {formatDate(item.createdAt)}

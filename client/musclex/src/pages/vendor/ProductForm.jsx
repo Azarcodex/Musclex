@@ -1,13 +1,18 @@
 import React from "react";
 import { useForm } from "react-hook-form";
 import { useAddProduct } from "../../hooks/vendor/useAddProduct";
-import { useGetBrands } from "../../hooks/users/useGetBrands";
 import { useGetVendorCategory } from "../../hooks/vendor/useGetCategory";
+import { useGetBrandsVendor } from "../../hooks/vendor/useGetBrands";
 
 const ProductForm = () => {
-  const { register, handleSubmit, reset } = useForm();
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm();
   const { mutate, isPending } = useAddProduct();
-  const { data: brands, isLoading: brandLoading } = useGetBrands();
+  const { data: brands, isLoading: brandLoading } = useGetBrandsVendor();
   const { data: category, isLoading: catLoading } = useGetVendorCategory();
   // console.log(category);
   const onSubmit = (data) => {
@@ -31,10 +36,13 @@ const ProductForm = () => {
             Product Name
           </label>
           <input
-            {...register("name", { required: true })}
+            {...register("name", { required: "enter product name" })}
             placeholder="Enter product name"
             className="border border-purple-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-300 outline-none p-3 w-full rounded-xl transition-all"
           />
+          {errors.name && (
+            <p className="text-red-600 text-sm">{errors?.name?.message}</p>
+          )}
         </div>
 
         {/* Description */}
@@ -43,11 +51,16 @@ const ProductForm = () => {
             Description
           </label>
           <textarea
-            {...register("description")}
+            {...register("description", { required: "enter description" })}
             placeholder="Write a short description..."
             rows={3}
             className="border border-purple-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-300 outline-none p-3 w-full rounded-xl transition-all resize-none"
           />
+          {errors.description && (
+            <p className="text-red-600 text-sm">
+              {errors?.description?.message}
+            </p>
+          )}
         </div>
 
         {/* Category Dropdown */}
@@ -56,7 +69,7 @@ const ProductForm = () => {
             Category
           </label>
           <select
-            {...register("catgid", { required: true })}
+            {...register("catgid", { required: "select category" })}
             className="border border-purple-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-300 outline-none p-3 w-full rounded-xl transition-all bg-white"
           >
             <option value="">Select Category</option>
@@ -66,13 +79,16 @@ const ProductForm = () => {
               </option>
             ))}
           </select>
+          {errors.catgid && (
+            <p className="text-red-600 text-sm">{errors?.catgid?.message}</p>
+          )}
         </div>
 
         {/* Brand Dropdown */}
         <div>
           <label className="block text-gray-700 font-medium mb-1">Brand</label>
           <select
-            {...register("brandID", { required: true })}
+            {...register("brandID", { required: "select brand" })}
             className="border border-purple-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-300 outline-none p-3 w-full rounded-xl transition-all bg-white"
           >
             <option value="">Select Brand</option>
@@ -82,6 +98,9 @@ const ProductForm = () => {
               </option>
             ))}
           </select>
+          {errors.brandID && (
+            <p className="text-red-600 text-sm">{errors?.brandID.message}</p>
+          )}
         </div>
 
         {/* Submit Button */}

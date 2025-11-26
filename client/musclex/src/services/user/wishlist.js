@@ -1,12 +1,12 @@
 import api from "../../api/axios";
 
 export const addWishList = async ({ productId, variantId }) => {
-  console.log(productId, variantId);
+  // console.log(productId, variantId);
   const response = await api.post("/api/user/wishList", {
     productId,
     variantId,
   });
-  console.log(response.data);
+  console.log("✅✅✅✅"+response.data);
   return response.data;
 };
 

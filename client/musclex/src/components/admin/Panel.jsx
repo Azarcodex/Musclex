@@ -91,14 +91,14 @@ function Panel() {
       ],
     },
     {
-      label: "Banners",
+      label: "Offers",
       icon: <LayoutTemplate size={20} />,
-      path: "/dashboard/banners",
+      path: "/admin/dashboard/addOffer",
     },
     {
       label: "Coupon",
       icon: <TicketPercent size={20} />,
-      path: "/dashboard/coupon",
+      path: "/admin/dashboard/coupon",
     },
     {
       label: "Logout",

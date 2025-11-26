@@ -79,14 +79,20 @@ const ProductsTable = () => {
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-semibold text-gray-800">Products</h1>
+        <div className="flex items-center justify-end gap-3 mb-6">
+          {/* <h1 className="text-2xl font-semibold text-gray-800">Products</h1> */}
           <button
             onClick={() => navigate("/vendor/dashboard/products/add")}
             className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-5 py-2 rounded-md font-medium transition-colors"
           >
             <Plus size={18} />
             ADD PRODUCT
+          </button>
+          <button
+             className="flex items-center gap-2 bg-purple-900 hover:bg-purple-700 text-white px-5 py-2 rounded-md font-medium transition-colors"
+            onClick={() => navigate("/vendor/dashboard/products/offers")}
+          >
+            offers
           </button>
         </div>
 

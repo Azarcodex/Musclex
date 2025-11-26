@@ -2,6 +2,7 @@
 import Cart from "../../models/products/cart.js";
 import Product from "../../models/products/Product.js";
 import Variant from "../../models/products/Variant.js";
+import Offer from "../../models/offer/offer.js";
 export const AddCart = async (req, res) => {
   try {
     const userId = req.user._id;
@@ -58,17 +59,47 @@ export const getCart = async (req, res) => {
         totalAmount: 0,
       });
     }
+    const today = new Date();
+    const activeOffers = await Offer.find({
+      isActive: true,
+      scope: "Category",
+      startDate: { $lte: today },
+      endDate: { $gte: today },
+    }).lean();
     const formatted = items.map((item) => {
       const selectedSize =
         item.variantId?.size?.find((s) => s.label === item.sizeLabel) || null;
+      let finalPrice = selectedSize.salePrice;
+      let offerApplied = false;
+      let offerValue = 0;
+      let offerType = "";
+      let offerAmount = 0;
+      const catOffer = activeOffers.find(
+        (off) =>
+          off.categoryId.toString() === item?.productId?.catgid?._id.toString()
+      );
+      // console.log(catOffer);
+      if (catOffer) {
+        offerApplied = true;
+        offerType = catOffer.discountType;
+        offerValue = catOffer.value;
+
+        if (catOffer.discountType === "percent") {
+          offerAmount = Math.floor((selectedSize.salePrice * offerValue) / 100);
+        } else {
+          offerAmount = offerValue;
+        }
+
+        finalPrice = Math.max(selectedSize.salePrice - offerAmount, 1);
+      }
       return {
         _id: item._id,
         productName: item.productId?.name,
         brandName: item.productId?.brandID?.brand_name,
         flavour: item.variantId?.flavour || "N/A",
         sizeLabel: item.sizeLabel,
-        // price: item.price,
         quantity: item.quantity,
+        salePrice: selectedSize.salePrice,
         image:
           item.variantId?.images?.length > 0
             ? `${BASE_URL}${item.variantId.images[0]}`
@@ -79,11 +110,16 @@ export const getCart = async (req, res) => {
         stock: selectedSize?.stock ?? 0,
 
         price: selectedSize?.salePrice,
+        offerApplied,
+        offerType,
+        offerValue,
+        offerAmount,
+        finalPrice,
       };
     });
 
     const totalAmount = formatted.reduce(
-      (acc, val) => acc + val.price * val.quantity,
+      (acc, val) => acc + val.finalPrice * val.quantity,
       0
     );
     res.status(200).json({

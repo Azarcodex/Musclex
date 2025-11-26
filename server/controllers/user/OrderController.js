@@ -3,20 +3,25 @@ import Variant from "../../models/products/Variant.js";
 import Address from "../../models/users/address.js";
 import Order from "../../models/users/order.js";
 import User from "../../models/users/user.js";
+import { computeOrderStatus } from "./computation/status.js";
 
 export const OrderController = async (req, res) => {
   try {
     const userId = req.user._id;
-    const { addressId, paymentMethod } = req.body;
-
-    const cartitems = await Cart.find({ userId })
-      .populate("productId", "name")
-      .populate("variantId", "size flavour");
-
-    if (!cartitems.length) {
-      return res.status(400).json({ success: false, message: "Cart is empty" });
+    const { items, addressId, paymentMethod } = req.body;
+    console.log("✅✅✅✅✅✅✅✅✅" + JSON.stringify(items));
+    let cartitems = [];
+    if (items) {
+      cartitems = items;
+    } else {
+      const cartitems = await Cart.find({ userId })
+        .populate("productId", "name vendorID")
+        .populate("variantId", "size flavour");
+      if (!cartitems) {
+        return res.status(401).json({ message: "No items in cart" });
+      }
     }
-
+    console.log(cartitems);
     const address = await Address.findOne({ _id: addressId });
     if (!address) {
       return res
@@ -38,7 +43,7 @@ export const OrderController = async (req, res) => {
     expectedDelivery.setDate(expectedDelivery.getDate() + 5);
     //stock managment
     for (const item of cartitems) {
-      const variant = item.variantId;
+      const variant = await Variant.findById(item.variantId._id);
       if (!variant || !variant.size) {
         return res
           .status(400)
@@ -50,7 +55,7 @@ export const OrderController = async (req, res) => {
           .status(400)
           .json({ success: false, message: "Size not found" });
       }
-      if (sizeObj.stock < cartitems.quantity) {
+      if (sizeObj.stock < item.quantity) {
         return res
           .status(400)
           .json({ message: `Stock not available for item ${sizeObj.label}` });
@@ -58,21 +63,25 @@ export const OrderController = async (req, res) => {
       sizeObj.stock -= item.quantity;
       await variant.save();
     }
-
     const orderedItems = cartitems.map((item) => {
-      if (!item.productId || !item.variantId) {
+      if (!item.variantId.productId || !item.variantId) {
         throw new Error("Product or Variant missing in cart");
       }
 
+      // if (!item.productId.vendorID) {
+      //   throw new Error("Vendor data missing");
+      // }
       return {
         productID: item.productId._id,
-        variantID: item.variantId._id,
+        variantID: item?.variantId?._id,
         quantity: item.quantity,
-        price: item.price,
+        price: item.finalPrice,
         sizeLabel: item.sizeLabel,
+        status: "Pending",
+        vendorID: item.productId.vendorID,
       };
     });
-
+    // console.log(orderedItems);
     const totalPrice = orderedItems.reduce(
       (acc, val) => acc + val.price * val.quantity,
       0
@@ -88,8 +97,6 @@ export const OrderController = async (req, res) => {
       finalAmount: totalPrice,
       paymentMethod,
       paymentStatus: paymentMethod === "COD" ? "Pending" : "Paid",
-
-      // NEW ORDER LEVEL STATUS
       orderStatus: "Pending",
 
       expectedDelivery,
@@ -228,6 +235,134 @@ export const cancelOrder = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Internal server error",
+    });
+  }
+};
+
+//canceling individual product
+export const cancelProductOrder = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { orderId, item_id } = req.params;
+    console.log("✅✅✅" + item_id);
+    const order = await Order.findOne({ _id: orderId, userID: userId });
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
+
+    const product = order?.orderedItems?.find(
+      (data) => data._id.toString() === item_id.toString()
+    );
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "item not found",
+      });
+    }
+    const cancellableStatuses = ["Pending", "Confirmed", "Processing"];
+    if (!cancellableStatuses.includes(product.status)) {
+      return res.status(400).json({
+        success: false,
+        message: `Order cannot be cancelled once it is ${product.status}`,
+      });
+    }
+    const variant = await Variant.findById(product.variantID);
+    const sizeObj = variant?.size?.find((s) => s.label === product.sizeLabel);
+    if (sizeObj) {
+      sizeObj.stock += product.quantity;
+    }
+    await variant.save();
+    product.status = "Cancelled";
+    await order.save();
+    return res.status(200).json({
+      success: true,
+      message: "Order cancelled successfully",
+    });
+  } catch (error) {
+    console.log(error);
+
+    res.status(500).json({ message: "Interal server error occurred" });
+  }
+};
+
+//return controller
+export const returnOrderItem = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { orderId, itemId } = req.params;
+    const { reason } = req.body;
+
+    const order = await Order.findById(orderId);
+    if (!order) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Order not found" });
+    }
+
+    if (order.userID.toString() !== userId.toString()) {
+      return res.status(403).json({ success: false, message: "Unauthorized" });
+    }
+
+    const item = order?.orderedItems?.find(
+      (item) => item._id.toString() === itemId
+    );
+    if (!item) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Item not found" });
+    }
+
+    //  Return only allowed for Delivered items
+    if (item.status !== "Delivered") {
+      return res.status(400).json({
+        success: false,
+        message: "Return only allowed after delivery",
+      });
+    }
+
+    // Ensure deliveryDate exists
+    if (!item.deliveredDate) {
+      return res.status(400).json({
+        success: false,
+        message: "Delivery date missing. Cannot process return.",
+      });
+    }
+
+    //  Apply 7-day return policy
+    const now = new Date();
+    const daysSinceDelivery =
+      (now - new Date(item.deliveredDate)) / (1000 * 60 * 60 * 24);
+
+    if (daysSinceDelivery > 7) {
+      return res.status(400).json({
+        success: false,
+        message: "Return window expired (only 7 days allowed).",
+      });
+    }
+
+    //  Update item return fields
+    item.status = "Returned";
+    item.returnStatus = "Requested";
+    item.returnReason = reason;
+    item.returnDate = now;
+
+    order.orderStatus = computeOrderStatus(order.orderedItems);
+
+    await order.save();
+
+    return res.json({
+      success: true,
+      message: "Return requested successfully",
+      order,
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
     });
   }
 };

@@ -35,16 +35,19 @@ import {
 import { getCheckoutData } from "../controllers/user/checkout.js";
 import {
   cancelOrder,
+  cancelProductOrder,
   getOrderList,
   OrderController,
   orderSummary,
   OrderTrack,
+  returnOrderItem,
 } from "../controllers/user/OrderController.js";
 import { SearchData } from "../controllers/user/searchController.js";
 import { FeaturedProducts } from "../controllers/vendor/addProducts.js";
 import { ImageController } from "../controllers/user/profileImageController.js";
 import { fetchBrandUser } from "../controllers/vendor/BrandController.js";
 import { getInvoice } from "../controllers/user/invoice.js";
+import { applyCoupon } from "../controllers/user/couponController.js";
 const router = express.Router();
 
 router.post("/register", registerUser);
@@ -97,9 +100,18 @@ router.get("/order/summary/:id", protectedUser, orderSummary);
 router.get("/orderList", protectedUser, getOrderList);
 router.get("/orderList/:id", protectedUser, OrderTrack);
 router.patch("/order/cancel/:id", protectedUser, cancelOrder);
+//return order
+router.patch("/order/return/:orderId/:itemId", protectedUser, returnOrderItem);
+//individual product cancel
+router.patch(
+  "/order/cancel/:orderId/:item_id",
+  protectedUser,
+  cancelProductOrder
+);
 //home search
 router.get("/search", SearchData);
 //invoice
 
-router.get("/:orderId/invoice",getInvoice);
+router.get("/:orderId/invoice", getInvoice);
+router.post("/coupon/apply",protectedUser,applyCoupon)
 export default router;

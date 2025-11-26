@@ -35,11 +35,18 @@ import {
 } from "../controllers/vendor/variantsController.js";
 import {
   getOrdersData,
+  statusProductWiseController,
   updateOrderStatus,
 } from "../controllers/vendor/OrderController.js";
 import { salesReport } from "../controllers/vendor/salesReport.js";
 import { salesReportExcel } from "../controllers/vendor/excel.js";
 import { getCategoryVendor } from "../controllers/vendor/categoryController.js";
+import { updateReturnStatusVendor } from "../controllers/vendor/returncontroller.js";
+import {
+  createProductOffer,
+  getAllProducts,
+  getVendorOffers,
+} from "../controllers/vendor/offerController.js";
 const router = express.Router();
 
 router.post("/register", registerVendor);
@@ -72,11 +79,24 @@ router.patch(
 );
 router.delete("/variant/image", editVariantImage);
 //orderData
-router.get("/orderList", getOrdersData);
+router.get("/orderList", VendorProtection, getOrdersData);
 router.patch("/updatestatus/:id", updateOrderStatus);
 //sales report
 router.get("/sales/report", salesReport);
 router.get("/sales-report/excel", salesReportExcel);
 //category
-router.get("/category",getCategoryVendor)
+router.get("/category", getCategoryVendor);
+//update order product status
+router.patch("/product/status/:orderId/:id", statusProductWiseController);
+//update return status
+router.patch(
+  "/product/return/status/:orderId/:itemId",
+  VendorProtection,
+  updateReturnStatusVendor
+);
+//offers
+router.get("/product-offer", VendorProtection, getVendorOffers);
+router.post("/product-offer", VendorProtection, createProductOffer);
+router.get("/all-products", VendorProtection, getAllProducts);
+
 export default router;

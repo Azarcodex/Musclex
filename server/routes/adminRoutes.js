@@ -25,6 +25,18 @@ import {
   editCategory,
   getCategories,
 } from "../controllers/admin/categoryController.js";
+import {
+  createAdminCategoryOffer,
+  getAllOffers,
+  toggleOfferVisibility,
+  updateCategoryOffer,
+} from "../controllers/admin/offers.js";
+import {
+  createCoupon,
+  getAllCoupons,
+  toggleCouponStatus,
+  updateCoupon,
+} from "../controllers/admin/couponcontroller.js";
 const router = express.Router();
 
 // register
@@ -56,4 +68,25 @@ router.patch("/category/update/:id", Protected, editCategory);
 router.post("/category/view/:id", Protected, categoryViewController);
 //all category
 router.get("/category/all", Protected, getAllCategoryAdmin);
+
+//offers
+
+//  Create category offer
+router.post("/offer/category", Protected, createAdminCategoryOffer);
+
+// //  Get all offers
+router.get("/offers", Protected, getAllOffers);
+
+// //  Enable / Disable an offer
+// router.patch("/offer/:offerId/toggle", toggleOfferStatus);
+
+// //update an offer
+router.patch("/offer/:offerId", Protected, updateCategoryOffer);
+router.patch("/offer/visibility/:offerId", Protected, toggleOfferVisibility);
+//coupon
+router.post("/create/coupon", Protected, createCoupon);
+router.get("/coupon", Protected, getAllCoupons);
+router.patch("/coupon/:id", updateCoupon);
+
+router.patch("/coupon/:id/status", toggleCouponStatus);
 export default router;

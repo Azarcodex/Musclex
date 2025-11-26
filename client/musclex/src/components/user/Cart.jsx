@@ -8,29 +8,25 @@ import { useNavigate } from "react-router-dom";
 export default function Cart({ cartData }) {
   const shipping = 0;
   const navigate = useNavigate();
-  console.log(cartData);
-  const total = cartData?.totalAmount + shipping;
   const { mutate: RemoveCart } = useRemoveCart();
   const { mutate: updateQuantity } = useQuantityChange();
+
+  const total = cartData?.totalAmount + shipping;
+
   const HandleDelete = async (id) => {
     const wait = await confirm({ message: "do you want to remove from cart" });
     if (wait) {
       RemoveCart(id, {
-        onSuccess: (data) => {
-          toast.message(`${data.message}`);
-        },
-        onError: (err) => {
-          toast.error(`${err.response.data.message}`);
-        },
+        onSuccess: (data) => toast.message(data.message),
+        onError: (err) => toast.error(err.response.data.message),
       });
     }
   };
-
+  console.log(cartData);
   return (
     <div className="min-h-1/2 bg-gray-50 p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Cart Items Section */}
           <div className="lg:col-span-2">
             <div className="bg-white rounded-lg shadow-sm p-6">
               <h2 className="text-xl font-semibold mb-2">Your Cart</h2>
@@ -80,7 +76,11 @@ export default function Cart({ cartData }) {
                       <p className="text-xs text-gray-600 mb-3">
                         Size: {item.sizeLabel}
                       </p>
-                      <p className="text-xs text-purple-600 mb-3 underline">
+                      <p
+                        className={`text-xs mb-3 underline ${
+                          item.stock > 0 ? "text-purple-600" : "text-red-600"
+                        }`}
+                      >
                         {item.stock > 0 ? "IN STOCK" : "OUT OF STOCK"}
                       </p>
 
@@ -108,13 +108,38 @@ export default function Cart({ cartData }) {
                         </div>
 
                         <div className="text-right">
-                          <p className="font-semibold">
-                            ₹{item.price.toLocaleString()}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            Total: ₹
-                            {(item.price * item.quantity).toLocaleString()}
-                          </p>
+                          {item.offerApplied ? (
+                            <>
+                              <p className="font-semibold text-red-500">
+                                ₹{item.finalPrice}
+                              </p>
+                              <div className="flex gap-2 justify-end text-xs">
+                                <span className="line-through text-gray-400">
+                                  ₹{item.salePrice}
+                                </span>
+                                {item.offerType === "percent" && (
+                                  <span className="text-green-600 font-semibold">
+                                    {item.offerValue}% OFF
+                                  </span>
+                                )}
+                                {item.offerType === "flat" && (
+                                  <span className="text-green-600 font-semibold">
+                                    -₹{item.offerValue}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs text-gray-500">
+                                Total: ₹{item.finalPrice * item.quantity}
+                              </p>
+                            </>
+                          ) : (
+                            <>
+                              <p className="font-semibold">₹{item.salePrice}</p>
+                              <p className="text-xs text-gray-500">
+                                Total: ₹{item.salePrice * item.quantity}
+                              </p>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -124,7 +149,6 @@ export default function Cart({ cartData }) {
             </div>
           </div>
 
-          {/* Cart Summary Section */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg shadow-sm p-6 sticky top-4">
               <h2 className="text-xl font-semibold mb-6">Cart Totals</h2>
@@ -132,9 +156,7 @@ export default function Cart({ cartData }) {
               <div className="space-y-4 mb-6">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Subtotal</span>
-                  <span className="font-medium">
-                    ₹{cartData?.totalAmount.toLocaleString()}
-                  </span>
+                  <span className="font-medium">₹{cartData?.totalAmount}</span>
                 </div>
 
                 <div className="flex justify-between text-sm">
@@ -142,16 +164,11 @@ export default function Cart({ cartData }) {
                   <span className="font-medium text-green-600">Free</span>
                 </div>
 
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Estimated for</span>
-                  <span className="font-medium">-</span>
-                </div>
-
                 <div className="border-t pt-4">
                   <div className="flex justify-between text-sm mb-4">
                     <span className="text-gray-600">Total</span>
                     <span className="text-xl font-bold text-red-500">
-                      ₹{total.toLocaleString()}
+                      ₹{total}
                     </span>
                   </div>
                 </div>

@@ -13,48 +13,71 @@ import {
 } from "lucide-react";
 import {
   useGetOrdersList,
+  useReturnOrderStatus,
+  useUpdateProductStatus,
   useUpdateStatus,
 } from "../../hooks/vendor/useGetOrdersList";
 import { toast } from "sonner";
+import VendorReturnStatusModal from "../../components/vendor/VendorReturnStatusModal";
 
 export default function VendorOrders() {
   const [expandedOrder, setExpandedOrder] = useState(null);
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showProductDetailsModal, setShowProdectDetailsModel] = useState(false);
+  const [products, setProducts] = useState(null);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [selectedStatus, setSelectedStatus] = useState("");
+  const [currentOrderId, setCurrentOrderId] = useState(null);
+  const { mutate: updateReturnStatus } = useReturnOrderStatus();
   const { data: orders } = useGetOrdersList();
   //update status
   const { mutate: UpdateStatus } = useUpdateStatus();
+  const { mutate: UpdateProductStatus } = useUpdateProductStatus();
   console.log(orders?.message);
 
   const toggleExpand = (orderId) => {
     setExpandedOrder(expandedOrder === orderId ? null : orderId);
   };
 
-  const handleUpdateStatus = (order) => {
-    setSelectedOrder(order);
-    setSelectedStatus(order.orderedItems[0].status);
-    setShowStatusModal(true);
-  };
+  // const handleUpdateStatus = (order) => {
+  //   setSelectedOrder(order);
+  //   setSelectedStatus(order.orderedItems[0].status);
+  //   setShowStatusModal(true);
+  // };
 
   const handleViewDetails = (order) => {
     setSelectedOrder(order);
     setShowDetailsModal(true);
     console.log(selectedOrder);
   };
-  const handleStatusUpdate = (id) => {
-    UpdateStatus(
-      { id, status: selectedStatus },
+  const [openModal, setOpenModal] = useState(false);
+
+  const openReturnModal = (orderId, item) => {
+    setCurrentOrderId(orderId);
+    setProducts(item);
+    setOpenModal(true);
+  };
+
+  const HandleSingleProduct = (id, item) => {
+    setProducts(item);
+    setCurrentOrderId(id);
+    setShowProdectDetailsModel(true);
+  };
+  const HandleUpdateProductStatus = (orderId, item) => {
+    UpdateProductStatus(
+      { orderId, id: item._id, status: selectedStatus },
       {
         onSuccess: (data) => {
           toast.success(`${data.message}`);
-          setShowStatusModal(false);
+          setShowProdectDetailsModel(false);
+        },
+        onError: (err) => {
+          toast.error(err.response.data.message);
         },
       }
     );
   };
-
   const getStatusColor = (status) => {
     switch (status) {
       case "Pending":
@@ -96,6 +119,7 @@ export default function VendorOrders() {
 
   const statusOptions = [
     "Pending",
+    "Confirmed",
     "Processing",
     "Shipped",
     "Out for Delivery",
@@ -195,7 +219,7 @@ export default function VendorOrders() {
                             >
                               <div>
                                 <p className="text-sm font-medium text-gray-900">
-                                  {item.productName}
+                                  {item?.productID?.name}
                                 </p>
                                 <p className="text-xs text-gray-500 mt-0.5">
                                   {item.flavour} • Qty: {item.quantity}
@@ -204,6 +228,59 @@ export default function VendorOrders() {
                               <p className="text-sm font-semibold text-gray-900">
                                 ₹{item.price.toLocaleString()}
                               </p>
+                              {item.status === "Returned" ? (
+                                <span
+                                  onClick={() =>
+                                    openReturnModal(order._id, item)
+                                  }
+                                  className="text-xs px-1.5 py-1 rounded-md bg-blue-500 text-white hover:bg-blue-700 cursor-pointer"
+                                >
+                                  return status
+                                </span>
+                              ) : (
+                                order.orderStatus !== "Cancelled" &&
+                                item.status !== "Cancelled" && (
+                                  <div className="flex items-center gap-6">
+                                    <span
+                                      className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
+                                        item.status
+                                      )}`}
+                                    >
+                                      {item.status}
+                                    </span>
+
+                                    <span
+                                      className="text-xs px-1.5 py-1 rounded-md bg-blue-500 text-white hover:bg-blue-700 cursor-pointer"
+                                      onClick={() =>
+                                        HandleSingleProduct(order._id, item)
+                                      }
+                                    >
+                                      update status
+                                    </span>
+                                  </div>
+                                )
+                              )}
+
+                              {/* {order.orderStatus !== "Cancelled"&&item.status!=="Cancelled" && (
+                                <div className="flex items-center gap-6">
+                                  <span
+                                    className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
+                                      item.status
+                                    )}`}
+                                  >
+                                    {item.status}
+                                  </span>
+
+                                  <span
+                                    className="text-xs px-1.5 py-1 rounded-md bg-blue-500 text-white  hover:bg-blue-700 cursor-pointer"
+                                    onClick={() =>
+                                      HandleSingleProduct(order._id, item)
+                                    }
+                                  >
+                                    update status
+                                  </span>
+                                </div>
+                              )} */}
                             </div>
                           ))}
                         </div>
@@ -305,12 +382,12 @@ export default function VendorOrders() {
 
                   {/* Action Buttons */}
                   <div className="flex gap-3 mt-6 pt-6 border-t">
-                    <button
+                    {/* <button
                       onClick={() => handleUpdateStatus(order)}
                       className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition-colors"
                     >
                       Update Status
-                    </button>
+                    </button> */}
                     <button
                       onClick={() => handleViewDetails(order)}
                       className="px-4 py-2 border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors"
@@ -325,6 +402,14 @@ export default function VendorOrders() {
               )}
             </div>
           ))}
+          {openModal && (
+            <VendorReturnStatusModal
+              item={products}
+              orderId={currentOrderId}
+              setOpenModal={setOpenModal}
+              onUpdate={updateReturnStatus}
+            />
+          )}
         </div>
       </div>
 
@@ -399,6 +484,88 @@ export default function VendorOrders() {
               <button
                 onClick={() => handleStatusUpdate(selectedOrder._id)}
                 className="flex-1 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition-colors"
+              >
+                Update Status
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/*Individual product status handling */}
+      {showProductDetailsModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h2 className="text-lg font-semibold text-gray-900">
+                Update Order Status
+              </h2>
+              <button
+                onClick={() => setShowProdectDetailsModel(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-6">
+              <div className="mb-4">
+                <p className="text-sm text-gray-600 mb-2">
+                  product:{" "}
+                  <span className="font-medium text-gray-900">
+                    {products.productID?.name}
+                  </span>
+                </p>
+                <p className="text-sm text-gray-600">
+                  Current Status:{" "}
+                  <span
+                    className={`px-2 py-0.5 rounded text-xs font-medium ${getStatusColor(
+                      products.status
+                    )}`}
+                  >
+                    {products.status}
+                  </span>
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Select New Status
+                </label>
+                <select
+                  value={selectedStatus}
+                  onChange={(e) => setSelectedStatus(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {statusOptions.map((status) => (
+                    <option key={status} value={status}>
+                      {status}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-xs text-blue-800">
+                  <strong>Note:</strong> Changing the order status will notify
+                  the customer via email and SMS.
+                </p>
+              </div> */}
+            </div>
+
+            <div className="flex gap-3 p-4 border-t bg-gray-50">
+              <button
+                onClick={() => setShowProdectDetailsModel(false)}
+                className="flex-1 px-4 py-2 border border-gray-300 hover:bg-gray-100 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                // onClick={() => handleStatusUpdate(selectedOrder._id)}
+                className="flex-1 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition-colors"
+                onClick={() =>
+                  HandleUpdateProductStatus(currentOrderId, products)
+                }
               >
                 Update Status
               </button>

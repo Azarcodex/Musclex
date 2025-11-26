@@ -12,9 +12,60 @@ const orderedItemSchema = new mongoose.Schema({
     ref: "Variant",
     required: true,
   },
+  vendorID: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Vendor",
+    required:true,
+  },
   quantity: { type: Number, required: true, min: 1 },
   price: { type: Number, required: true },
   sizeLabel: { type: String, required: true },
+  status: {
+    type: String,
+    required: true,
+    enum: [
+      "Pending",
+      "Confirmed",
+      "Processing",
+      "Shipped",
+      "Out for Delivery",
+      "Delivered",
+      "Cancelled",
+      "Returned",
+    ],
+    default: "Pending",
+  },
+  deliveredDate:{
+    type:Date,
+    default:null
+  },
+  //return fields
+  returnReason: {
+    type: String,
+    default: null,
+  },
+  vendorReason:{
+    type:String,
+    default:null
+  },
+  returnDate: {
+    type: Date,
+    default: null,
+  },
+  refundAmount: {
+    type: Number,
+    default: 0,
+  },
+  refundStatus: {
+    type: String,
+    enum: ["Not Initiated", "Pending", "Completed"],
+    default: "Not Initiated",
+  },
+  returnStatus: {
+    type: String,
+    enum: ["Requested", "Approved", "Rejected", "Completed"],
+    default: "Requested",
+  },
 });
 
 const shippingAddressSchema = new mongoose.Schema({
@@ -37,7 +88,6 @@ const orderSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
-
     addressID: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Address",

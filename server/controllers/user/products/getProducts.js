@@ -1,3 +1,4 @@
+import Offer from "../../../models/offer/offer.js";
 import Product from "../../../models/products/Product.js";
 import Variant from "../../../models/products/Variant.js";
 
@@ -42,6 +43,23 @@ export const getProducts = async (req, res) => {
       .populate("brandID", "brand_name")
       .lean();
 
+    //category offer setup
+    const today = new Date();
+    const activeOffers = await Offer.find({
+      isActive: true,
+      scope: "Category",
+      startDate: { $lte: today },
+      endDate: { $gte: today },
+    }).lean();
+    //product offerSetUp
+    const activeProductOffers = await Offer.find({
+      isActive: true,
+      scope: "Product",
+      startDate: { $lte: today },
+      endDate: { $gte: today },
+    }).lean();
+
+    // console.log("✅✅=>"+activeProductOffers);
     const result = products
       .map((product) => {
         const relatedVariants = variants
@@ -68,6 +86,7 @@ export const getProducts = async (req, res) => {
 
         return {
           ...product,
+          relatedVariants,
           brand: product.brandID?.brand_name,
           category: product.catgid?.catgName,
           prevImage: defaultVariant.images?.[0],
@@ -77,7 +96,110 @@ export const getProducts = async (req, res) => {
         };
       })
       .filter(Boolean);
+    //offer
+    result.forEach((product) => {
+      const salePrice = product?.size?.salePrice;
+      if (!salePrice) return;
 
+      // ---- CATEGORY OFFER ----
+      const catOffer = activeOffers.find(
+        (off) => off.categoryId?.toString() === product.catgid._id.toString()
+      );
+
+      // ---- PRODUCT OFFER ----
+      const prodOffer = activeProductOffers.find((off) =>
+        off.productIds.some((id) => id.toString() === product._id.toString())
+      );
+
+      // Compute discount amount
+      const computeDiscount = (offer) => {
+        if (!offer) return 0;
+        return offer.discountType === "percent"
+          ? Math.floor((salePrice * offer.value) / 100)
+          : offer.value;
+      };
+
+      const catDiscount = computeDiscount(catOffer);
+      const prodDiscount = computeDiscount(prodOffer);
+
+      // Decide best offer (max discount)
+      let bestOffer = null;
+      let bestDiscount = 0;
+
+      if (catDiscount > prodDiscount) {
+        bestOffer = catOffer;
+        bestDiscount = catDiscount;
+      } else if (prodDiscount > 0) {
+        bestOffer = prodOffer;
+        bestDiscount = prodDiscount;
+      }
+
+      // If no offer → nothing to apply
+      if (!bestOffer) return;
+
+      // Apply best offer
+      const finalPrice = Math.max(salePrice - bestDiscount, 1);
+
+      product.size.offerApplied = true;
+      product.size.offerType = bestOffer.discountType;
+      product.size.offerValue = bestOffer.value;
+      product.size.offerPrice = bestDiscount;
+      product.size.finalPrice = finalPrice;
+
+      // Optional: keep salePrice/original untouched
+    });
+
+    // result.forEach((product) => {
+    //   const offer = activeOffers?.find(
+    //     (off) => off.categoryId.toString() === product.catgid._id.toString()
+    //   );
+
+    //   if (!offer) {
+    //     return;
+    //   }
+    //   let offerPrice = 0;
+    //   const salePrice = product?.size?.salePrice;
+    //   if (offer.discountType === "percent") {
+    //     offerPrice = Math.floor((salePrice * offer.value) / 100);
+    //   } else {
+    //     offerPrice = offer.value;
+    //   }
+    //   const finalPrice = Math.max(salePrice - offerPrice, 1);
+    //   product.size.offerApplied = true;
+    //   product.size.offerType = offer.discountType;
+    //   product.size.offerValue = offer.value;
+    //   product.size.offerPrice = offerPrice;
+    //   product.size.finalPrice = finalPrice;
+    // });
+
+    //applying to each product for category
+    // result.forEach((product) => {
+    //   const offer = activeOffers?.find(
+    //     (off) => off.categoryId.toString() === product.catgid._id.toString()
+    //   );
+    //   console.log(offer)
+    //   if (!offer) return;
+    //   product?.relatedVariants?.forEach((variant) => {
+    //     variant.size = variant?.size?.map((size) => {
+    //       const salePrice = size.salePrice;
+    //       let offerAmount = 0;
+    //       if (offer.discountType === "percent") {
+    //         offerAmount = Math.floor((salePrice * offer.value) / 100);
+    //       } else {
+    //         offerAmount = offer.value;
+    //       }
+    //       const finalPrice = Math.max(salePrice - offerAmount, 1);
+    //       return {
+    //         ...size,
+    //         offerApplied: true,
+    //         offerType: offer.discountType,
+    //         offerValue: offer.value,
+    //         offerAmount,
+    //         finalPrice,
+    //       };
+    //     });
+    //   });
+    // });
     switch (sortValue) {
       case "sortAZ":
         result.sort((a, b) => a.name.localeCompare(b.name));

@@ -43,6 +43,9 @@ import UserOrdersPage from "./pages/user/UserOrders";
 import UserOrderTrack from "./pages/user/UserOrderTrack";
 import ChangePassword from "./pages/user/ChangePassword";
 import SalesReport from "./pages/vendor/SalesReport";
+import AdminCategoryOffers from "./pages/admin/AdminCategoryOffers";
+import ProductOffers from "./pages/vendor/Offers";
+import CouponManagement from "./pages/admin/Coupon";
 const App = () => {
   return (
     <>
@@ -64,6 +67,8 @@ const App = () => {
           <Route path="vendors/list/products" element={<ProductVendor />} />
           <Route path="vendors/list/products/:id" element={<OwnProducts />} />
           <Route path="category" element={<Category />} />
+          <Route path="addOffer" element={<AdminCategoryOffers />} />
+          <Route path="coupon" element={<CouponManagement />} />
         </Route>
         {/* <Route
           path="*"
@@ -98,9 +103,7 @@ const App = () => {
           path="/user/orders/track/:orderId"
           element={<UserOrderTrack />}
         />
-        //invoice
-        
-        //🏪🏪vendor side//
+        //invoice //🏪🏪vendor side//
         <Route path="/vendor/register" element={<RegisterVendor />} />
         <Route path="/vendor/login" element={<LoginVendor />} />
         <Route
@@ -112,6 +115,7 @@ const App = () => {
           }
         >
           <Route path="products/list" element={<ProductsTable />} />
+          <Route path="products/offers" element={<ProductOffers />} />
           <Route path="products/add" element={<AddProductForm />} />
           <Route path="products/edit/:productId" element={<EditProduct />} />
           <Route path="brand/list" element={<BrandList />} />

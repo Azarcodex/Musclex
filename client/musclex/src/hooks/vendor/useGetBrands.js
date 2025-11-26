@@ -1,10 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { brandVisibility, getBrands } from "../../services/vendor/brand";
+import { brandVisibility, getBrandsVendor } from "../../services/vendor/brand";
 
-export const useGetBrands = () => {
+export const useGetBrandsVendor = () => {
   return useQuery({
     queryKey: ["brands"],
-    queryFn: getBrands,
+    queryFn: getBrandsVendor,
   });
 };
 

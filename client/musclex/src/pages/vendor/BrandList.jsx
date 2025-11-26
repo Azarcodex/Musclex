@@ -9,31 +9,22 @@ import {
   Eye,
   X,
 } from "lucide-react";
-import { useGetBrands } from "../../hooks/users/useGetBrands";
 import { useDeleteBrand } from "../../hooks/vendor/useDeleteBrand";
 import { confirm } from "../../components/utils/Confirmation.jsx";
 import { useForm } from "react-hook-form";
 import { useEditBrand } from "../../hooks/vendor/useEditBrand.js";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
-import { useVisibleBrand } from "../../hooks/vendor/useGetBrands.js";
+import { useGetBrandsVendor, useVisibleBrand } from "../../hooks/vendor/useGetBrands.js";
 
 const BrandList = () => {
-  const { data } = useGetBrands();
+  const { data } = useGetBrandsVendor();
   const { mutate: Remove } = useDeleteBrand();
   const { mutate: Update } = useEditBrand();
   const { mutate: Visible } = useVisibleBrand();
   const [brands, setBrands] = useState(null);
   const { register, handleSubmit, reset } = useForm();
   console.log(data);
-  // const HandleDelete = async (id) => {
-  //   const result = await confirm({
-  //     message: "Are you sure You want to delete these",
-  //   });
-  //   if (result) {
-  //     Remove({ id: id });
-  //   }
-  // };
   //edit feature
   const querClient = useQueryClient();
   const HandleEdit = (brands) => {
@@ -60,7 +51,7 @@ const BrandList = () => {
   //visibility
   const HandleVisible = async (id) => {
     const wait = await confirm({
-      message: "Do you want to unvisible these brand",
+      message: "Do you want to make changes",
     });
     if (wait) {
       Visible(id, {
@@ -107,7 +98,11 @@ const BrandList = () => {
                   </td>
                   <td>
                     <button onClick={() => HandleVisible(brand._id)}>
-                      <Eye className={`w-5 h-5 ${brand.isActive?"text-green-600":"text-red-600"}`} />
+                      <Eye
+                        className={`w-5 h-5 ${
+                          brand.isActive ? "text-green-600" : "text-red-600"
+                        }`}
+                      />
                     </button>
                   </td>
                   <td>

@@ -1,27 +1,18 @@
 import React, { useEffect, useState } from "react";
 import { Navbar } from "../../components/user/Navbar";
 import Footer from "../../components/user/Footer";
-// import { useGetProducts } from "../../hooks/users/useGetProducts";
 import ProductCard from "../../components/user/ProductCard";
 import FilterSidebar from "../../components/user/FilterSide";
 import { useProductFetch } from "../../hooks/users/useProductFetch";
-
+import { useSelector } from "react-redux";
+import { useSearch } from "../../hooks/users/useSearch";
+import SearchData from "../../components/user/SearchData";
 const Products = () => {
   const [selectedCategory, setSelectedCategory] = useState([]);
   const [selectedBrands, setSelectedBrands] = useState([]);
   const [priceRange, setPriceRange] = useState([0, 60000]);
   const [selectedRatings, setSelectedRatings] = useState([]);
   const [sortValue, setSortValue] = useState("");
-  const [discountValue, setDiscountValue] = useState("");
-  // console.log(typeof discountValue);
-  // const { data, isPending } = useGetProducts(
-  //   selectedCategory,
-  //   selectedBrands,
-  //   priceRange,
-  //   selectedRatings,
-  //   sortValue,
-  //   discountValue
-  // );
   const { data } = useProductFetch(
     selectedCategory,
     selectedBrands,
@@ -30,19 +21,38 @@ const Products = () => {
     sortValue
   );
   console.log(data);
-  // const dispatch = useDispatch();
-  // useEffect(() => {
-  //   if (data?.result) {
-  //     dispatch(setVariants(data?.result));
-  //   }
-  // }, [data, dispatch]);
+  const { query } = useSelector((state) => state.search);
+  const [debounce, setDebounce] = useState(query);
+  useEffect(() => {
+    const timeOut = setTimeout(() => {
+      setDebounce(query);
+    }, 500);
+    return () => clearTimeout(timeOut);
+  }, [query]);
+  const { data: searching, isPending: isLoading } = useSearch(debounce);
+
+  // const isSearch = Boolean(debounce) && isLoading;
+
+  // if (isSearch) {
+  //   return <p>Loading data</p>;
+  // }
   return (
     <div className="min-h-screen w-full">
       <Navbar />
       <div>
-        <div className="mt-10 bg-white   flex items-center justify-end-safe  mr-40">
+        <div className="relative mt-10 bg-white   flex items-center justify-end-safe  mr-40">
           {/*Extra filter options */}
-
+          <div className="absolute right-0 z-50 top-[-40px]">
+            {searching?.results?.length > 0 && (
+              <p className="text-right font-semibold text-xs text-pink-600">
+                {searching.count} data found
+              </p>
+            )}
+            {searching?.results &&
+              searching?.results.map((seach, idx) => (
+                <SearchData item={seach} key={seach._id} />
+              ))}
+          </div>
           <select
             value={sortValue}
             onChange={(e) => setSortValue(e.target.value)}

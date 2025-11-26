@@ -45,7 +45,7 @@ const ProductList = () => {
           <div className="mt-4 text-gray-800">
             {activeTab === "description" && (
               <p className="leading-relaxed">
-                {data?.products?.description || "No description available."}
+                {data?.product?.description || "No description available."}
               </p>
             )}
 
@@ -57,12 +57,21 @@ const ProductList = () => {
           </div>
         </section>
         {/*related products */}
-        <section>
-          {data?.relatedProducts.map((related, id) => (
+        <section className="py-8 px-4">
+          <div className="max-w-7xl mx-auto">
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">
+                Related Products
+              </h2>
+              <p className="text-gray-600 text-sm mt-1">
+                You might also like these products
+              </p>
+            </div>
+
             <Swiper
               modules={[Navigation, Pagination, Autoplay]}
-              spaceBetween={20}
-              slidesPerView={2}
+              spaceBetween={180}
+              slidesPerView={5}
               navigation
               pagination={{ clickable: true }}
               autoplay={{
@@ -73,20 +82,22 @@ const ProductList = () => {
               breakpoints={{
                 320: { slidesPerView: 1.5 },
                 640: { slidesPerView: 2 },
+                768: { slidesPerView: 3 },
                 1024: { slidesPerView: 4 },
+                1280: { slidesPerView: 5 },
               }}
-              className="pb-6"
+              className="pb-12"
             >
               {data?.relatedProducts?.map((item, index) => (
                 <SwiperSlide key={index}>
-                  <RelatedProduct  data={related} />
+                  <RelatedProduct data={item} />
                 </SwiperSlide>
               ))}
             </Swiper>
-          ))}
+          </div>
         </section>
       </div>
-      <Footer/>
+      <Footer />
     </div>
   );
 };

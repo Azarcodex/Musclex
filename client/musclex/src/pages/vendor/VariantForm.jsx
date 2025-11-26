@@ -20,7 +20,13 @@ const VariantForm = () => {
     productList?.product?.catgid?.catgName?.toLowerCase() === "supplements";
 
   const { mutate } = useAddVariant();
-  const { register, handleSubmit, control, reset } = useForm({
+  const {
+    register,
+    handleSubmit,
+    control,
+    reset,
+    formState: { errors },
+  } = useForm({
     defaultValues: {
       flavour: isSupplement ? "" : "default",
       sizes: [{ label: "", oldPrice: "", salePrice: "", stock: "", sku: "" }],
@@ -35,9 +41,6 @@ const VariantForm = () => {
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [previewImage, setPreviewImage] = useState([]);
 
-  // -----------------------------------------
-  // MULTIPLE IMAGE CROPPING HANDLER
-  // -----------------------------------------
   const HandleImageChange = (e) => {
     const files = Array.from(e.target.files);
     if (!files.length) return;
@@ -179,20 +182,34 @@ const VariantForm = () => {
                   Size Label
                 </label>
                 <input
-                  {...register(`sizes.${index}.label`, { required: true })}
+                  {...register(`sizes.${index}.label`, {
+                    required: "enter size",
+                  })}
                   placeholder="e.g. 1kg, 500ml"
                   className="border-b border-purple-800 outline-none w-full bg-transparent"
                 />
+                {errors?.sizes?.[index]?.label && (
+                  <p className="text-red-600 text-sm">
+                    {errors.sizes[index].label.message}
+                  </p>
+                )}
               </div>
 
               <div>
                 <label className="block text-sm font-semibold">Old Price</label>
                 <input
-                  {...register(`sizes.${index}.oldPrice`, { required: true })}
+                  {...register(`sizes.${index}.oldPrice`, {
+                    required: "enter old price",
+                  })}
                   type="number"
                   placeholder="Enter old price"
                   className="border-b border-purple-800 outline-none w-full bg-transparent"
                 />
+                {errors?.sizes?.[index]?.oldPrice && (
+                  <p className="text-red-600 text-sm">
+                    {errors.sizes[index].oldPrice.message}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -200,21 +217,35 @@ const VariantForm = () => {
                   Sale Price
                 </label>
                 <input
-                  {...register(`sizes.${index}.salePrice`, { required: true })}
+                  {...register(`sizes.${index}.salePrice`, {
+                    required: "enter salePrice",
+                  })}
                   type="number"
                   placeholder="Enter sale price"
                   className="border-b border-purple-800 outline-none w-full bg-transparent"
                 />
+                {errors?.sizes?.[index]?.salePrice && (
+                  <p className="text-red-600 text-sm">
+                    {errors.sizes[index].salePrice.message}
+                  </p>
+                )}
               </div>
 
               <div>
                 <label className="block text-sm font-semibold">Stock</label>
                 <input
-                  {...register(`sizes.${index}.stock`, { required: true })}
+                  {...register(`sizes.${index}.stock`, {
+                    required: "Enter stock",
+                  })}
                   type="number"
                   placeholder="Enter stock count"
                   className="border-b border-purple-800 outline-none w-full bg-transparent"
                 />
+                {errors?.sizes?.[index]?.stock && (
+                  <p className="text-red-600 text-sm">
+                    {errors.sizes[index].stock.message}
+                  </p>
+                )}
               </div>
 
               <div>

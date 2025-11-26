@@ -4,7 +4,7 @@ export const postBrand = async (data) => {
   const response = await api.post("/api/vendor/brand/add", data);
   return response.data;
 };
-export const getBrands = async () => {
+export const getBrandsVendor = async () => {
   const response = await api.get("/api/vendor/brand");
   return response.data;
 };

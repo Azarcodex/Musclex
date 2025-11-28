@@ -15,7 +15,7 @@ const orderedItemSchema = new mongoose.Schema({
   vendorID: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Vendor",
-    required:true,
+    required: true,
   },
   quantity: { type: Number, required: true, min: 1 },
   price: { type: Number, required: true },
@@ -35,18 +35,18 @@ const orderedItemSchema = new mongoose.Schema({
     ],
     default: "Pending",
   },
-  deliveredDate:{
-    type:Date,
-    default:null
+  deliveredDate: {
+    type: Date,
+    default: null,
   },
   //return fields
   returnReason: {
     type: String,
     default: null,
   },
-  vendorReason:{
-    type:String,
-    default:null
+  vendorReason: {
+    type: String,
+    default: null,
   },
   returnDate: {
     type: Date,
@@ -129,9 +129,22 @@ const orderSchema = new mongoose.Schema(
     totalPrice: { type: Number, required: true },
     discount: { type: Number, default: 0 },
     finalAmount: { type: Number, required: true },
-
     expectedDelivery: { type: Date },
     deliveredDate: { type: Date },
+    //coupon
+    couponCode: {
+      type: String,
+      default: null,
+    },
+
+    discount: {
+      type: Number,
+      default: 0,
+    },
+    couponApplied: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );

@@ -47,7 +47,10 @@ import { FeaturedProducts } from "../controllers/vendor/addProducts.js";
 import { ImageController } from "../controllers/user/profileImageController.js";
 import { fetchBrandUser } from "../controllers/vendor/BrandController.js";
 import { getInvoice } from "../controllers/user/invoice.js";
-import { applyCoupon } from "../controllers/user/couponController.js";
+import {
+  applyCoupon,
+  getAvailableCoupons,
+} from "../controllers/user/couponController.js";
 const router = express.Router();
 
 router.post("/register", registerUser);
@@ -113,5 +116,7 @@ router.get("/search", SearchData);
 //invoice
 
 router.get("/:orderId/invoice", getInvoice);
-router.post("/coupon/apply",protectedUser,applyCoupon)
+router.post("/coupon/apply", protectedUser, applyCoupon);
+//coupons
+router.get("/coupons", protectedUser, getAvailableCoupons);
 export default router;

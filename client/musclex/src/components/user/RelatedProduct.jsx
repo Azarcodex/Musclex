@@ -16,7 +16,12 @@ const RelatedProduct = ({ data }) => {
 
   return (
     <div
-      onClick={() => navigate(`/user/products/${data._id}`)}
+      onClick={() => {
+        navigate(`/user/products/${data._id}`);
+        setTimeout(() =>
+          window.scrollTo({ top: 0, left: 0, behavior: "auto" }, 0)
+        );
+      }}
       className="group bg-white rounded-2xl shadow-md hover:shadow-2xl transition-all duration-500 cursor-pointer w-64 overflow-hidden border border-gray-100 hover:border-purple-200 transform hover:scale-[1.03]"
     >
       {/* Image Container */}

@@ -4,15 +4,24 @@ import { useGetCheckout } from "../../hooks/users/useGetCheckout";
 import { useOrder } from "../../hooks/users/useOrder";
 import { toast } from "sonner";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useApplyCoupon } from "../../hooks/users/useCoupon";
+import Modal from "react-modal";
+import {
+  useApplyCoupon,
+  usegetAvailableCoupons,
+} from "../../hooks/users/useCoupon";
+import CouponList from "./CouponList";
 
 export default function Checkout() {
   const navigate = useNavigate();
   const { state } = useLocation();
   const isBuyNow = state?.buyNow === true;
-
+  //coupons
+  const [isOpen, setIsOpen] = useState(false);
+  const { data: coupons } = usegetAvailableCoupons();
+  //---------
   const [selectedAddress, setSelectedAddress] = useState(null);
   const [couponCode, setCouponCode] = useState("");
+  const [passcoupon, setPassCoupon] = useState(null);
   const [discount, setDiscount] = useState(0);
   const [finalTotal, setFinalTotal] = useState(0);
 
@@ -46,7 +55,6 @@ export default function Checkout() {
       setSelectedAddress(defaultAddress._id);
     }
   }, [addresses]);
-
   useEffect(() => {
     const initialTotal = isBuyNow ? state.price * state.quantity : cartTotal;
     setDiscount(0);
@@ -81,7 +89,10 @@ export default function Checkout() {
 
     applyCouponFn(payload, {
       onSuccess: (res) => {
+        setPassCoupon(couponCode);
+        setCouponCode("");
         setDiscount(res.discount || 0);
+
         setFinalTotal(
           typeof res.finalTotal !== "undefined"
             ? res.finalTotal
@@ -109,7 +120,7 @@ export default function Checkout() {
       items: finalItems,
       addressId: selectedAddress,
       paymentMethod,
-      couponCode: couponCode?.trim() || null, // Option B: backend will re-validate & recalc
+      couponCode: passcoupon?.trim() || null,
     };
 
     placeOrder(payload, {
@@ -249,10 +260,34 @@ export default function Checkout() {
               )}
               <button
                 className="text-blue-500 text-sm mt-2 hover:text-blue-600"
-                onClick={() => navigate("/user/coupons")}
+                onClick={() => setIsOpen(true)}
               >
                 View Coupons
               </button>
+              {/* <Modal
+                isOpen={isOpen}
+                onRequestClose={() => setIsOpen(false)}
+                contentLabel="Example Modal"
+                style={{
+                  content: {
+                    width: "90%",
+                    maxWidth: "720px",
+                    margin: "auto",
+                    padding: "20px",
+                  },
+                }}
+              > */}
+              {isOpen && (
+                <CouponList
+                  coupons={coupons}
+                  onClose={() => setIsOpen(false)}
+                  onSelect={(code) => {
+                    setCouponCode(code);
+                  }}
+                />
+              )}
+
+              {/* </Modal> */}
             </div>
           </div>
 

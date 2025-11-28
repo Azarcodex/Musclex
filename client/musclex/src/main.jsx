@@ -8,6 +8,8 @@ import { Toaster } from "sonner";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { Provider } from "react-redux";
 import { store } from "./store/store.js";
+// import Modal from "react-modal";
+// Modal.setAppElement("#root");
 const queryClient = new QueryClient();
 const google_client_id = import.meta.env.VITE_CLIENT_ID;
 createRoot(document.getElementById("root")).render(

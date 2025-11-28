@@ -1,81 +1,34 @@
-export const OrderController = async (req, res) => {
+export async function addFunds(userId, amount, referenceId = null, note = "") {
+  if (amount <= 0) throw new Error("Amount must be positive");
+
+  const session = await mongoose.startSession();
   try {
-    const userId = req.user._id;
-    const { addressId, paymentMethod } = req.body;
+    session.startTransaction();
 
-    const cartitems = await Cart.find({ userId })
-      .populate("productId", "name")
-      .populate("variantId", "size flavour");
+    const wallet = await Wallet.findOne({ userId }).session(session);
+    if (!wallet) throw new Error("Wallet not found");
 
-    if (!cartitems.length) {
-      return res.status(400).json({ success: false, message: "Cart is empty" });
-    }
+    // atomic update
+    wallet.balance += amount;
+    wallet.lastTransactionAt = new Date();
+    await wallet.save({ session });
 
-    const address = await Address.findOne({ _id: addressId });
-    if (!address) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Address not found" });
-    }
-
-    const shippingAddress = {
-      fullName: address.fullName,
-      phone: address.phone,
-      pincode: address.pincode,
-      state: address.state,
-      city: address.city,
-      addressLine: address.addressLine,
-      landmark: address.landmark,
-    };
-
-    const expectedDelivery = new Date();
-    expectedDelivery.setDate(expectedDelivery.getDate() + 5);
-
-    const orderedItems = cartitems.map((item) => {
-      if (!item.productId || !item.variantId) {
-        throw new Error("Product or Variant missing in cart");
-      }
-
-      return {
-        productID: item.productId._id,
-        variantID: item.variantId._id,
-        quantity: item.quantity,
-        price: item.price,
-      };
+    await createLedgerEntry({
+      session,
+      walletId: wallet._id,
+      userId,
+      amount,
+      type: "ADD",
+      referenceId,
+      note,
     });
 
-    const totalPrice = orderedItems.reduce(
-      (acc, val) => acc + val.price * val.quantity,
-      0
-    );
-
-    const order = new Order({
-      userID: userId,
-      addressID: addressId,
-      orderedItems,
-      shippingAddress,
-      totalPrice,
-      discount: 0,
-      finalAmount: totalPrice,
-      paymentMethod,
-      paymentStatus: paymentMethod === "COD" ? "Pending" : "Paid",
-
-      // NEW ORDER LEVEL STATUS
-      orderStatus: "Pending",
-
-      expectedDelivery,
-    });
-
-    await order.save();
-    await Cart.deleteMany({ userId });
-
-    res.status(201).json({
-      success: true,
-      message: "Order placed successfully",
-      order,
-    });
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ success: false, message: "Internal Server Error" });
+    await session.commitTransaction();
+    return wallet;
+  } catch (err) {
+    await session.abortTransaction();
+    throw err;
+  } finally {
+    session.endSession();
   }
-};
+}

@@ -1,4 +1,5 @@
 import Coupon from "../../models/users/coupon.js";
+import couponUsuage from "../../models/users/couponUsuage.js";
 
 export const applyCoupon = async (req, res) => {
   try {
@@ -10,6 +11,10 @@ export const applyCoupon = async (req, res) => {
     }
 
     const coupon = await Coupon.findOne({ code });
+    const usedCoupon = await couponUsuage.findOne({
+      couponId: coupon._id,
+      userId: userId,
+    });
     if (!coupon) {
       return res.status(404).json({ message: "Invalid coupon code" });
     }
@@ -25,21 +30,22 @@ export const applyCoupon = async (req, res) => {
         .json({ message: "Coupon is expired or not valid today" });
     }
 
-    if (coupon.usageLimit && coupon.usedCount >= coupon.usageLimit) {
+    if (coupon.usageLimit && coupon.usageCount >= coupon.usageLimit) {
       return res.status(400).json({ message: "Coupon usage limit reached" });
     }
+    if (usedCoupon) {
+      if (usedCoupon.count > coupon.usagePerUser) {
+        return res.status(400).json({
+          message: "You have already applied these coupon.No more Limit!",
+        });
+      }
+    }
 
-    // -----------------------------------------
-    // 1️⃣ HANDLE DIRECT BUY (NO CART)
-    // -----------------------------------------
     let total = 0;
 
     if (directTotal && Number(directTotal) > 0) {
       total = Number(directTotal);
     } else {
-      // -----------------------------------------
-      // 2️⃣ HANDLE CART BASED ORDER
-      // -----------------------------------------
       const cartItems = await Cart.find({ userId }).lean();
       if (!cartItems.length) {
         return res.status(400).json({
@@ -60,9 +66,6 @@ export const applyCoupon = async (req, res) => {
       });
     }
 
-    // -----------------------------------------
-    // 3️⃣ Calculate Discount
-    // -----------------------------------------
     let discount = 0;
 
     if (coupon.discountType === "percent") {
@@ -89,5 +92,24 @@ export const applyCoupon = async (req, res) => {
   } catch (err) {
     console.log("applyCoupon error:", err);
     return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+//get all coupons
+export const getAvailableCoupons = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const coupons = await Coupon.find({ isActive: true }).lean();
+    const userCoupon = await couponUsuage.find({ userId: userId }).lean();
+    const displayCoupons = coupons.map((coup) => {
+      const matching = userCoupon.find((c) => c.couponId === coup._id);
+      return {
+        ...coup,
+        matching,
+      };
+    });
+    res.status(200).json({ success: true, coupons: displayCoupons });
+  } catch (error) {
+    res.status(500).json({ message: "Internal Server Error" });
   }
 };

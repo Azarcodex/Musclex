@@ -1,122 +1,303 @@
 import Cart from "../../models/products/cart.js";
 import Variant from "../../models/products/Variant.js";
 import Address from "../../models/users/address.js";
+import Coupon from "../../models/users/coupon.js";
+import couponUsuage from "../../models/users/couponUsuage.js";
 import Order from "../../models/users/order.js";
 import User from "../../models/users/user.js";
 import { computeOrderStatus } from "./computation/status.js";
 
+// export const OrderController = async (req, res) => {
+//   try {
+//     const userId = req.user._id;
+//     const { items, addressId, paymentMethod, couponCode } = req.body;
+//     let cartitems = [];
+//     if (items) {
+//       cartitems = items;
+//     } else {
+//       const cartitems = await Cart.find({ userId })
+//         .populate("productId", "name vendorID")
+//         .populate("variantId", "size flavour");
+//       if (!cartitems) {
+//         return res.status(401).json({ message: "No items in cart" });
+//       }
+//     }
+//     console.log(cartitems);
+//     const address = await Address.findOne({ _id: addressId });
+//     if (!address) {
+//       return res
+//         .status(404)
+//         .json({ success: false, message: "Address not found" });
+//     }
+
+//     const shippingAddress = {
+//       fullName: address.fullName,
+//       phone: address.phone,
+//       pincode: address.pincode,
+//       state: address.state,
+//       city: address.city,
+//       addressLine: address.addressLine,
+//       landmark: address.landmark,
+//     };
+
+//     const expectedDelivery = new Date();
+//     expectedDelivery.setDate(expectedDelivery.getDate() + 5);
+//     //stock managment
+//     for (const item of cartitems) {
+//       const variant = await Variant.findById(item.variantId._id);
+//       if (!variant || !variant.size) {
+//         return res
+//           .status(400)
+//           .json({ success: false, message: "Variant not found" });
+//       }
+//       const sizeObj = variant?.size?.find((s) => s.label === item.sizeLabel);
+//       if (!sizeObj) {
+//         return res
+//           .status(400)
+//           .json({ success: false, message: "Size not found" });
+//       }
+//       if (sizeObj.stock < item.quantity) {
+//         return res
+//           .status(400)
+//           .json({ message: `Stock not available for item ${sizeObj.label}` });
+//       }
+//       sizeObj.stock -= item.quantity;
+//       await variant.save();
+//     }
+//     const orderedItems = cartitems.map((item) => {
+//       if (!item.variantId.productId || !item.variantId) {
+//         throw new Error("Product or Variant missing in cart");
+//       }
+
+//       return {
+//         productID: item.productId._id,
+//         variantID: item?.variantId?._id,
+//         quantity: item.quantity,
+//         price: item.finalPrice,
+//         sizeLabel: item.sizeLabel,
+//         status: "Pending",
+//         vendorID: item.productId.vendorID,
+//       };
+//     });
+//     // console.log(orderedItems);
+//     const totalPrice = orderedItems.reduce(
+//       (acc, val) => acc + val.price * val.quantity,
+//       0
+//     );
+
+//     const order = new Order({
+//       userID: userId,
+//       addressID: addressId,
+//       orderedItems,
+//       shippingAddress,
+//       totalPrice,
+//       discount: 0,
+//       finalAmount: totalPrice,
+//       paymentMethod,
+//       paymentStatus: paymentMethod === "COD" ? "Pending" : "Paid",
+//       orderStatus: "Pending",
+
+//       expectedDelivery,
+//     });
+//     //setting up Coupon Logic
+//     if (couponCode) {
+//       const coupon = await Coupon.findOne({ code: couponCode });
+//       const couponUsage = new couponUsuage({
+//         couponId: coupon._id,
+//         userId: userId,
+//         usedAt: new Date(),
+//       });
+//       coupon.usageCount = coupon.usageCount || 0 + 1;
+//       couponUsage.count += (couponUsage.count || 0) + 1;
+//       await coupon.save();
+//       await couponUsage.save();
+//     }
+//     await order.save();
+//     await Cart.deleteMany({ userId });
+
+//     res.status(201).json({
+//       success: true,
+//       message: "Order placed successfully",
+//       order,
+//     });
+//   } catch (error) {
+//     console.log(error);
+//     res.status(500).json({ success: false, message: "Internal Server Error" });
+//   }
+// };
+
+//order summary
+
 export const OrderController = async (req, res) => {
   try {
     const userId = req.user._id;
-    const { items, addressId, paymentMethod } = req.body;
-    console.log("✅✅✅✅✅✅✅✅✅" + JSON.stringify(items));
-    let cartitems = [];
-    if (items) {
-      cartitems = items;
-    } else {
-      const cartitems = await Cart.find({ userId })
-        .populate("productId", "name vendorID")
-        .populate("variantId", "size flavour");
-      if (!cartitems) {
-        return res.status(401).json({ message: "No items in cart" });
-      }
-    }
-    console.log(cartitems);
-    const address = await Address.findOne({ _id: addressId });
+    console.log(req.body);
+    const { items, addressId, paymentMethod, couponCode } = req.body;
+    // console.log("✅✅✅✅" + couponCode);
+    //address
+    const address = await Address.findById(addressId);
     if (!address) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Address not found" });
+      return res.status(404).json({ message: "Address not found" });
     }
 
-    const shippingAddress = {
-      fullName: address.fullName,
-      phone: address.phone,
-      pincode: address.pincode,
-      state: address.state,
-      city: address.city,
-      addressLine: address.addressLine,
-      landmark: address.landmark,
-    };
+    let finalItems = [];
 
-    const expectedDelivery = new Date();
-    expectedDelivery.setDate(expectedDelivery.getDate() + 5);
-    //stock managment
-    for (const item of cartitems) {
-      const variant = await Variant.findById(item.variantId._id);
-      if (!variant || !variant.size) {
-        return res
-          .status(400)
-          .json({ success: false, message: "Variant not found" });
+    if (items && items.length > 0) {
+      // BUY NOW
+      finalItems = items;
+    } else {
+      // CART ORDER
+      finalItems = await Cart.find({ userId })
+        .populate("productId", "name vendorID")
+        .populate("variantId", "size flavour images");
+      if (!finalItems.length) {
+        return res.status(400).json({ message: "Cart is empty" });
       }
-      const sizeObj = variant?.size?.find((s) => s.label === item.sizeLabel);
+    }
+
+    const orderedItems = [];
+
+    for (const item of finalItems) {
+      const variant = await Variant.findById(item.variantId);
+
+      if (!variant) {
+        return res.status(400).json({ message: "Variant not found" });
+      }
+
+      const sizeObj = variant.size.find((s) => s.label === item.sizeLabel);
       if (!sizeObj) {
-        return res
-          .status(400)
-          .json({ success: false, message: "Size not found" });
+        return res.status(400).json({ message: "Invalid size selected" });
       }
+
       if (sizeObj.stock < item.quantity) {
         return res
           .status(400)
-          .json({ message: `Stock not available for item ${sizeObj.label}` });
-      }
-      sizeObj.stock -= item.quantity;
-      await variant.save();
-    }
-    const orderedItems = cartitems.map((item) => {
-      if (!item.variantId.productId || !item.variantId) {
-        throw new Error("Product or Variant missing in cart");
+          .json({ message: `Stock not available for ${sizeObj.label}` });
       }
 
-      // if (!item.productId.vendorID) {
-      //   throw new Error("Vendor data missing");
-      // }
-      return {
+      sizeObj.stock -= item.quantity;
+      await variant.save();
+
+      orderedItems.push({
         productID: item.productId._id,
-        variantID: item?.variantId?._id,
+        variantID: item.variantId._id,
+        vendorID: item.productId.vendorID,
         quantity: item.quantity,
         price: item.finalPrice,
         sizeLabel: item.sizeLabel,
         status: "Pending",
-        vendorID: item.productId.vendorID,
-      };
-    });
-    // console.log(orderedItems);
-    const totalPrice = orderedItems.reduce(
-      (acc, val) => acc + val.price * val.quantity,
+      });
+    }
+
+    const subtotal = orderedItems.reduce(
+      (acc, item) => acc + item.price * item.quantity,
       0
     );
 
-    const order = new Order({
+    let discount = 0;
+
+    if (couponCode) {
+      const coupon = await Coupon.findOne({ code: couponCode });
+
+      if (!coupon)
+        return res.status(400).json({ message: "Invalid coupon code" });
+
+      const now = new Date();
+      if (!coupon.isActive || now < coupon.startDate || now > coupon.endDate) {
+        return res.status(400).json({ message: "Coupon not valid today" });
+      }
+
+      // Global usage limit
+      if (coupon.usageLimit && coupon.usageCount >= coupon.usageLimit) {
+        return res.status(400).json({ message: "Coupon usage limit reached" });
+      }
+
+      // Per-user usage
+      const usage = await couponUsuage.findOne({
+        couponId: coupon._id,
+        userId,
+      });
+
+      if (usage && usage.count >= coupon.usagePerUser) {
+        return res
+          .status(400)
+          .json({ message: "You have already used this coupon" });
+      }
+
+      // Minimum purchase
+      if (subtotal < coupon.minPurchase) {
+        return res.status(400).json({
+          message: `Minimum order value is ₹${coupon.minPurchase}`,
+        });
+      }
+
+      // Calculate discount
+      if (coupon.discountType === "percent") {
+        discount = Math.floor((subtotal * coupon.discountValue) / 100);
+
+        if (coupon.maxDiscount) {
+          discount = Math.min(discount, coupon.maxDiscount);
+        }
+      } else {
+        discount = coupon.discountValue;
+      }
+
+      // Update global usage
+      coupon.usageCount += 1;
+      await coupon.save();
+
+      // Update per-user usage
+      if (usage) {
+        usage.count += 1;
+        await usage.save();
+      } else {
+        await couponUsuage.create({
+          couponId: coupon._id,
+          userId,
+          count: 1,
+        });
+      }
+    }
+
+    const finalAmount = Math.max(subtotal - discount, 0);
+
+    const expectedDelivery = new Date();
+    expectedDelivery.setDate(expectedDelivery.getDate() + 5);
+
+    const order = await Order.create({
       userID: userId,
       addressID: addressId,
       orderedItems,
-      shippingAddress,
-      totalPrice,
-      discount: 0,
-      finalAmount: totalPrice,
+      shippingAddress: address,
+      totalPrice: subtotal,
+      discount,
+      finalAmount,
+      couponCode: couponCode || null,
+      couponApplied: true,
       paymentMethod,
       paymentStatus: paymentMethod === "COD" ? "Pending" : "Paid",
       orderStatus: "Pending",
-
       expectedDelivery,
     });
 
-    await order.save();
+    // -------------------------------
+    // 8️⃣ CLEAR CART AFTER ORDER
+    // -------------------------------
     await Cart.deleteMany({ userId });
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: "Order placed successfully",
       order,
     });
   } catch (error) {
-    console.log(error);
-    res.status(500).json({ success: false, message: "Internal Server Error" });
+    console.error(error);
+    return res.status(500).json({
+      message: "Internal Server Error",
+    });
   }
 };
 
-//order summary
 export const orderSummary = async (req, res) => {
   try {
     const userId = req.user._id;
@@ -125,6 +306,8 @@ export const orderSummary = async (req, res) => {
     const orderDetails = await Order.findOne({ userID: userId, _id: id });
     const response = {
       totalPrice: orderDetails.totalPrice,
+      finalAmount:orderDetails.finalAmount,
+      couponApplied:orderDetails.couponApplied,
       orderId: orderDetails.orderId,
       user: user.email,
       expectedDelivery: orderDetails?.expectedDelivery,

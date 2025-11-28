@@ -8,6 +8,7 @@ export default function OrderSuccessPage() {
   const navigate = useNavigate();
   const { data: orderSummary } = useGetOrderSummary(id);
   console.log(orderSummary);
+  console.log(orderSummary);
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString("en-US", {
@@ -63,7 +64,11 @@ export default function OrderSuccessPage() {
             <p className="text-sm text-gray-700 mb-1">
               <span className="font-medium">Total: </span>
               <span className="text-red-500">
-                ₹{orderSummary?.result?.totalPrice}
+                {orderSummary?.result?.couponApplied ? (
+                  <span>₹{orderSummary?.result?.finalAmount}</span>
+                ) : (
+                  <span>₹{orderSummary?.result?.totalPrice}</span>
+                )}
               </span>
             </p>
             <p className="text-sm text-gray-700">

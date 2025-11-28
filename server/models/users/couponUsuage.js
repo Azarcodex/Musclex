@@ -18,6 +18,7 @@ const couponUsageSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    usedAt: { type: Date, default: Date.now },
   },
   { timestamps: true }
 );

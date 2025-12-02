@@ -1,41 +1,37 @@
 import mongoose from "mongoose";
 
-const walletLedgerSchema = new mongoose.Schema(
+const referralRewardSchema = new mongoose.Schema(
   {
-    walletId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Wallet",
-      required: true,
-    },
-
-    userId: {
+    referrerUserId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
     },
 
-    amount: {
+    referredUserId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+
+    rewardAmount: {
       type: Number,
       required: true,
     },
 
-    type: {
+    rewardType: {
       type: String,
-      enum: ["ADD", "DEDUCT", "REFUND", "HOLD", "RELEASE","REFERRAL"],
+      enum: ["SIGNUP_REFERRER", "SIGNUP_NEW_USER"],
       required: true,
     },
 
-    referenceId: {
+    status: {
       type: String,
-      default: null,
-    },
-
-    note: {
-      type: String,
-      default: "",
+      enum: ["CREDITED"],
+      default: "CREDITED",
     },
   },
   { timestamps: true }
 );
 
-export default mongoose.model("WalletLedger", walletLedgerSchema);
+export default mongoose.model("ReferralReward", referralRewardSchema);

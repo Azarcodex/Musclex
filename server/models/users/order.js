@@ -56,15 +56,20 @@ const orderedItemSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  returnStatus: {
+    type: String,
+    enum: ["Requested", "Approved", "Rejected", "Completed"],
+    default: "Requested",
+  },
   refundStatus: {
     type: String,
     enum: ["Not Initiated", "Pending", "Completed"],
     default: "Not Initiated",
   },
-  returnStatus: {
+  vendorCreditStatus: {
     type: String,
-    enum: ["Requested", "Approved", "Rejected", "Completed"],
-    default: "Requested",
+    enum: ["NotCredited", "Credited", "Reversed"],
+    default: "NotCredited",
   },
 });
 

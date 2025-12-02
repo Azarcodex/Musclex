@@ -83,6 +83,16 @@ const Register = () => {
                 helperText={errors.password?.message}
               />
             </div>
+            <div>
+              <TextField
+                label="referralCode"
+                type="text"
+                fullWidth
+                variant="outlined"
+                size="small"
+                {...register("referralCode")}
+              />
+            </div>
 
             {/* Submit Button */}
             <Button

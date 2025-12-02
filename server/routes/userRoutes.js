@@ -51,6 +51,7 @@ import {
   applyCoupon,
   getAvailableCoupons,
 } from "../controllers/user/couponController.js";
+import { walletDashboard } from "../controllers/user/wallet.js";
 const router = express.Router();
 
 router.post("/register", registerUser);
@@ -96,7 +97,7 @@ router.get("/getcart", protectedUser, getCart);
 router.delete("/cart/:id", protectedUser, removeFromCart);
 router.patch("/quantity/:id", protectedUser, QuantityChange);
 //checkout
-router.get("/checkout", protectedUser, getCheckoutData);
+router.get("/checkout", protectedUser, AuthUser, getCheckoutData);
 //order controller
 router.post("/order", protectedUser, AuthUser, OrderController);
 router.get("/order/summary/:id", protectedUser, orderSummary);
@@ -119,4 +120,6 @@ router.get("/:orderId/invoice", getInvoice);
 router.post("/coupon/apply", protectedUser, applyCoupon);
 //coupons
 router.get("/coupons", protectedUser, getAvailableCoupons);
+//wallets
+router.get("/wallet", protectedUser, walletDashboard);
 export default router;

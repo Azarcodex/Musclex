@@ -6,7 +6,7 @@ import nodemailer from "nodemailer";
 import { sendOtp } from "../../utils/sendOtp.js";
 export const registerUser = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, referralCode } = req.body;
     console.log(req.body);
     const ExistingUser = await User.findOne({ email });
     if (ExistingUser) {
@@ -19,14 +19,6 @@ export const registerUser = async (req, res) => {
         .json({ message: "Otp has been already sent Pls Verify" });
     }
     const hashPassword = await bcrypt.hash(password, 10);
-    // const newUser = await User.create({
-    //   name,
-    //   email,
-    //   password: hashPassword,
-    //   phone,
-    //   isVerified: false,
-    // });
-    //otp generation
     const now = new Date();
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
     const otpExpire = new Date(Date.now() + 10 * 60 * 1000);
@@ -38,6 +30,7 @@ export const registerUser = async (req, res) => {
         name: name,
         email: email,
         password: hashPassword,
+        referralCode: referralCode,
       },
     });
     sendOtp(email, otpCode);

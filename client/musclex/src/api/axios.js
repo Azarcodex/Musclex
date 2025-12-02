@@ -27,6 +27,10 @@ api.interceptors.request.use((config) => {
     config.headers.Authorization = `Bearer ${vendor_token}`;
   } else if (config.url?.includes("/user") && user_token) {
     config.headers.Authorization = `Bearer ${user_token}`;
+  } else if (config.url?.includes("/payment")) {
+    config.headers.Authorization = `Bearer ${user_token}`;
+  } else if (config.url?.includes("/vendor/wallet")) {
+    config.headers.Authorization = `Bearer ${vendor_token}`;
   }
   return config;
 });

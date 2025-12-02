@@ -10,6 +10,10 @@ import {
   usegetAvailableCoupons,
 } from "../../hooks/users/useCoupon";
 import CouponList from "./CouponList";
+import {
+  useCreateRazorpayOrder,
+  useVerifyRazorpayPayment,
+} from "../../hooks/payment/paymenthook";
 
 export default function Checkout() {
   const navigate = useNavigate();
@@ -28,7 +32,9 @@ export default function Checkout() {
   const { data: checkoutItems, isLoading } = useGetCheckout();
   const { mutate: placeOrder, isLoading: placingOrder } = useOrder();
   const { mutate: applyCouponFn, isLoading: applyingCoupon } = useApplyCoupon();
-
+  //razorpay
+  const { mutate: createRazorpayOrder } = useCreateRazorpayOrder();
+  const { mutate: verifyPayment } = useVerifyRazorpayPayment();
   const addresses = checkoutItems?.addresses || [];
   const cartItems = checkoutItems?.checkOutItems || [];
   const cartTotal = checkoutItems?.total ?? 0;
@@ -109,7 +115,80 @@ export default function Checkout() {
       },
     });
   };
+  //razorpay integration
+  const handleRazorpayPayment = () => {
+    if (!selectedAddress) {
+      toast.error("Select an address first");
+      return;
+    }
 
+    const amount = Number(finalTotal);
+
+    // Build order payload for database
+    const cleanedFinalItems = finalItems.map((item) => ({
+      productID: item.productId?._id,
+      variantID: item.variantId?._id,
+      vendorID: item.productId?.vendorID,
+      quantity: item.quantity,
+      sizeLabel: item.sizeLabel,
+      price: item.finalPrice,
+    }));
+
+    const orderPayload = {
+      addressID: selectedAddress,
+      orderedItems: cleanedFinalItems,
+      paymentMethod: "Razorpay",
+      totalPrice: subtotal, // before discount
+      discount: discount,
+      finalAmount: finalTotal,
+      couponCode: passcoupon || null,
+    };
+    console.log(orderPayload);
+    // 1️⃣ Create Razorpay Order
+    createRazorpayOrder(amount, {
+      onSuccess: (order) => {
+        const options = {
+          key: import.meta.env.VITE_RAZORPAY_KEY_ID,
+          amount: amount * 100,
+          currency: "INR",
+          order_id: order.orderId,
+          name: "Muscle X",
+          description: "Order Payment",
+          handler: function (response) {
+            // 2️⃣ Verify Payment
+            verifyPayment(
+              {
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                orderPayload,
+              },
+              {
+                onSuccess: (res) => {
+                  toast.success("Payment Successful!");
+                  navigate(`/user/ordersuccess/${res.order._id}`);
+                },
+                onError: () => toast.error("Payment verification failed"),
+              }
+            );
+          },
+          prefill: {
+            name: checkoutItems?.user?.name || "",
+            email: checkoutItems?.user?.email || "",
+            contact: checkoutItems?.user?.phone || "",
+          },
+          theme: { color: "#8B5CF6" },
+        };
+
+        const rzp = new window.Razorpay(options);
+        rzp.open();
+      },
+
+      onError: () => toast.error("Failed to initialize payment"),
+    });
+  };
+
+  /////////
   const handlePlaceOrder = (paymentMethod) => {
     if (!selectedAddress) {
       toast.message("Select an address first");
@@ -118,7 +197,7 @@ export default function Checkout() {
 
     const payload = {
       items: finalItems,
-      addressId: selectedAddress,
+      addressID: selectedAddress,
       paymentMethod,
       couponCode: passcoupon?.trim() || null,
     };
@@ -198,7 +277,7 @@ export default function Checkout() {
               )}
 
               {addresses
-                .filter((a) => !a.isDefault)
+                .filter((a) => !a.isDefault && a !== defaultAddress)
                 .map((addr) => (
                   <div
                     key={addr._id}
@@ -361,7 +440,7 @@ export default function Checkout() {
             <div className="space-y-2">
               <button
                 className="w-full text-[13px] bg-purple-500 hover:bg-purple-600 text-white font-medium py-2 rounded-md flex items-center justify-center gap-2 transition"
-                onClick={() => handlePlaceOrder("RAZORPAY")}
+                onClick={handleRazorpayPayment}
                 disabled={placingOrder}
               >
                 <ShoppingBag size={14} />
@@ -378,7 +457,7 @@ export default function Checkout() {
               </button>
 
               <button
-                onClick={() => toast.message("Wallet payment not implemented")}
+                onClick={() => handlePlaceOrder("Wallet")}
                 className="w-full text-[13px] bg-gray-800 hover:bg-gray-900 text-white font-medium py-2 rounded-md flex items-center justify-center gap-2 transition"
                 disabled={placingOrder}
               >

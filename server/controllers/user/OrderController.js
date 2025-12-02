@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import Cart from "../../models/products/cart.js";
 import Variant from "../../models/products/Variant.js";
 import Address from "../../models/users/address.js";
@@ -6,136 +7,23 @@ import couponUsuage from "../../models/users/couponUsuage.js";
 import Order from "../../models/users/order.js";
 import User from "../../models/users/user.js";
 import { computeOrderStatus } from "./computation/status.js";
-
-// export const OrderController = async (req, res) => {
-//   try {
-//     const userId = req.user._id;
-//     const { items, addressId, paymentMethod, couponCode } = req.body;
-//     let cartitems = [];
-//     if (items) {
-//       cartitems = items;
-//     } else {
-//       const cartitems = await Cart.find({ userId })
-//         .populate("productId", "name vendorID")
-//         .populate("variantId", "size flavour");
-//       if (!cartitems) {
-//         return res.status(401).json({ message: "No items in cart" });
-//       }
-//     }
-//     console.log(cartitems);
-//     const address = await Address.findOne({ _id: addressId });
-//     if (!address) {
-//       return res
-//         .status(404)
-//         .json({ success: false, message: "Address not found" });
-//     }
-
-//     const shippingAddress = {
-//       fullName: address.fullName,
-//       phone: address.phone,
-//       pincode: address.pincode,
-//       state: address.state,
-//       city: address.city,
-//       addressLine: address.addressLine,
-//       landmark: address.landmark,
-//     };
-
-//     const expectedDelivery = new Date();
-//     expectedDelivery.setDate(expectedDelivery.getDate() + 5);
-//     //stock managment
-//     for (const item of cartitems) {
-//       const variant = await Variant.findById(item.variantId._id);
-//       if (!variant || !variant.size) {
-//         return res
-//           .status(400)
-//           .json({ success: false, message: "Variant not found" });
-//       }
-//       const sizeObj = variant?.size?.find((s) => s.label === item.sizeLabel);
-//       if (!sizeObj) {
-//         return res
-//           .status(400)
-//           .json({ success: false, message: "Size not found" });
-//       }
-//       if (sizeObj.stock < item.quantity) {
-//         return res
-//           .status(400)
-//           .json({ message: `Stock not available for item ${sizeObj.label}` });
-//       }
-//       sizeObj.stock -= item.quantity;
-//       await variant.save();
-//     }
-//     const orderedItems = cartitems.map((item) => {
-//       if (!item.variantId.productId || !item.variantId) {
-//         throw new Error("Product or Variant missing in cart");
-//       }
-
-//       return {
-//         productID: item.productId._id,
-//         variantID: item?.variantId?._id,
-//         quantity: item.quantity,
-//         price: item.finalPrice,
-//         sizeLabel: item.sizeLabel,
-//         status: "Pending",
-//         vendorID: item.productId.vendorID,
-//       };
-//     });
-//     // console.log(orderedItems);
-//     const totalPrice = orderedItems.reduce(
-//       (acc, val) => acc + val.price * val.quantity,
-//       0
-//     );
-
-//     const order = new Order({
-//       userID: userId,
-//       addressID: addressId,
-//       orderedItems,
-//       shippingAddress,
-//       totalPrice,
-//       discount: 0,
-//       finalAmount: totalPrice,
-//       paymentMethod,
-//       paymentStatus: paymentMethod === "COD" ? "Pending" : "Paid",
-//       orderStatus: "Pending",
-
-//       expectedDelivery,
-//     });
-//     //setting up Coupon Logic
-//     if (couponCode) {
-//       const coupon = await Coupon.findOne({ code: couponCode });
-//       const couponUsage = new couponUsuage({
-//         couponId: coupon._id,
-//         userId: userId,
-//         usedAt: new Date(),
-//       });
-//       coupon.usageCount = coupon.usageCount || 0 + 1;
-//       couponUsage.count += (couponUsage.count || 0) + 1;
-//       await coupon.save();
-//       await couponUsage.save();
-//     }
-//     await order.save();
-//     await Cart.deleteMany({ userId });
-
-//     res.status(201).json({
-//       success: true,
-//       message: "Order placed successfully",
-//       order,
-//     });
-//   } catch (error) {
-//     console.log(error);
-//     res.status(500).json({ success: false, message: "Internal Server Error" });
-//   }
-// };
-
-//order summary
+import Wallet from "../../models/wallet/walletschema.js";
+import {
+  captureHold,
+  createHold,
+  releaseHold,
+} from "../walletService/walletService.js";
+import { reversalForOrder } from "../walletService/vendor/vendorWalletService.js";
 
 export const OrderController = async (req, res) => {
   try {
     const userId = req.user._id;
     console.log(req.body);
-    const { items, addressId, paymentMethod, couponCode } = req.body;
+    const { items, addressID, paymentMethod, couponCode } = req.body;
+    console.log("🏡🏡🏡🏡🏡" + addressID);
     // console.log("✅✅✅✅" + couponCode);
     //address
-    const address = await Address.findById(addressId);
+    const address = await Address.findById(addressID);
     if (!address) {
       return res.status(404).json({ message: "Address not found" });
     }
@@ -264,9 +152,29 @@ export const OrderController = async (req, res) => {
     const expectedDelivery = new Date();
     expectedDelivery.setDate(expectedDelivery.getDate() + 5);
 
+    //WALLET SETUP
+    const orderObjectId = new mongoose.Types.ObjectId();
+    let hold = null;
+    if (paymentMethod === "Wallet") {
+      try {
+        hold = await createHold(
+          userId,
+          orderObjectId,
+          finalAmount,
+          orderObjectId
+        );
+      } catch (error) {
+        return res.status(400).json({
+          success: false,
+          message: error.message || "Wallet hold failed",
+        });
+      }
+    }
+    // console.log("➕➕" + hold);
     const order = await Order.create({
+      _id: orderObjectId,
       userID: userId,
-      addressID: addressId,
+      addressID: addressID,
       orderedItems,
       shippingAddress: address,
       totalPrice: subtotal,
@@ -280,9 +188,30 @@ export const OrderController = async (req, res) => {
       expectedDelivery,
     });
 
-    // -------------------------------
-    // 8️⃣ CLEAR CART AFTER ORDER
-    // -------------------------------
+    //WALLET CAPTURE PHASE
+    if (paymentMethod === "Wallet") {
+      try {
+        await captureHold(hold._id, orderObjectId);
+        await Order.findByIdAndUpdate(orderObjectId, {
+          paymentStatus: "Paid",
+        });
+      } catch (error) {
+        console.log(error);
+        await releaseHold(hold._id, "Capture failed");
+        for (const item of orderedItems) {
+          const variant = await Variant.findById(item.variantID);
+          const sizeObj = variant.size.find((s) => s.label === item.sizeLabel);
+          if (sizeObj) sizeObj.stock += item.quantity;
+          await variant.save();
+          return res.status(400).json({
+            success: false,
+            message: "Wallet payment failed!!!",
+          });
+        }
+      }
+    }
+
+    //CLEAR CART
     await Cart.deleteMany({ userId });
 
     return res.status(201).json({
@@ -306,8 +235,8 @@ export const orderSummary = async (req, res) => {
     const orderDetails = await Order.findOne({ userID: userId, _id: id });
     const response = {
       totalPrice: orderDetails.totalPrice,
-      finalAmount:orderDetails.finalAmount,
-      couponApplied:orderDetails.couponApplied,
+      finalAmount: orderDetails.finalAmount,
+      couponApplied: orderDetails.couponApplied,
       orderId: orderDetails.orderId,
       user: user.email,
       expectedDelivery: orderDetails?.expectedDelivery,
@@ -372,53 +301,74 @@ export const OrderTrack = async (req, res) => {
 };
 
 //cancel order dealing
+
 export const cancelOrder = async (req, res) => {
   try {
     const userId = req.user._id;
     const { id } = req.params;
+
     const order = await Order.findOne({ _id: id, userID: userId });
-    if (!order) {
-      return res.status(404).json({
-        success: false,
-        message: "Order not found",
-      });
-    }
+    if (!order) return res.status(404).json({ message: "Order not found" });
 
     const cancellableStatuses = ["Pending", "Confirmed", "Processing"];
-
     if (!cancellableStatuses.includes(order.orderStatus)) {
       return res.status(400).json({
-        success: false,
         message: `Order cannot be cancelled once it is ${order.orderStatus}`,
       });
     }
 
+    // 1RESTORE STOCK
     for (const item of order.orderedItems) {
       const variant = await Variant.findById(item.variantID);
       if (!variant) continue;
 
       const sizeObj = variant.size.find((s) => s.label === item.sizeLabel);
-
-      if (sizeObj) {
-        sizeObj.stock += item.quantity;
-      }
-
+      if (sizeObj) sizeObj.stock += item.quantity;
       await variant.save();
     }
 
+    //  REVERSE VENDOR CREDIT (IF RAZORPAY)
+    if (order.paymentMethod === "Razorpay") {
+      for (const item of order.orderedItems) {
+        const amt = item.price * item.quantity;
+
+        await reversalForOrder({
+          vendorId: item.vendorID,
+          orderId: order._id,
+          amount: amt,
+          commissionPercent: 10,
+        });
+
+        item.vendorCreditStatus = "Reversed";
+      }
+    }
+
+    // 3 REFUND CUSTOMER
+    const refundAmount = order.finalAmount;
+
+    if (refundAmount > 0) {
+      const wallet = await Wallet.findOne({ userId });
+      wallet.balance += refundAmount;
+      await wallet.save();
+    }
+
+    for (const item of order.orderedItems) {
+      item.refundAmount = item.price * item.quantity;
+      item.refundStatus = "Completed";
+    }
+
+    order.paymentStatus = "Refunded";
     order.orderStatus = "Cancelled";
+
     await order.save();
 
-    return res.status(200).json({
+    return res.json({
       success: true,
-      message: "Order cancelled successfully",
+      message: "Order cancelled and refunded successfully",
     });
-  } catch (error) {
-    console.log(error);
-    return res.status(500).json({
-      success: false,
-      message: "Internal server error",
-    });
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({ message: "Internal Server Error" });
   }
 };
 
@@ -427,47 +377,68 @@ export const cancelProductOrder = async (req, res) => {
   try {
     const userId = req.user._id;
     const { orderId, item_id } = req.params;
-    console.log("✅✅✅" + item_id);
+
     const order = await Order.findOne({ _id: orderId, userID: userId });
-    if (!order) {
-      return res.status(404).json({
-        success: false,
-        message: "Order not found",
-      });
-    }
+    if (!order) return res.status(404).json({ message: "Order not found" });
 
-    const product = order?.orderedItems?.find(
-      (data) => data._id.toString() === item_id.toString()
+    const item = order.orderedItems.find(
+      (it) => it._id.toString() === item_id.toString()
     );
-    if (!product) {
-      return res.status(404).json({
-        success: false,
-        message: "item not found",
-      });
-    }
-    const cancellableStatuses = ["Pending", "Confirmed", "Processing"];
-    if (!cancellableStatuses.includes(product.status)) {
-      return res.status(400).json({
-        success: false,
-        message: `Order cannot be cancelled once it is ${product.status}`,
-      });
-    }
-    const variant = await Variant.findById(product.variantID);
-    const sizeObj = variant?.size?.find((s) => s.label === product.sizeLabel);
-    if (sizeObj) {
-      sizeObj.stock += product.quantity;
-    }
-    await variant.save();
-    product.status = "Cancelled";
-    await order.save();
-    return res.status(200).json({
-      success: true,
-      message: "Order cancelled successfully",
-    });
-  } catch (error) {
-    console.log(error);
+    if (!item) return res.status(404).json({ message: "Item not found" });
 
-    res.status(500).json({ message: "Interal server error occurred" });
+    const cancellable = ["Pending", "Confirmed", "Processing"];
+    if (!cancellable.includes(item.status)) {
+      return res.status(400).json({
+        message: `Item cannot be cancelled once it is ${item.status}`,
+      });
+    }
+
+    // 1️RESTOCK
+    const variant = await Variant.findById(item.variantID);
+    const sizeObj = variant.size.find((s) => s.label === item.sizeLabel);
+    if (sizeObj) sizeObj.stock += item.quantity;
+    await variant.save();
+
+    // 2️ REVERSE VENDOR CREDIT (Razorpay)
+    if (order.paymentMethod === "Razorpay") {
+      await reversalForOrder({
+        vendorId: item.vendorID,
+        orderId: order._id,
+        amount: item.price * item.quantity,
+        commissionPercent: 10,
+      });
+
+      item.vendorCreditStatus = "Reversed";
+    }
+
+    // 3️ REFUND CUSTOMER
+    const refundAmt = item.price * item.quantity;
+    const wallet = await Wallet.findOne({ userId });
+    wallet.balance += refundAmt;
+    await wallet.save();
+
+    item.refundAmount = refundAmt;
+    item.refundStatus = "Completed";
+    item.status = "Cancelled";
+
+    // Update order-level amount
+    order.finalAmount -= refundAmt;
+
+    // If all items cancelled → order cancelled
+    const allCancelled = order.orderedItems.every(
+      (it) => it.status === "Cancelled"
+    );
+    if (allCancelled) order.orderStatus = "Cancelled";
+
+    await order.save();
+
+    return res.json({
+      success: true,
+      message: "Item cancelled and refunded",
+    });
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({ message: "Internal Server Error" });
   }
 };
 
@@ -489,16 +460,14 @@ export const returnOrderItem = async (req, res) => {
       return res.status(403).json({ success: false, message: "Unauthorized" });
     }
 
-    const item = order?.orderedItems?.find(
-      (item) => item._id.toString() === itemId
-    );
+    const item = order.orderedItems.find((it) => it._id.toString() === itemId);
     if (!item) {
       return res
         .status(404)
         .json({ success: false, message: "Item not found" });
     }
 
-    //  Return only allowed for Delivered items
+    // Only delivered items can be returned
     if (item.status !== "Delivered") {
       return res.status(400).json({
         success: false,
@@ -506,7 +475,6 @@ export const returnOrderItem = async (req, res) => {
       });
     }
 
-    // Ensure deliveryDate exists
     if (!item.deliveredDate) {
       return res.status(400).json({
         success: false,
@@ -514,7 +482,7 @@ export const returnOrderItem = async (req, res) => {
       });
     }
 
-    //  Apply 7-day return policy
+    // Apply 7-day return policy
     const now = new Date();
     const daysSinceDelivery =
       (now - new Date(item.deliveredDate)) / (1000 * 60 * 60 * 24);
@@ -526,11 +494,15 @@ export const returnOrderItem = async (req, res) => {
       });
     }
 
-    //  Update item return fields
+    // Mark item as returned REQUEST
     item.status = "Returned";
     item.returnStatus = "Requested";
     item.returnReason = reason;
     item.returnDate = now;
+
+    // Mark refund and vendor adjustments as pending
+    item.refundStatus = "Pending"; // user refund will be done after approval
+    item.vendorCreditStatus = "PENDING"; // vendor reversal after admin approval
 
     order.orderStatus = computeOrderStatus(order.orderedItems);
 

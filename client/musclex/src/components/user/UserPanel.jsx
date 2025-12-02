@@ -24,7 +24,7 @@ export default function UserPanel() {
       active: false,
       link: "/user/orders",
     },
-    { icon: Wallet, label: "My Wallet", active: false },
+    { icon: Wallet, label: "My Wallet", active: false,link:"wallet" },
     { icon: Gift, label: "Referals", active: false },
     { icon: LogOut, label: "Logout", active: false },
   ];

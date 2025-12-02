@@ -25,6 +25,7 @@ export function Navbar() {
   const isAuth = useSelector((state) => state.userAuth.isAuth);
   const handleLogOut = () => {
     dispatch(clearUserToken());
+    navigate("/user/login", { replace: true });
     toast.success("logged out successfully");
   };
   const HandleChange = (e) => {
@@ -46,22 +47,6 @@ export function Navbar() {
             </div>
           </div>
           <div className="flex items-center gap-4">
-            {!isAuth ? (
-              <Link to={"/user/login"}>
-                <button className="flex items-center gap-1 hover:opacity-80">
-                  <User2 className="w-4 h-4" />
-                  Login
-                </button>
-              </Link>
-            ) : (
-              <button
-                className="flex items-center gap-1 hover:opacity-80  border-b-2 border-white"
-                onClick={handleLogOut}
-              >
-                <LucideLogOut className="w-4 h-4" />
-                Logout
-              </button>
-            )}
             <button
               className="flex items-center gap-1 hover:opacity-80"
               onClick={() => navigate("/user/wishlist")}
@@ -75,9 +60,28 @@ export function Navbar() {
             >
               <ShoppingCartIcon className="w-4 h-4" />
             </button>
-            <button onClick={() => navigate("/user/userdetails/profile")}>
-              <User2Icon className="w-5 h-5 cursor-pointer" />
-            </button>
+            {!isAuth ? (
+              <Link to={"/user/login"}>
+                <button className="flex items-center gap-1 hover:opacity-80">
+                  <User2 className="w-4 h-4" />
+                  Login
+                </button>
+              </Link>
+            ) : (
+              <div className="flex items-center gap-6">
+               
+                <button onClick={() => navigate("/user/userdetails/profile")}>
+                  <User2Icon className="w-5 h-5 cursor-pointer" />
+                </button>
+                 <button
+                  className="flex items-center gap-1 hover:opacity-80  border-b-2 border-white"
+                  onClick={handleLogOut}
+                >
+                  <LucideLogOut className="w-4 h-4" />
+                  Logout
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

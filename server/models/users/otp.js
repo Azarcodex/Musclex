@@ -26,6 +26,9 @@ const otpSchema = new mongoose.Schema(
       password: {
         type: String,
       },
+      referralCode: {
+        type: String,
+      },
     },
   },
   { timestamps: true }

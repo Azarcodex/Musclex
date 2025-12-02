@@ -17,6 +17,7 @@ import {
   TicketPercent,
   LogIn,
   Home,
+  Wallet,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 

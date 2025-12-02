@@ -46,6 +46,9 @@ import SalesReport from "./pages/vendor/SalesReport";
 import AdminCategoryOffers from "./pages/admin/AdminCategoryOffers";
 import ProductOffers from "./pages/vendor/Offers";
 import CouponManagement from "./pages/admin/Coupon";
+import ProtectedRoute from "./components/user/Protected";
+import Wallet from "./pages/user/UserPage/Wallet";
+import VendorWalletPage from "./pages/vendor/Wallet";
 const App = () => {
   return (
     <>
@@ -90,15 +93,44 @@ const App = () => {
         <Route path="/user/products" element={<Products />} />
         <Route path="/user/products/:id" element={<ProductList />} />
         <Route path="/user/wishlist" element={<WishList />} />
-        <Route path="/user/cart" element={<CartPage />} />
-        <Route path="/user/checkout" element={<CheckoutPage />} />
+        <Route
+          path="/user/cart"
+          element={
+            <ProtectedRoute>
+              <CartPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/user/checkout"
+          element={
+            <ProtectedRoute>
+              <CheckoutPage />
+            </ProtectedRoute>
+          }
+        />
         <Route path="/user/ordersuccess/:id" element={<OrderSuccessPage />} />
-        <Route path="/user/userdetails" element={<UserProfile />}>
+        <Route
+          path="/user/userdetails"
+          element={
+            <ProtectedRoute>
+              <UserProfile />
+            </ProtectedRoute>
+          }
+        >
           <Route path="profile" element={<Profile />} />
           <Route path="address" element={<AddressesPage />} />
+          <Route path="wallet" element={<Wallet />} />
         </Route>
         <Route path="/user/changePassword" element={<ChangePassword />} />
-        <Route path="/user/orders" element={<UserOrdersPage />} />
+        <Route
+          path="/user/orders"
+          element={
+            <ProtectedRoute>
+              <UserOrdersPage />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/user/orders/track/:orderId"
           element={<UserOrderTrack />}
@@ -122,6 +154,7 @@ const App = () => {
           <Route path="brand/add" element={<AddBrandForm />} />
           <Route path="variant/add/:productId" element={<VariantForm />} />
           <Route path="variant/:productId" element={<VariantList />} />
+          <Route path="wallet" element={<VendorWalletPage />} />
           <Route
             path="variant/:productId/edit/:variantId"
             element={<EditVariant />}

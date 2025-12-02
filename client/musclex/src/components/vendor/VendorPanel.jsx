@@ -12,6 +12,7 @@ import {
   Package,
   UserCircle,
   UserPlus,
+  Wallet,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
@@ -73,6 +74,11 @@ function VendorPanel() {
       label: "sales Reports",
       icon: <Tag size={20} />,
       path: "/vendor/dashboard/sales/report",
+    },
+    {
+      label: "Wallet",
+      icon: <Wallet size={20} />,
+      path: "/vendor/dashboard/wallet",
     },
     {
       label: "Logout",

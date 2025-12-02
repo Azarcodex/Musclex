@@ -1,34 +1,111 @@
-export async function addFunds(userId, amount, referenceId = null, note = "") {
-  if (amount <= 0) throw new Error("Amount must be positive");
-
-  const session = await mongoose.startSession();
+export const otpController = async (req, res) => {
   try {
-    session.startTransaction();
+    const { email, otp } = req.body;
 
-    const wallet = await Wallet.findOne({ userId }).session(session);
-    if (!wallet) throw new Error("Wallet not found");
+    if (!email || !otp) {
+      return res.status(400).json({ message: "Email and OTP required" });
+    }
 
-    // atomic update
-    wallet.balance += amount;
-    wallet.lastTransactionAt = new Date();
-    await wallet.save({ session });
+    // 1️⃣ Find pending OTP for this exact email
+    const pending = await OTP.findOne({ "pendingData.email": email });
+    if (!pending) {
+      return res.status(400).json({ message: "No pending registration found" });
+    }
 
-    await createLedgerEntry({
-      session,
-      walletId: wallet._id,
-      userId,
-      amount,
-      type: "ADD",
-      referenceId,
-      note,
+    // 2️⃣ Validate OTP correctly
+    if (pending.otp !== otp) {
+      return res.status(400).json({ message: "Incorrect OTP" });
+    }
+
+    // 3️⃣ Expiry check
+    if (pending.expiresAt < new Date()) {
+      await OTP.deleteOne({ _id: pending._id });
+      return res.status(410).json({ message: "OTP expired" });
+    }
+
+    // 4️⃣ Extract signup data including referral code
+    const { name, password, referralCode } = pending.pendingData;
+
+    // Prevent duplicate users
+    const exist = await User.findOne({ email });
+    if (exist) {
+      await OTP.deleteOne({ _id: pending._id });
+      return res.status(400).json({ message: "User already exists" });
+    }
+
+    // 5️⃣ Create NEW USER
+    const newUser = await User.create({
+      name,
+      email,
+      password,
+      isVerified: true,
+      referredBy: referralCode ? referralCode : null,
     });
 
-    await session.commitTransaction();
-    return wallet;
-  } catch (err) {
-    await session.abortTransaction();
-    throw err;
-  } finally {
-    session.endSession();
+    // 6️⃣ Create wallet for new user
+    const userWallet = await Wallet.create({
+      userId: newUser._id,
+      balance: 0,
+      totalAdded: 0,
+      totalSpent: 0,
+      lastTransactionAt: null,
+    });
+
+    // -----------------------------------------------
+    // 🔥 TWO-SIDED REFERRAL LOGIC
+    // -----------------------------------------------
+    if (referralCode) {
+      const referrer = await User.findOne({ referralCode });
+
+      if (referrer) {
+        const REFERRER_REWARD = 50;  // change if needed
+        const NEW_USER_REWARD = 20;  // small bonus
+
+        // 7️⃣ Credit NEW USER small reward
+        userWallet.balance += NEW_USER_REWARD;
+        await userWallet.save();
+
+        // Ledger entry for new user
+        await WalletLedger.create({
+          walletId: userWallet._id,
+          userId: newUser._id,
+          amount: NEW_USER_REWARD,
+          type: "REFERRAL",
+          referenceId: newUser._id,
+          note: "Referral signup reward (new user)",
+        });
+
+        // 8️⃣ Credit REFERRER reward
+        const referrerWallet = await Wallet.findOne({ userId: referrer._id });
+
+        referrerWallet.balance += REFERRER_REWARD;
+        await referrerWallet.save();
+
+        await WalletLedger.create({
+          walletId: referrerWallet._id,
+          userId: referrer._id,
+          amount: REFERRER_REWARD,
+          type: "REFERRAL",
+          referenceId: newUser._id,
+          note: "Referral reward for inviting a user",
+        });
+
+        // mark new user as rewarded
+        newUser.hasReferralReward = true;
+        await newUser.save();
+      }
+    }
+
+    // 9️⃣ Clear OTP after successful registration
+    await OTP.deleteOne({ _id: pending._id });
+
+    return res.status(201).json({
+      message: "Registration complete. Verified. Referral applied.",
+      user: newUser,
+    });
+
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Server error" });
   }
-}
+};

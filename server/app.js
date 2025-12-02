@@ -3,7 +3,9 @@ import adminRoute from "./routes/adminRoutes.js";
 import userRoute from "./routes/userRoutes.js";
 import googleAuth from "./routes/authRoutes.js";
 import vendorRoute from "./routes/vendorRoutes.js";
-import path from 'path'
+import paymentRoute from "./routes/paymentRoutes.js";
+import vendorWalletRoutes from "./routes/vendorWalletRoutes.js";
+import path from "path";
 import cors from "cors";
 const app = express();
 app.use(cors());
@@ -18,5 +20,9 @@ app.use("/api/user", userRoute);
 app.use("/api/vendor", vendorRoute);
 //google auth
 app.use("/api/auth", googleAuth);
+//payment
+app.use("/api/payments", paymentRoute);
+//vendor wallet
+app.use("/api/vendor/wallet", vendorWalletRoutes);
 
 export default app;

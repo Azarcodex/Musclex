@@ -1,76 +1,135 @@
 import Coupon from "../../models/users/coupon.js";
 import couponUsuage from "../../models/users/couponUsuage.js";
-
+import Cart from "../../models/products/cart.js";
+import Offer from "../../models/offer/offer.js";
 export const applyCoupon = async (req, res) => {
   try {
     const userId = req.user._id;
-    console.log(req.body);
     const { code, directTotal } = req.body;
+
     if (!code) {
       return res.status(400).json({ message: "Coupon code is required" });
     }
 
     const coupon = await Coupon.findOne({ code });
-    const usedCoupon = await couponUsuage.findOne({
-      couponId: coupon._id,
-      userId: userId,
-    });
-    if (!coupon) {
+    if (!coupon)
       return res.status(404).json({ message: "Invalid coupon code" });
-    }
 
-    if (!coupon.isActive) {
+    // Validate coupon status
+    if (!coupon.isActive)
       return res.status(400).json({ message: "Coupon is not active" });
-    }
 
     const today = new Date();
     if (!(today >= coupon.startDate && today <= coupon.endDate)) {
       return res
         .status(400)
-        .json({ message: "Coupon is expired or not valid today" });
+        .json({ message: "Coupon expired or not valid today" });
     }
 
+    // Usage limit validation
     if (coupon.usageLimit && coupon.usageCount >= coupon.usageLimit) {
       return res.status(400).json({ message: "Coupon usage limit reached" });
     }
-    if (usedCoupon) {
-      if (usedCoupon.count > coupon.usagePerUser) {
-        return res.status(400).json({
-          message: "You have already applied these coupon.No more Limit!",
-        });
-      }
-    }
 
-    let total = 0;
+    const usedCoupon = await couponUsuage.findOne({
+      couponId: coupon._id,
+      userId,
+    });
 
-    if (directTotal && Number(directTotal) > 0) {
-      total = Number(directTotal);
-    } else {
-      const cartItems = await Cart.find({ userId }).lean();
-      if (!cartItems.length) {
-        return res.status(400).json({
-          message: "No items found — add items to cart or pass directTotal",
-        });
-      }
-
-      total = cartItems.reduce(
-        (acc, item) => acc + item.price * item.quantity,
-        0
-      );
-    }
-
-    // Minimum purchase check
-    if (total < coupon.minPurchase) {
+    if (usedCoupon && usedCoupon.count >= coupon.usagePerUser) {
       return res.status(400).json({
-        message: `Minimum order value is ₹${coupon.minPurchase}`,
+        message: "You have already used this coupon",
       });
     }
 
+    // -------------------------------
+    // FETCH CART ITEMS
+    // -------------------------------
+    const cartItems = await Cart.find({ userId })
+      .populate({
+        path: "productId",
+        populate: [
+          { path: "catgid", select: "catgName" },
+          { path: "brandID", select: "brand_name" },
+        ],
+      })
+      .populate("variantId")
+      .lean();
+
+    if (!cartItems.length) {
+      return res.status(400).json({
+        message: "Cart is empty — cannot apply coupon.",
+      });
+    }
+
+    // -------------------------------
+    // FETCH ACTIVE OFFERS
+    // -------------------------------
+    const activeCatOffers = await Offer.find({
+      isActive: true,
+      scope: "Category",
+      startDate: { $lte: today },
+      endDate: { $gte: today },
+    }).lean();
+
+    const activeProductOffers = await Offer.find({
+      isActive: true,
+      scope: "Product",
+      startDate: { $lte: today },
+      endDate: { $gte: today },
+    }).lean();
+
+    // -------------------------------
+    // APPLY BEST OFFER TO EACH CART ITEM
+    // -------------------------------
+    let total = 0;
+
+    for (const item of cartItems) {
+      const size = item.variantId.size.find((s) => s.label === item.sizeLabel);
+      const salePrice = size.salePrice;
+
+      const catOffer = activeCatOffers.find(
+        (off) =>
+          off.categoryId.toString() === item.productId.catgid._id.toString()
+      );
+
+      const prodOffer = activeProductOffers.find((off) =>
+        off.productIds.some(
+          (id) => id.toString() === item.productId._id.toString()
+        )
+      );
+
+      function computeDiscount(offer) {
+        if (!offer) return 0;
+        return offer.discountType === "percent"
+          ? Math.floor((salePrice * offer.value) / 100)
+          : offer.value;
+      }
+
+      const catDiscount = computeDiscount(catOffer);
+      const prodDiscount = computeDiscount(prodOffer);
+
+      let bestDiscount = Math.max(catDiscount, prodDiscount);
+
+      const itemFinalPrice = Math.max(salePrice - bestDiscount, 1);
+
+      total += itemFinalPrice * item.quantity;
+    }
+
+    // MIN PURCHASE CHECK after offers applied
+    if (total < coupon.minPurchase) {
+      return res.status(400).json({
+        message: `Minimum purchase value is ₹${coupon.minPurchase}`,
+      });
+    }
+
+    // -------------------------------
+    // APPLY COUPON NOW
+    // -------------------------------
     let discount = 0;
 
     if (coupon.discountType === "percent") {
       discount = Math.floor((total * coupon.discountValue) / 100);
-
       if (coupon.maxDiscount) {
         discount = Math.min(discount, coupon.maxDiscount);
       }

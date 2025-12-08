@@ -44,8 +44,10 @@ import { getCategoryVendor } from "../controllers/vendor/categoryController.js";
 import { updateReturnStatusVendor } from "../controllers/vendor/returncontroller.js";
 import {
   createProductOffer,
+  editVendorOffer,
   getAllProducts,
   getVendorOffers,
+  toggleVendorOffer,
 } from "../controllers/vendor/offerController.js";
 const router = express.Router();
 
@@ -82,8 +84,8 @@ router.delete("/variant/image", editVariantImage);
 router.get("/orderList", VendorProtection, getOrdersData);
 router.patch("/updatestatus/:id", updateOrderStatus);
 //sales report
-router.get("/sales/report", salesReport);
-router.get("/sales-report/excel", salesReportExcel);
+router.post("/sales/report", VendorProtection, salesReport);
+router.post("/sales-report/excel", VendorProtection, salesReportExcel);
 //category
 router.get("/category", getCategoryVendor);
 //update order product status
@@ -96,7 +98,11 @@ router.patch(
 );
 //offers
 router.get("/product-offer", VendorProtection, getVendorOffers);
+router.patch("/product/offer/:offerId", VendorProtection, editVendorOffer);
+
 router.post("/product-offer", VendorProtection, createProductOffer);
+//toggle offer
+router.patch("/product/offer/toggle/:offerId",VendorProtection,toggleVendorOffer)
 router.get("/all-products", VendorProtection, getAllProducts);
 
 export default router;

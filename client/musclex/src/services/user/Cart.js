@@ -20,3 +20,8 @@ export const QuantityChange = async (id, action) => {
   console.log(response.data);
   return response.data;
 };
+
+export const validateCart = async () => {
+  const response = await api.get("/api/user/cart/validate");
+  return response.data;
+};

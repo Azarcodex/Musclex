@@ -29,6 +29,10 @@ export const getInvoice = async (req, res) => {
       })
     );
 
+    // --- Aesthetic Configuration ---
+    const primaryColor = "#3a7bd5"; // A professional blue
+    const secondaryColor = "#555555"; // Darker grey for body text
+    const lightGrey = "#eeeeee"; // Very light grey for backgrounds/lines
     const doc = new PDFDocument({ size: "A4", margin: 40 });
 
     res.setHeader("Content-Type", "application/pdf");
@@ -42,30 +46,68 @@ export const getInvoice = async (req, res) => {
     // ======================================================
     // HEADER
     // ======================================================
+    // Company/Store Name (Assuming a placeholder for a logo/branding)
+    doc
+      .fontSize(28)
+      .fillColor(primaryColor)
+      .font("Helvetica-Bold") // Use a bold font for the title
+      .text("MUSCLEX STORE", 40, 50);
+
+    // Invoice Title
     doc
       .fontSize(22)
-      .text("INVOICE", { align: "center", underline: true })
-      .moveDown(1);
+      .fillColor("#000000")
+      .font("Helvetica-Bold")
+      .text("INVOICE", { align: "right" })
+      .moveDown(0.5);
 
     doc
-      .fontSize(12)
-      .text(`Order ID: ${order.orderId}`)
-      .text(`Order Date: ${new Date(order.createdAt).toDateString()}`)
-      .moveDown(1.5);
+      .fontSize(10)
+      .fillColor(secondaryColor)
+      .font("Helvetica")
+      .text(`Date: ${new Date(order.createdAt).toDateString()}`, {
+        align: "right",
+      })
+      .text(`Invoice No: ${order.orderId}`, { align: "right" });
+
+    doc.moveDown(1);
+    doc
+      .strokeColor(lightGrey)
+      .lineWidth(1)
+      .moveTo(40, doc.y)
+      .lineTo(560, doc.y)
+      .stroke(); // Separator line
+    doc.moveDown(1);
 
     // ======================================================
-    // CUSTOMER DETAILS
+    // CUSTOMER DETAILS & BILLING/SHIPPING
     // ======================================================
-    doc.fontSize(16).text("Customer Details", { underline: true });
+    const detailY = doc.y;
+    const detailX = 40;
+
+    // Billing/Shipping Title
     doc
-      .fontSize(12)
-      .text(order.shippingAddress.fullName)
-      .text(order.shippingAddress.addressLine)
+      .fontSize(14)
+      .fillColor(primaryColor)
+      .font("Helvetica-Bold")
+      .text("Shipping Address", detailX, detailY)
+      .moveDown(0.5);
+
+    // Customer Details
+    doc
+      .fontSize(11)
+      .fillColor(secondaryColor)
+      .font("Helvetica")
+      .font("Helvetica")
+      .text(order.shippingAddress.fullName, detailX)
+      .text(order.shippingAddress.addressLine, detailX)
       .text(
-        `${order.shippingAddress.city}, ${order.shippingAddress.state} - ${order.shippingAddress.pincode}`
+        `${order.shippingAddress.city}, ${order.shippingAddress.state} - ${order.shippingAddress.pincode}`,
+        detailX
       )
-      .text(`Phone: ${order.shippingAddress.phone}`)
-      .moveDown(1.5);
+      .text(`Phone: ${order.shippingAddress.phone}`, detailX);
+
+    doc.moveDown(1.5);
 
     // ======================================================
     // ITEMS TABLE
@@ -82,12 +124,13 @@ export const getInvoice = async (req, res) => {
       total: 80,
     };
 
-    // header background
-    doc.rect(40, tableTop, 520, 25).fill("#f0f0f0").stroke();
+    // Header background with primary color and white text for high contrast
+    doc.rect(40, tableTop, 520, 25).fill(primaryColor).stroke();
 
     doc
-      .fillColor("#000")
-      .fontSize(12)
+      .fillColor("#ffffff") // White text for header
+      .fontSize(11) // Slightly smaller font for table header
+      .font("Helvetica-Bold")
       .text("Product", 45, tableTop + 7, { width: columnWidths.name })
       .text("Variant", 45 + columnWidths.name, tableTop + 7, {
         width: columnWidths.variant,
@@ -107,7 +150,7 @@ export const getInvoice = async (req, res) => {
         { width: columnWidths.qty }
       )
       .text(
-        "Price",
+        "Price (Per Unit)",
         45 +
           columnWidths.name +
           columnWidths.variant +
@@ -117,7 +160,7 @@ export const getInvoice = async (req, res) => {
         { width: columnWidths.price }
       )
       .text(
-        "Total",
+        "Line Total",
         45 +
           columnWidths.name +
           columnWidths.variant +
@@ -133,9 +176,18 @@ export const getInvoice = async (req, res) => {
 
     // Table Rows
     detailedItems.forEach((item, i) => {
+      // Alternate row colors for better readability
+      if (i % 2 === 0) {
+        doc
+          .rect(40, y - 5, 520, 20)
+          .fill(lightGrey)
+          .stroke(lightGrey);
+      }
+
       doc
-        .fillColor("#000")
-        .fontSize(11)
+        .fillColor(secondaryColor)
+        .fontSize(10)
+        .font("Helvetica")
         .text(item.name, 45, y, { width: columnWidths.name })
         .text(item.variant, 45 + columnWidths.name, y, {
           width: columnWidths.variant,
@@ -152,7 +204,7 @@ export const getInvoice = async (req, res) => {
           }
         )
         .text(
-          `₹${item.price}`,
+          `₹${item.price.toFixed(2)}`, // Format to 2 decimal places
           45 +
             columnWidths.name +
             columnWidths.variant +
@@ -162,7 +214,7 @@ export const getInvoice = async (req, res) => {
           { width: columnWidths.price }
         )
         .text(
-          `₹${item.total}`,
+          `₹${item.total.toFixed(2)}`, // Format to 2 decimal places
           45 +
             columnWidths.name +
             columnWidths.variant +
@@ -173,44 +225,91 @@ export const getInvoice = async (req, res) => {
           { width: columnWidths.total }
         );
 
-      y += 25;
-      doc
-        .moveTo(40, y - 5)
-        .lineTo(560, y - 5)
-        .stroke("#ddd");
+      y += 20; // Reduced row height for a more compact look
+
+      // If it's the last row, draw a line underneath it
+      if (i === detailedItems.length - 1) {
+        doc
+          .moveTo(40, y + 5)
+          .lineTo(560, y + 5)
+          .stroke(primaryColor);
+      }
     });
 
-    doc.moveDown(2);
+    doc.moveDown(1.5);
 
     // ======================================================
-    // SUMMARY TABLE
+    // SUMMARY TABLE (Right-Aligned)
     // ======================================================
-    doc.fontSize(16).text("Summary", { underline: true }).moveDown(0.5);
-
-    const summaryX = 300;
+    const summaryX = 350; // Start summary further to the right
     let summaryY = doc.y;
 
-    const summaryRows = [
-      { label: "Subtotal", value: order.totalPrice },
-      { label: "Discount", value: order.discount },
-      { label: "Final Amount", value: order.finalAmount },
-    ];
+    // Subtotal Row
+    doc
+      .fontSize(11)
+      .fillColor(secondaryColor)
+      .font("Helvetica")
+      .text("Subtotal:", summaryX, summaryY, { width: 100, align: "right" })
+      .text(`₹${order.totalPrice.toFixed(2)}`, summaryX + 110, summaryY, {
+        width: 100,
+        align: "right",
+      });
+    summaryY += 18;
 
-    summaryRows.forEach((row) => {
-      doc
-        .fontSize(12)
-        .text(row.label, summaryX, summaryY)
-        .text(`₹${row.value}`, summaryX + 150, summaryY, { align: "right" });
+    // Discount Row
+    doc
+      .fontSize(11)
+      .fillColor("#e74c3c") // Red for discounts
+      .font("Helvetica")
+      .text("Discount:", summaryX, summaryY, { width: 100, align: "right" })
+      .text(`- ₹${order.discount.toFixed(2)}`, summaryX + 110, summaryY, {
+        width: 100,
+        align: "right",
+      });
+    summaryY += 2; // Extra space before final total
 
-      summaryY += 20;
-    });
+    // Final Amount (Total) - Highlighted
+    summaryY += 16;
+    doc
+      .rect(summaryX, summaryY - 5, 220, 25) // Background rectangle for highlight
+      .fill(primaryColor)
+      .stroke(primaryColor);
+
+    doc
+      .fontSize(14)
+      .fillColor("#ffffff") // White text
+      .font("Helvetica-Bold")
+      .text("FINAL AMOUNT:", summaryX + 5, summaryY, {
+        width: 130,
+        align: "right",
+      })
+      .text(`₹${order.finalAmount.toFixed(2)}`, summaryX + 140, summaryY, {
+        width: 70,
+        align: "right",
+      });
 
     // ======================================================
     // FOOTER
     // ======================================================
-    doc.moveDown(3).fontSize(12).text("Thank you for shopping with us!", {
-      align: "center",
-    });
+    doc
+      .moveDown(4)
+      .fillColor(primaryColor)
+      .fontSize(10)
+      .text("Payment Status: " + order.paymentStatus.toUpperCase(), {
+        // Added payment status
+        align: "left",
+      })
+      .moveDown(0.5)
+      .fillColor(secondaryColor)
+      .text(
+        "Thank you for shopping with us! Please contact support for any queries.",
+        {
+          align: "center",
+        }
+      )
+      .text("Invoice generated on " + new Date().toLocaleDateString(), {
+        align: "center",
+      });
 
     doc.end();
   } catch (err) {

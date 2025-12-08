@@ -12,7 +12,7 @@ export const getCheckoutData = async (req, res) => {
     const cartItems = await Cart.find({ userId })
       .populate({
         path: "productId",
-        select: "name brandID Avgrating catgid images",
+        select: "name brandID Avgrating catgid images vendorID",
         populate: [
           { path: "brandID", select: "brand_name" },
           { path: "catgid", select: "catgName" },

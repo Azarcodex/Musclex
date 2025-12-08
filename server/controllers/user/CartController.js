@@ -7,10 +7,11 @@ export const AddCart = async (req, res) => {
   try {
     const userId = req.user._id;
     const { productId, variantId, sizeLabel, quantity } = req.body;
+    console.log(productId, variantId, sizeLabel);
     const product = await Product.findById(productId);
-    if (!product.isActive) {
-      return res.status(400).json({ message: "Item is being deactivated" });
-    }
+    // if (!product.isActive) {
+    //   return res.status(400).json({ message: "Item is being deactivated" });
+    // }
     const variant = await Variant.findById(variantId);
     if (!variant) {
       return res.status(404).json({ message: "Variant not found" });
@@ -31,19 +32,23 @@ export const AddCart = async (req, res) => {
     }
     res.status(200).json({ message: "Item added to the cart" });
   } catch (e) {
+    console.log(e);
     res.status(500).json({ message: "Internal server error" });
   }
 };
 
 //getcart
+
 export const getCart = async (req, res) => {
   try {
     const userId = req.user._id;
     const BASE_URL = process.env.BASE_URL;
-    const items = await Cart.find({ userId: userId })
+
+    // Load cart
+    const items = await Cart.find({ userId })
       .populate({
         path: "productId",
-        select: "name brandID Avgrating catgid",
+        select: "name brandID Avgrating catgid vendorID",
         populate: [
           { path: "brandID", select: "brand_name" },
           { path: "catgid", select: "catgName" },
@@ -51,6 +56,7 @@ export const getCart = async (req, res) => {
       })
       .populate({ path: "variantId", select: "flavour images size" })
       .lean();
+
     if (!items.length) {
       return res.status(200).json({
         success: true,
@@ -59,78 +65,126 @@ export const getCart = async (req, res) => {
         totalAmount: 0,
       });
     }
+
+    // Fetch Active Offers
     const today = new Date();
-    const activeOffers = await Offer.find({
+
+    const activeCategoryOffers = await Offer.find({
       isActive: true,
       scope: "Category",
       startDate: { $lte: today },
       endDate: { $gte: today },
     }).lean();
-    const formatted = items.map((item) => {
-      const selectedSize =
-        item.variantId?.size?.find((s) => s.label === item.sizeLabel) || null;
-      let finalPrice = selectedSize.salePrice;
-      let offerApplied = false;
-      let offerValue = 0;
-      let offerType = "";
-      let offerAmount = 0;
-      const catOffer = activeOffers.find(
-        (off) =>
-          off.categoryId.toString() === item?.productId?.catgid?._id.toString()
-      );
-      // console.log(catOffer);
-      if (catOffer) {
-        offerApplied = true;
-        offerType = catOffer.discountType;
-        offerValue = catOffer.value;
 
-        if (catOffer.discountType === "percent") {
-          offerAmount = Math.floor((selectedSize.salePrice * offerValue) / 100);
-        } else {
-          offerAmount = offerValue;
+    const activeProductOffers = await Offer.find({
+      isActive: true,
+      scope: "Product",
+      startDate: { $lte: today },
+      endDate: { $gte: today },
+    }).lean();
+
+    // -------- PROCESS EACH CART ITEM (APPLY BEST OFFER) --------
+    const formatted = items
+      .map((item) => {
+        const sizeObj = item.variantId?.size?.find(
+          (s) => s.label === item.sizeLabel
+        );
+
+        if (!sizeObj) return null;
+
+        const salePrice = Number(sizeObj.salePrice);
+
+        // ---- CATEGORY OFFER ----
+        const categoryOffer = activeCategoryOffers.find(
+          (off) =>
+            off.categoryId?.toString() === item.productId.catgid._id.toString()
+        );
+
+        // ---- PRODUCT OFFER ----
+        const productOffer = activeProductOffers.find((off) =>
+          off.productIds.some(
+            (pid) => pid.toString() === item.productId._id.toString()
+          )
+        );
+
+        // ---- COMPUTE DISCOUNT ----
+        const computeDiscount = (offer) => {
+          if (!offer) return 0;
+
+          if (offer.discountType === "percent") {
+            return Math.floor((salePrice * offer.value) / 100);
+          } else {
+            return offer.value;
+          }
+        };
+
+        const catDiscount = computeDiscount(categoryOffer);
+        const prodDiscount = computeDiscount(productOffer);
+
+        let bestOffer = null;
+        let bestDiscount = 0;
+
+        if (catDiscount > prodDiscount) {
+          bestOffer = categoryOffer;
+          bestDiscount = catDiscount;
+        } else if (prodDiscount > 0) {
+          bestOffer = productOffer;
+          bestDiscount = prodDiscount;
         }
 
-        finalPrice = Math.max(selectedSize.salePrice - offerAmount, 1);
-      }
-      return {
-        _id: item._id,
-        productName: item.productId?.name,
-        brandName: item.productId?.brandID?.brand_name,
-        flavour: item.variantId?.flavour || "N/A",
-        sizeLabel: item.sizeLabel,
-        quantity: item.quantity,
-        salePrice: selectedSize.salePrice,
-        image:
-          item.variantId?.images?.length > 0
-            ? `${BASE_URL}${item.variantId.images[0]}`
-            : null,
-        variantId: item.variantId?._id,
-        productId: item.productId?._id,
+        let finalPrice = salePrice;
 
-        stock: selectedSize?.stock ?? 0,
+        if (bestOffer) {
+          finalPrice = Math.max(salePrice - bestDiscount, 1);
+        }
 
-        price: selectedSize?.salePrice,
-        offerApplied,
-        offerType,
-        offerValue,
-        offerAmount,
-        finalPrice,
-      };
-    });
+        return {
+          _id: item._id,
+          productName: item.productId?.name,
+          brandName: item.productId?.brandID?.brand_name,
+          flavour: item.variantId?.flavour,
+          sizeLabel: item.sizeLabel,
+          quantity: item.quantity,
+          image:
+            item.variantId?.images?.length > 0
+              ? `${BASE_URL}${item.variantId.images[0]}`
+              : null,
 
+          // base pricing
+          salePrice,
+          price: salePrice,
+
+          // offer details
+          offerApplied: !!bestOffer,
+          offerType: bestOffer?.discountType || null,
+          offerValue: bestOffer?.value || 0,
+          offerAmount: bestDiscount,
+          finalPrice,
+
+          // important data
+          variantId: item.variantId?._id,
+          productId: item.productId?._id,
+          vendorID: item.productId?.vendorID,
+          stock: sizeObj.stock ?? 0,
+        };
+      })
+      .filter(Boolean);
+
+    // FINAL TOTAL
     const totalAmount = formatted.reduce(
-      (acc, val) => acc + val.finalPrice * val.quantity,
+      (sum, it) => sum + it.finalPrice * it.quantity,
       0
     );
+
     res.status(200).json({
       success: true,
       items: formatted,
       totalItems: formatted.length,
       totalAmount,
     });
-  } catch (e) {
-    console.log(e);
-    res.status(500).json({ message: "Internal server error" });
+  } catch (err) {
+    console.log("getCart error:", err);
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
 
@@ -185,5 +239,107 @@ export const QuantityChange = async (req, res) => {
     res.status(200).json({ message: "Updated successfully" });
   } catch (error) {
     res.status(500).json({ message: "Internal server error occurred" });
+  }
+};
+
+//validate cart
+
+export const validatCart = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    const cartItems = await Cart.find({ userId: userId })
+      .populate({
+        path: "productId",
+        select: "name isActive vendorID catgid",
+      })
+      .populate({
+        path: "variantId",
+        select: "size flavour",
+      })
+      .lean();
+    const errors = [];
+    if (!cartItems.length) {
+      return res.status(400).json({
+        valid: false,
+        errors: [{ message: "Your cart is empty" }],
+      });
+    }
+
+    for (const item of cartItems) {
+      const product = item.productId;
+      const variant = item.variantId;
+
+      if (!product || !variant) {
+        errors.push({
+          cartItemId: item._id,
+          message: "A product in your cart no longer exists",
+        });
+        continue;
+      }
+
+      if (!product.isActive) {
+        errors.push({
+          cartItemId: item._id,
+          message: `${product.name} is no longer available`,
+        });
+        continue;
+      }
+
+      // const vendor = await Vendor.findById(product.vendorID).lean();
+      // if (!vendor || vendor.isActive === false) {
+      //   errors.push({
+      //     cartItemId: item._id,
+      //     message: `${product.name}'s vendor is not active`,
+      //   });
+      //   continue;
+      // }
+
+      const sizeObj = variant.size?.find((s) => s.label === item.sizeLabel);
+
+      if (!sizeObj) {
+        errors.push({
+          cartItemId: item._id,
+          message: `Selected size (${item.sizeLabel}) is no longer available`,
+        });
+        continue;
+      }
+
+      const stock = sizeObj.stock;
+
+      if (stock <= 0) {
+        errors.push({
+          cartItemId: item._id,
+          message: `${product.name} (${item.sizeLabel}) is out of stock,kindly remove it`,
+        });
+        continue;
+      }
+
+      // if (item.quantity > stock) {
+      //   errors.push({
+      //     cartItemId: item._id,
+      //     message: `Only ${stock} left for ${product.name} (${item.sizeLabel})`,
+      //   });
+      //   continue;
+      // }
+    }
+
+    if (errors.length > 0) {
+      return res.status(400).json({
+        valid: false,
+        errors,
+      });
+    }
+
+    return res.status(200).json({
+      valid: true,
+      message: "Cart validation successful",
+    });
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({
+      valid: false,
+      errors: [{ message: "Server error validating cart" }],
+    });
   }
 };

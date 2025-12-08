@@ -13,7 +13,7 @@ import CouponList from "./CouponList";
 import {
   useCreateRazorpayOrder,
   useVerifyRazorpayPayment,
-} from "../../hooks/payment/paymenthook";
+} from "../../hooks/payment/razorpayHook";
 
 export default function Checkout() {
   const navigate = useNavigate();
@@ -55,6 +55,7 @@ export default function Checkout() {
   } else {
     finalItems = cartItems || [];
   }
+  console.log("➕➕➕💗" + JSON.stringify(cartItems));
 
   useEffect(() => {
     if (defaultAddress) {
@@ -116,6 +117,80 @@ export default function Checkout() {
     });
   };
   //razorpay integration
+  // const handleRazorpayPayment = () => {
+  //   if (!selectedAddress) {
+  //     toast.error("Select an address first");
+  //     return;
+  //   }
+
+  //   const amount = Number(finalTotal);
+
+  //   // Build order payload for database
+  //   const cleanedFinalItems = finalItems.map((item) => ({
+  //     productID: item.productId?._id,
+  //     variantID: item.variantId?._id,
+  //     vendorID: item.productId?.vendorID,
+  //     quantity: item.quantity,
+  //     sizeLabel: item.sizeLabel,
+  //     price: item.finalPrice,
+  //   }));
+
+  //   const orderPayload = {
+  //     addressID: selectedAddress,
+  //     orderedItems: cleanedFinalItems,
+  //     paymentMethod: "Razorpay",
+  //     totalPrice: subtotal, // before discount
+  //     discount: discount,
+  //     finalAmount: finalTotal,
+  //     couponCode: passcoupon || null,
+  //   };
+  //   // console.log(orderPayload);
+  //   // 1️ Create Razorpay Order
+  //   createRazorpayOrder(amount, {
+  //     onSuccess: (order) => {
+  //       const options = {
+  //         key: import.meta.env.VITE_RAZORPAY_KEY_ID,
+  //         amount: amount * 100,
+  //         currency: "INR",
+  //         order_id: order.orderId,
+  //         name: "Muscle X",
+  //         description: "Order Payment",
+  //         handler: function (response) {
+  //           // 2️ Verify Payment
+  //           verifyPayment(
+  //             {
+  //               razorpay_order_id: response.razorpay_order_id,
+  //               razorpay_payment_id: response.razorpay_payment_id,
+  //               razorpay_signature: response.razorpay_signature,
+  //               orderPayload,
+  //             },
+  //             {
+  //               onSuccess: (res) => {
+  //                 toast.success("Payment Successful!");
+  //                 navigate(`/user/ordersuccess/${res.order._id}`);
+  //               },
+  //               onError: (err) => {
+  //                 toast.error(err.response.data.message);
+  //               },
+  //             }
+  //           );
+  //         },
+  //         prefill: {
+  //           name: checkoutItems?.user?.name || "",
+  //           email: checkoutItems?.user?.email || "",
+  //           contact: checkoutItems?.user?.phone || "",
+  //         },
+  //         theme: { color: "#8B5CF6" },
+  //       };
+
+  //       const rzp = new window.Razorpay(options);
+  //       rzp.open();
+  //     },
+
+  //     onError: () => toast.error("Failed to initialize payment"),
+  //   });
+  // };
+
   const handleRazorpayPayment = () => {
     if (!selectedAddress) {
       toast.error("Select an address first");
@@ -123,8 +198,6 @@ export default function Checkout() {
     }
 
     const amount = Number(finalTotal);
-
-    // Build order payload for database
     const cleanedFinalItems = finalItems.map((item) => ({
       productID: item.productId?._id,
       variantID: item.variantId?._id,
@@ -138,54 +211,75 @@ export default function Checkout() {
       addressID: selectedAddress,
       orderedItems: cleanedFinalItems,
       paymentMethod: "Razorpay",
-      totalPrice: subtotal, // before discount
+      totalPrice: subtotal,
       discount: discount,
       finalAmount: finalTotal,
       couponCode: passcoupon || null,
     };
-    console.log(orderPayload);
-    // 1️⃣ Create Razorpay Order
-    createRazorpayOrder(amount, {
-      onSuccess: (order) => {
-        const options = {
-          key: import.meta.env.VITE_RAZORPAY_KEY_ID,
-          amount: amount * 100,
-          currency: "INR",
-          order_id: order.orderId,
-          name: "Muscle X",
-          description: "Order Payment",
-          handler: function (response) {
-            // 2️⃣ Verify Payment
-            verifyPayment(
-              {
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
-                orderPayload,
-              },
-              {
-                onSuccess: (res) => {
-                  toast.success("Payment Successful!");
-                  navigate(`/user/ordersuccess/${res.order._id}`);
+
+    // 1) Create Razorpay Order
+    createRazorpayOrder(
+      { amount, orderPayload },
+      {
+        onSuccess: (data) => {
+          const options = {
+            key: import.meta.env.VITE_RAZORPAY_KEY_ID,
+            amount: data.amount, // paise
+            currency: "INR",
+            order_id: data.razorpayOrderId,
+            name: "Muscle X",
+            description: "Order Payment",
+
+            handler: function (response) {
+              // 2) Verify Payment (FIRST ATTEMPT)
+              verifyPayment(
+                {
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature,
+                  orderPayload, // IMPORTANT
                 },
-                onError: () => toast.error("Payment verification failed"),
-              }
-            );
-          },
-          prefill: {
-            name: checkoutItems?.user?.name || "",
-            email: checkoutItems?.user?.email || "",
-            contact: checkoutItems?.user?.phone || "",
-          },
-          theme: { color: "#8B5CF6" },
-        };
+                {
+                  onSuccess: (res) => {
+                    toast.success("Payment Successful!");
+                    navigate(`/user/ordersuccess/${res.order._id}`, {
+                      replace: true,
+                    });
+                  },
+                  onError: (err) => {
+                    console.log(err);
+                    navigate(`/user/orderfailed/${data.tempOrderId}`, {
+                      replace: true,
+                    });
+                  },
+                }
+              );
+            },
+            theme: { color: "#8B5CF6" },
 
-        const rzp = new window.Razorpay(options);
-        rzp.open();
-      },
+            config: {
+              display: {
+                retry: {
+                  enabled: false,
+                  max_count: 0,
+                },
+              },
+            },
+          };
 
-      onError: () => toast.error("Failed to initialize payment"),
-    });
+          const rzp = new window.Razorpay(options);
+          rzp.on("payment.failed", function () {
+            navigate(`/user/orderfailed/${data.tempOrderId}`, {
+              replace: true,
+            });
+          });
+
+          rzp.open();
+        },
+
+        onError: () => toast.error("Failed to initialize payment"),
+      }
+    );
   };
 
   /////////
@@ -333,9 +427,17 @@ export default function Checkout() {
                 </button>
               </div>
               {discount > 0 && (
-                <p className="text-green-600 text-sm mt-2 font-semibold">
-                  Coupon Applied: -₹{discount}
-                </p>
+                <div>
+                  <p className="text-green-600 text-sm mt-2 font-semibold">
+                    Coupon Applied: -₹{discount}
+                  </p>
+                  <button
+                    onClick={() => location.reload()}
+                    className="border rounded-sm p-1 cursor-pointer text-green-600 text-xs float-right"
+                  >
+                    remove coupon
+                  </button>
+                </div>
               )}
               <button
                 className="text-blue-500 text-sm mt-2 hover:text-blue-600"

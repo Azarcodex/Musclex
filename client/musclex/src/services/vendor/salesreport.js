@@ -1,9 +1,10 @@
 import api from "../../api/axios";
 
-export const getSalesReport = async ({ page }) => {
+export const getSalesReport = async ({ page, filter }) => {
   console.log(page);
-  const response = await api.get(
-    `/api/vendor/sales/report?page=${page}&limit=3`
+  const response = await api.post(
+    `/api/vendor/sales/report?page=${page}&limit=3`,
+    { filter }
   );
   return response.data;
 };

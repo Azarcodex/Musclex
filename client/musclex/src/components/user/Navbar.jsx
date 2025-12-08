@@ -17,11 +17,15 @@ import { toast } from "sonner";
 import { useDispatch, useSelector } from "react-redux";
 import { setSearchQuery } from "../../store/features/searchSlice";
 import { clearUserToken } from "../../store/features/userSlice";
-
+import { useGetCart } from "../../hooks/users/useAddCart";
+import { usegetWishList } from "../../hooks/users/usegetWishList";
 export function Navbar() {
   const [active, setActive] = useState("home");
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { data: cartitems } = useGetCart();
+  const { data: wishList } = usegetWishList();
+  console.log("📖📖📖" + wishList?.wishList?.length);
   const isAuth = useSelector((state) => state.userAuth.isAuth);
   const handleLogOut = () => {
     dispatch(clearUserToken());
@@ -51,15 +55,35 @@ export function Navbar() {
               className="flex items-center gap-1 hover:opacity-80"
               onClick={() => navigate("/user/wishlist")}
             >
-              <HeartIcon className="w-4 h-4" />
-              <span>Wishlist</span>
+              <div className="relative">
+                <HeartIcon className="w-4 h-4" />
+
+                {wishList?.wishList?.length > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-pink-600 text-white rounded-full px-1.5 py-[1px] text-[8px] leading-none">
+                    {wishList?.wishList?.length}
+                  </span>
+                )}
+              </div>
             </button>
+
             <button
-              className="hover:opacity-80"
+              className="hover:opacity-80 p-2 cursor-pointer"
               onClick={() => navigate("/user/cart")}
             >
-              <ShoppingCartIcon className="w-4 h-4" />
+              <div className="relative">
+                <ShoppingCartIcon className="w-4 h-4" />
+
+                {cartitems?.items?.length > 0 && (
+                  <span
+                    className="absolute -top-1 -right-1 bg-pink-600 text-white 
+                       rounded-full px-1.5 py-[1px] text-[7px] leading-none"
+                  >
+                    {cartitems?.items?.length}
+                  </span>
+                )}
+              </div>
             </button>
+
             {!isAuth ? (
               <Link to={"/user/login"}>
                 <button className="flex items-center gap-1 hover:opacity-80">
@@ -69,11 +93,10 @@ export function Navbar() {
               </Link>
             ) : (
               <div className="flex items-center gap-6">
-               
                 <button onClick={() => navigate("/user/userdetails/profile")}>
                   <User2Icon className="w-5 h-5 cursor-pointer" />
                 </button>
-                 <button
+                <button
                   className="flex items-center gap-1 hover:opacity-80  border-b-2 border-white"
                   onClick={handleLogOut}
                 >

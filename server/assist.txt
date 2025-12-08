@@ -1,111 +1,173 @@
-export const otpController = async (req, res) => {
-  try {
-    const { email, otp } = req.body;
+// import Order from "../../models/users/order.js";
+// import mongoose from "mongoose";
 
-    if (!email || !otp) {
-      return res.status(400).json({ message: "Email and OTP required" });
-    }
+// export const salesReport = async (req, res) => {
+//   try {
+//     // 🔹 Vendor identity (set from auth middleware)
+//     const vendorId = req.vendor._id; // or req.user._id if you're storing vendor there
 
-    // 1️⃣ Find pending OTP for this exact email
-    const pending = await OTP.findOne({ "pendingData.email": email });
-    if (!pending) {
-      return res.status(400).json({ message: "No pending registration found" });
-    }
+//     if (!vendorId) {
+//       return res.status(400).json({ message: "Vendor not identified" });
+//     }
 
-    // 2️⃣ Validate OTP correctly
-    if (pending.otp !== otp) {
-      return res.status(400).json({ message: "Incorrect OTP" });
-    }
+//     const page = parseInt(req.query.page) || 1;
+//     const limit = parseInt(req.query.limit) || 10;
+//     const skip = (page - 1) * limit;
 
-    // 3️⃣ Expiry check
-    if (pending.expiresAt < new Date()) {
-      await OTP.deleteOne({ _id: pending._id });
-      return res.status(410).json({ message: "OTP expired" });
-    }
+//     const { filter } = req.body || {};
 
-    // 4️⃣ Extract signup data including referral code
-    const { name, password, referralCode } = pending.pendingData;
+//     // 🔹 Base match: only delivered orders
+//     const matchStage = {
+//       orderStatus: "Delivered",
+//     };
 
-    // Prevent duplicate users
-    const exist = await User.findOne({ email });
-    if (exist) {
-      await OTP.deleteOne({ _id: pending._id });
-      return res.status(400).json({ message: "User already exists" });
-    }
+//     // 🔹 Date filter
+//     if (filter && filter.type) {
+//       const now = new Date();
+//       let start, end;
 
-    // 5️⃣ Create NEW USER
-    const newUser = await User.create({
-      name,
-      email,
-      password,
-      isVerified: true,
-      referredBy: referralCode ? referralCode : null,
-    });
+//       if (filter.type === "day") {
+//         end = now;
+//         start = new Date(now);
+//         start.setDate(now.getDate() - 1);
+//       } else if (filter.type === "week") {
+//         end = now;
+//         start = new Date(now);
+//         start.setDate(now.getDate() - 7);
+//       } else if (filter.type === "month") {
+//         end = now;
+//         start = new Date(now);
+//         start.setDate(now.getDate() - 30);
+//       } else if (filter.type === "range" && filter.from && filter.to) {
+//         start = new Date(filter.from + "T00:00:00.000Z");
+//         end = new Date(filter.to + "T23:59:59.999Z");
+//       }
 
-    // 6️⃣ Create wallet for new user
-    const userWallet = await Wallet.create({
-      userId: newUser._id,
-      balance: 0,
-      totalAdded: 0,
-      totalSpent: 0,
-      lastTransactionAt: null,
-    });
+//       if (start && end) {
+//         matchStage.createdAt = { $gte: start, $lte: end };
+//       }
+//     }
 
-    // -----------------------------------------------
-    // 🔥 TWO-SIDED REFERRAL LOGIC
-    // -----------------------------------------------
-    if (referralCode) {
-      const referrer = await User.findOne({ referralCode });
+//     const vendorObjectId = new mongoose.Types.ObjectId(vendorId);
 
-      if (referrer) {
-        const REFERRER_REWARD = 50;  // change if needed
-        const NEW_USER_REWARD = 20;  // small bonus
+//     // 1️⃣ Pipeline used as base for both count + data
+//     const basePipeline = [
+//       { $match: matchStage },
+//       { $unwind: "$orderedItems" },
 
-        // 7️⃣ Credit NEW USER small reward
-        userWallet.balance += NEW_USER_REWARD;
-        await userWallet.save();
+//       // Lookup variant
+//       {
+//         $lookup: {
+//           from: "variants",
+//           localField: "orderedItems.variantID",
+//           foreignField: "_id",
+//           as: "variants",
+//         },
+//       },
+//       { $unwind: "$variants" },
 
-        // Ledger entry for new user
-        await WalletLedger.create({
-          walletId: userWallet._id,
-          userId: newUser._id,
-          amount: NEW_USER_REWARD,
-          type: "REFERRAL",
-          referenceId: newUser._id,
-          note: "Referral signup reward (new user)",
-        });
+//       // Lookup product (vendor is here)
+//       {
+//         $lookup: {
+//           from: "products",
+//           localField: "orderedItems.productID",
+//           foreignField: "_id",
+//           as: "products",
+//         },
+//       },
+//       { $unwind: "$products" },
 
-        // 8️⃣ Credit REFERRER reward
-        const referrerWallet = await Wallet.findOne({ userId: referrer._id });
+//       // 🔥 Filter only THIS vendor's items
+//       {
+//         $match: {
+//           "products.vendorID": vendorObjectId,
+//         },
+//       },
 
-        referrerWallet.balance += REFERRER_REWARD;
-        await referrerWallet.save();
+//       // Lookup customer
+//       {
+//         $lookup: {
+//           from: "users",
+//           localField: "userID",
+//           foreignField: "_id",
+//           as: "customer",
+//         },
+//       },
+//       { $unwind: "$customer" },
+//     ];
 
-        await WalletLedger.create({
-          walletId: referrerWallet._id,
-          userId: referrer._id,
-          amount: REFERRER_REWARD,
-          type: "REFERRAL",
-          referenceId: newUser._id,
-          note: "Referral reward for inviting a user",
-        });
+//     // 2️⃣ Get total count for pagination
+//     const countPipeline = [...basePipeline, { $count: "count" }];
 
-        // mark new user as rewarded
-        newUser.hasReferralReward = true;
-        await newUser.save();
-      }
-    }
+//     const totalCountResult = await Order.aggregate(countPipeline);
+//     const totalCount =
+//       totalCountResult.length > 0 ? totalCountResult[0].count : 0;
+//     const totalPages = Math.ceil(totalCount / limit) || 1;
 
-    // 9️⃣ Clear OTP after successful registration
-    await OTP.deleteOne({ _id: pending._id });
+//     // 3️⃣ Get paginated rows
+//     const ordersPipeline = [
+//       ...basePipeline,
+//       {
+//         $project: {
+//           _id: 0,
+//           orderId: "$_id",
+//           orderDate: "$createdAt",
+//           customerName: "$customer.name",
+//           productName: "$products.name",
+//           flavour: "$variants.flavour",
+//           sizeLabel: "$orderedItems.sizeLabel",
+//           quantity: "$orderedItems.quantity",
+//           price: "$orderedItems.price",
+//           total: {
+//             $multiply: ["$orderedItems.quantity", "$orderedItems.price"],
+//           },
+//         },
+//       },
+//       { $sort: { orderDate: -1 } },
+//       { $skip: skip },
+//       { $limit: limit },
+//     ];
 
-    return res.status(201).json({
-      message: "Registration complete. Verified. Referral applied.",
-      user: newUser,
-    });
+//     const orders = await Order.aggregate(ordersPipeline);
 
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ message: "Server error" });
-  }
-};
+//     // 4️⃣ Summary stats for this vendor within same filters
+//     const summaryPipeline = [
+//       ...basePipeline,
+//       {
+//         $project: {
+//           quantity: "$orderedItems.quantity",
+//           total: {
+//             $multiply: ["$orderedItems.quantity", "$orderedItems.price"],
+//           },
+//         },
+//       },
+//       {
+//         $group: {
+//           _id: null,
+//           totalRevenue: { $sum: "$total" },
+//           totalProducts: { $sum: "$quantity" },
+//           totalOrders: { $sum: 1 },
+//         },
+//       },
+//     ];
+
+//     const overall = await Order.aggregate(summaryPipeline);
+
+//     const summaryData = overall[0] || {
+//       totalRevenue: 0,
+//       totalProducts: 0,
+//       totalOrders: 0,
+//     };
+
+//     return res.status(200).json({
+//       success: true,
+//       orders,
+//       current: page,
+//       totalPage: totalPages,
+//       tactic: summaryData,
+//     });
+//   } catch (error) {
+//     console.error("Sales report error:", error);
+//     return res.status(500).json({ message: "Internal server error" });
+//   }
+// };

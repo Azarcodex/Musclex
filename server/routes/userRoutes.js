@@ -31,6 +31,7 @@ import {
   getCart,
   QuantityChange,
   removeFromCart,
+  validatCart,
 } from "../controllers/user/CartController.js";
 import { getCheckoutData } from "../controllers/user/checkout.js";
 import {
@@ -94,6 +95,7 @@ router.patch("/address/default/:id", protectedUser, DefaultAddress);
 //cartHandling
 router.post("/addtocart", protectedUser, AuthUser, AddCart);
 router.get("/getcart", protectedUser, getCart);
+router.get("/cart/validate", protectedUser, validatCart);
 router.delete("/cart/:id", protectedUser, removeFromCart);
 router.patch("/quantity/:id", protectedUser, QuantityChange);
 //checkout

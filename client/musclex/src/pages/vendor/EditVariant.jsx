@@ -14,13 +14,15 @@ const EditVariant = () => {
   const { productId, variantId } = useParams();
   const navigate = useNavigate();
   const PORT = import.meta.env.VITE_API_URL;
+
   const { data: productList } = useRelatedVariantProduct(productId);
   const isSupplement =
     productList?.product?.catgid?.catgName?.toLowerCase() === "supplements";
+
   const { data: variants } = useGetVariants(productId);
   const variant = variants?.find((item) => item._id === variantId);
-  const queryClient = useQueryClient();
 
+  const queryClient = useQueryClient();
   const { mutate: deleteImg } = useVariantImageRemove();
   const { mutate: editVariant } = useEditVariant();
 
@@ -28,7 +30,16 @@ const EditVariant = () => {
   const [previewImage, setPreviewImage] = useState([]);
   const [existingImg, setExistingImg] = useState([]);
 
-  const { register, handleSubmit, reset, control } = useForm({
+  // ----------------------------------------
+  // VALIDATION ADDED   ← IMPORTANT
+  // ----------------------------------------
+  const {
+    register,
+    handleSubmit,
+    reset,
+    control,
+    formState: { errors },
+  } = useForm({
     defaultValues: {
       flavour: isSupplement ? "" : "default",
       sizes: [{ label: "", oldPrice: "", salePrice: "", stock: "" }],
@@ -40,7 +51,7 @@ const EditVariant = () => {
     name: "sizes",
   });
 
-  // ✅ Populate form with existing variant data
+  // Populate form from existing variant
   useEffect(() => {
     if (variant) {
       reset({
@@ -56,14 +67,14 @@ const EditVariant = () => {
     }
   }, [variant, reset]);
 
-  // ✅ Handle new images
+  // Handle new images
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
     setSelectedFiles(files);
     setPreviewImage(files.map((file) => URL.createObjectURL(file)));
   };
 
-  // ✅ Delete existing image from backend
+  // Delete existing image
   const handleDeleteImage = async (src) => {
     const confirmed = await confirm({ message: "Remove this image?" });
     if (confirmed) {
@@ -80,11 +91,12 @@ const EditVariant = () => {
     }
   };
 
-  // ✅ Submit form
+  // Submit form
   const onSubmit = (data) => {
     const formdata = new FormData();
     formdata.append("flavour", data.flavour);
     formdata.append("size", JSON.stringify(data.sizes));
+
     selectedFiles.forEach((file) => formdata.append("images", file));
 
     editVariant(
@@ -112,22 +124,27 @@ const EditVariant = () => {
         onSubmit={handleSubmit(onSubmit)}
         className="bg-purple-50 p-5 rounded-lg shadow"
       >
-        {/* Flavour */}
+        {/* Flavour Field */}
         {isSupplement && (
           <div className="mb-6">
             <label className="block text-sm font-semibold text-purple-800 mb-1">
               Flavour
             </label>
             <input
-              {...register("flavour")}
+              {...register("flavour", {
+                required: "Enter flavour name",
+              })}
               placeholder="Flavour name (e.g. Strawberry)"
               className="border-b-2 border-purple-950 outline-0 bg-transparent p-2 w-full"
               autoComplete="off"
             />
+            {errors.flavour && (
+              <p className="text-red-600 text-sm">{errors.flavour.message}</p>
+            )}
           </div>
         )}
 
-        {/* Size Variants Section */}
+        {/* Size Variants */}
         <div className="mb-6">
           <div className="flex justify-between items-center mb-3">
             <h2 className="text-purple-700 font-semibold text-lg">
@@ -150,34 +167,77 @@ const EditVariant = () => {
               key={field.id}
               className="grid grid-cols-4 gap-3 items-center mb-3 border-b border-purple-200 pb-2"
             >
-              <input
-                {...register(`sizes.${index}.label`)}
-                placeholder="Label (e.g. 1kg)"
-                className="border-b border-purple-400 outline-none bg-transparent p-1"
-              />
-              <input
-                {...register(`sizes.${index}.oldPrice`)}
-                placeholder="Old Price"
-                className="border-b border-purple-400 outline-none bg-transparent p-1"
-              />
-              <input
-                {...register(`sizes.${index}.salePrice`)}
-                placeholder="Sale Price"
-                className="border-b border-purple-400 outline-none bg-transparent p-1"
-              />
-              <div className="flex gap-2 items-center">
+              {/* Label */}
+              <div>
                 <input
-                  {...register(`sizes.${index}.stock`)}
-                  placeholder="Stock"
-                  className="border-b border-purple-400 outline-none bg-transparent p-1 flex-1"
+                  {...register(`sizes.${index}.label`, {
+                    required: "Enter size",
+                  })}
+                  placeholder="Label (e.g. 1kg)"
+                  className="border-b border-purple-400 outline-none bg-transparent p-1 w-full"
                 />
-                <button
-                  type="button"
-                  onClick={() => remove(index)}
-                  className="text-red-600 hover:text-red-800"
-                >
-                  <X className="w-4 h-4" />
-                </button>
+                {errors?.sizes?.[index]?.label && (
+                  <p className="text-red-600 text-sm">
+                    {errors.sizes[index].label.message}
+                  </p>
+                )}
+              </div>
+
+              {/* Old Price */}
+              <div>
+                <input
+                  {...register(`sizes.${index}.oldPrice`, {
+                    required: "Enter old price",
+                  })}
+                  placeholder="Old Price"
+                  className="border-b border-purple-400 outline-none bg-transparent p-1 w-full"
+                />
+                {errors?.sizes?.[index]?.oldPrice && (
+                  <p className="text-red-600 text-sm">
+                    {errors.sizes[index].oldPrice.message}
+                  </p>
+                )}
+              </div>
+
+              {/* Sale Price */}
+              <div>
+                <input
+                  {...register(`sizes.${index}.salePrice`, {
+                    required: "Enter sale price",
+                  })}
+                  placeholder="Sale Price"
+                  className="border-b border-purple-400 outline-none bg-transparent p-1 w-full"
+                />
+                {errors?.sizes?.[index]?.salePrice && (
+                  <p className="text-red-600 text-sm">
+                    {errors.sizes[index].salePrice.message}
+                  </p>
+                )}
+              </div>
+
+              {/* Stock */}
+              <div>
+                <div className="flex gap-2 items-center">
+                  <input
+                    {...register(`sizes.${index}.stock`, {
+                      required: "Enter stock",
+                    })}
+                    placeholder="Stock"
+                    className="border-b border-purple-400 outline-none bg-transparent p-1 flex-1"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => remove(index)}
+                    className="text-red-600 hover:text-red-800"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                {errors?.sizes?.[index]?.stock && (
+                  <p className="text-red-600 text-sm">
+                    {errors.sizes[index].stock.message}
+                  </p>
+                )}
               </div>
             </div>
           ))}
@@ -203,7 +263,7 @@ const EditVariant = () => {
           ))}
         </div>
 
-        {/* New Images Upload */}
+        {/* Upload New Images */}
         <div className="flex flex-col items-center justify-center mt-8">
           <label
             htmlFor="images"

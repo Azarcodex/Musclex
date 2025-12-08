@@ -5,5 +5,8 @@ export const usegetAllCategory = () => {
   return useQuery({
     queryKey: ["category"],
     queryFn: getCategoryAdmin,
+    staleTime: 0, 
+    refetchOnMount: true, 
+    refetchOnWindowFocus: false,
   });
 };

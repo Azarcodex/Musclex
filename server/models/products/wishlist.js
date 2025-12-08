@@ -13,6 +13,10 @@ const wishListSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Variant",
     },
+    sizeLabel: {
+      type: String,
+      required: true,
+    },
   },
   { timestamps: true }
 );

@@ -1,40 +1,91 @@
 import XLSX from "xlsx";
+import mongoose from "mongoose";
 import Order from "../../models/users/order.js";
 
 export const salesReportExcel = async (req, res) => {
   try {
-    // Fetch all delivered orders (full dataset)
-    const orders = await Order.aggregate([
-      { $match: { orderStatus: "Delivered" } },
+    const vendorId = req.vendor._id; // or req.user._id
+    if (!vendorId) {
+      return res.status(400).json({ message: "Vendor not identified" });
+    }
+
+    const vendorObjectId = new mongoose.Types.ObjectId(vendorId);
+    const { filter } = req.body || {};
+
+    // 🔹 Base match: only delivered orders
+    const matchStage = {
+      orderStatus: "Delivered",
+    };
+
+    // 🔹 Date filter (same as salesReport)
+    if (filter && filter.type) {
+      const now = new Date();
+      let start, end;
+
+      if (filter.type === "day") {
+        end = now;
+        start = new Date(now);
+        start.setDate(now.getDate() - 1);
+      } else if (filter.type === "week") {
+        end = now;
+        start = new Date(now);
+        start.setDate(now.getDate() - 7);
+      } else if (filter.type === "month") {
+        end = now;
+        start = new Date(now);
+        start.setDate(now.getDate() - 30);
+      } else if (filter.type === "range" && filter.from && filter.to) {
+        start = new Date(filter.from + "T00:00:00.000Z");
+        end = new Date(filter.to + "T23:59:59.999Z");
+      }
+
+      if (start && end) {
+        matchStage.createdAt = { $gte: start, $lte: end };
+      }
+    }
+
+    // 🔹 SAME PIPELINE AS salesReport, but no pagination
+    const basePipeline = [
+      { $match: matchStage },
       { $unwind: "$orderedItems" },
 
-      {
-        $lookup: {
-          from: "products",
-          localField: "orderedItems.productID",
-          foreignField: "_id",
-          as: "products"
-        }
-      },
-      { $unwind: "$products" },
-
+      // Lookup variant
       {
         $lookup: {
           from: "variants",
           localField: "orderedItems.variantID",
           foreignField: "_id",
-          as: "variants"
-        }
+          as: "variants",
+        },
       },
       { $unwind: "$variants" },
 
+      // Lookup product (vendor here)
+      {
+        $lookup: {
+          from: "products",
+          localField: "orderedItems.productID",
+          foreignField: "_id",
+          as: "products",
+        },
+      },
+      { $unwind: "$products" },
+
+      // 🔥 Filter for THIS vendor only
+      {
+        $match: {
+          "products.vendorID": vendorObjectId,
+        },
+      },
+
+      // Lookup customer
       {
         $lookup: {
           from: "users",
           localField: "userID",
           foreignField: "_id",
-          as: "customer"
-        }
+          as: "customer",
+        },
       },
       { $unwind: "$customer" },
 
@@ -42,97 +93,87 @@ export const salesReportExcel = async (req, res) => {
         $project: {
           _id: 0,
           orderDate: "$createdAt",
-          customerName: "$customer.fullName",
+          customerName: "$customer.name",
           productName: "$products.name",
           flavour: "$variants.flavour",
           sizeLabel: "$orderedItems.sizeLabel",
           quantity: "$orderedItems.quantity",
           price: "$orderedItems.price",
           total: {
-            $multiply: [
-              "$orderedItems.quantity",
-              "$orderedItems.price"
-            ]
-          }
-        }
+            $multiply: ["$orderedItems.quantity", "$orderedItems.price"],
+          },
+        },
       },
 
-      { $sort: { orderDate: -1 } }
-    ]);
+      { $sort: { orderDate: -1 } },
+    ];
 
-    // Summary calculation
+    const orders = await Order.aggregate(basePipeline);
+
+    // -------- Summary calculation --------
     const totalRevenue = orders.reduce((sum, o) => sum + o.total, 0);
     const totalItems = orders.reduce((sum, o) => sum + o.quantity, 0);
     const totalOrders = orders.length;
-    const avgOrderValue =
-      totalOrders > 0 ? totalRevenue / totalOrders : 0;
+    const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
+    // -------- Excel rows --------
     const excelData = orders.map((o) => ({
-      "Order Date": new Date(o.orderDate).toLocaleString(),
-      "Customer": o.customerName,
-      "Product": o.productName,
-      "Flavour": o.flavour,
-      "Size": o.sizeLabel,
-      "Qty": o.quantity,
+      "Order Date": new Date(o.orderDate).toLocaleString("en-IN"),
+      Customer: o.customerName,
+      Product: o.productName,
+      Flavour: o.flavour,
+      Size: o.sizeLabel,
+      Qty: o.quantity,
       "Unit Price": o.price,
-      "Total": o.total
+      Total: o.total,
     }));
 
+    // Empty row
     excelData.push({});
-    excelData.push({
-      "Order Date": "TOTAL REVENUE",
-      Total: totalRevenue
-    });
 
-    excelData.push({
-      "Order Date": "TOTAL ORDERS",
-      Total: totalOrders
-    });
-
+    // Summary rows
+    excelData.push({ "Order Date": "TOTAL REVENUE", Total: totalRevenue });
+    excelData.push({ "Order Date": "TOTAL ORDERS", Total: totalOrders });
     excelData.push({
       "Order Date": "TOTAL PRODUCTS SOLD",
-      Total: totalItems
+      Total: totalItems,
     });
-
     excelData.push({
       "Order Date": "AVERAGE ORDER VALUE",
-      Total: avgOrderValue.toFixed(2)
+      Total: avgOrderValue.toFixed(2),
     });
 
-    // Create worksheet
+    // -------- Worksheet + column widths --------
     const ws = XLSX.utils.json_to_sheet(excelData);
 
-    // Auto column width
-    const colWidths = Object.keys(excelData[0]).map(key => ({
-      wch: Math.max(key.length, 15)
+    ws["!cols"] = Object.keys(excelData[0]).map((key) => ({
+      wch: Math.max(key.length, 18),
     }));
-    ws["!cols"] = colWidths;
 
-    // Create workbook
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Sales Report");
 
-    // Write workbook to buffer
     const buffer = XLSX.write(wb, {
       bookType: "xlsx",
       type: "buffer",
     });
 
-    // Set download headers
+    const fileName = `sales_report_${new Date()
+      .toISOString()
+      .slice(0, 10)}.xlsx`;
+
     res.setHeader(
       "Content-Disposition",
-      "attachment; filename=sales_report.xlsx"
+      `attachment; filename=${fileName}`
     );
     res.setHeader(
       "Content-Type",
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     );
 
-    // Send file
     return res.send(buffer);
-
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Excel export failed" });
+    return res.status(500).json({ message: "Excel export failed" });
   }
 };

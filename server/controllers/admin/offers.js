@@ -47,12 +47,18 @@ export const createAdminCategoryOffer = async (req, res) => {
 //get offers
 export const getAllOffers = async (req, res) => {
   try {
-    const offers = await Offer.find({createdBy:"Admin"})
-      .populate("categoryId", "catgName")
+    const offers = await Offer.find({ createdBy: "Admin" })
+      .populate({
+        path: "categoryId",
+        select: "catgName isActive",
+      })
       .populate("productIds", "name")
       .populate("creatorId", "name email");
 
-    const formatted = offers.map((o) => ({
+    const activeOffers = offers.filter(
+      (off) => off.categoryId && off.categoryId.isActive
+    );
+    const formatted = activeOffers.map((o) => ({
       id: o._id,
       createdBy: o.createdBy,
       creator: o.creatorId ? o.creatorId.name : null,

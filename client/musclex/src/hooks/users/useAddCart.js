@@ -4,6 +4,7 @@ import {
   getCart,
   QuantityChange,
   removeFromCart,
+  validateCart,
 } from "../../services/user/Cart";
 import { toast } from "sonner";
 export const useAddToCart = () => {
@@ -43,5 +44,11 @@ export const useQuantityChange = () => {
     onError: (err) => {
       toast.error(err.response.data.message);
     },
+  });
+};
+
+export const useValidateCart = () => {
+  return useMutation({
+    mutationFn: validateCart,
   });
 };

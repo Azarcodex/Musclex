@@ -45,6 +45,7 @@ export const usegetOrderTrack = (id) => {
 
 //cancel order
 export const useCancelOrder = () => {
+  const queryClient = useQueryClient();
   {
     return useMutation({
       mutationFn: cancelOrder,

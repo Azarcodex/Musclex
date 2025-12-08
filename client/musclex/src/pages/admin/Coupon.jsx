@@ -9,11 +9,12 @@ import {
   useUpdateCoupon,
 } from "../../hooks/admin/useCoupon";
 import { confirm } from "../../components/utils/Confirmation";
+import { useNavigate } from "react-router-dom";
 
 export default function CouponManagement() {
   const [open, setOpen] = useState(false);
   const [editData, setEditData] = useState(null);
-
+  const navigate = useNavigate();
   const { data: coupons } = useGetCoupons();
   const { mutate: createCoupon } = useCreateCoupon();
   const { mutate: updateCoupon } = useUpdateCoupon();
@@ -34,6 +35,7 @@ export default function CouponManagement() {
       startDate: "",
       endDate: "",
       usageLimit: "",
+      usagePerUser: "",
     },
   });
 
@@ -48,6 +50,7 @@ export default function CouponManagement() {
         startDate: "",
         endDate: "",
         usageLimit: "",
+        usagePerUser: "",
       });
       setEditData(null);
     }
@@ -64,6 +67,7 @@ export default function CouponManagement() {
       startDate: "",
       endDate: "",
       usageLimit: "",
+      usagePerUser: "",
     });
     setOpen(true);
   };
@@ -79,6 +83,7 @@ export default function CouponManagement() {
       startDate: c.startDate.split("T")[0],
       endDate: c.endDate.split("T")[0],
       usageLimit: c.usageLimit,
+      usagePerUser: c.usagePerUser,
     });
     setOpen(true);
   };
@@ -120,13 +125,20 @@ export default function CouponManagement() {
     <div className="p-6 w-full">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-800">Coupon Management</h1>
-
-        <button
-          onClick={openCreateModal}
-          className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
-        >
-          Add Coupon
-        </button>
+        <div className="flex justify-end gap-4">
+          <button
+            onClick={openCreateModal}
+            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+          >
+            Add Coupon
+          </button>
+          <button
+            onClick={() => navigate("/admin/dashboard/couponUsers")}
+            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+          >
+            CouponUsers
+          </button>
+        </div>
       </div>
 
       {open && (
@@ -213,6 +225,14 @@ export default function CouponManagement() {
                   className="w-full border p-2 rounded mt-1"
                 />
               </div>
+              <div>
+                <label className="text-sm font-medium">Usage Per User</label>
+                <input
+                  type="number"
+                  {...register("usagePerUser")}
+                  className="w-full border p-2 rounded mt-1"
+                />
+              </div>
 
               <div className="flex justify-end gap-3 mt-4">
                 <button
@@ -242,6 +262,7 @@ export default function CouponManagement() {
               <th className="p-3 text-left">Min Purchase</th>
               <th className="p-3 text-left">Max Discount</th>
               <th className="p-3 text-left">Used</th>
+              <th className="p-3 text-left">Used Per User</th>
               <th className="p-3 text-left">Validity</th>
               <th className="p-3 text-left">Actions</th>
             </tr>
@@ -259,9 +280,8 @@ export default function CouponManagement() {
                 </td>
                 <td className="p-3">₹{c.minPurchase}</td>
                 <td className="p-3">{c.maxDiscount || "-"}</td>
-                <td className="p-3">
-                  {c.usedCount}/{c.usageLimit || "∞"}
-                </td>
+                <td className="p-3">{c.usageLimit || "∞"}</td>
+                <td className="p-3">{c.usagePerUser}</td>
                 <td className="p-3">
                   {c.startDate.split("T")[0]} → {c.endDate.split("T")[0]}
                 </td>

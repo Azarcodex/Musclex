@@ -1,4 +1,5 @@
 import Coupon from "../../models/users/coupon.js";
+import CouponUsage from "../../models/users/couponUsuage.js";
 export const createCoupon = async (req, res) => {
   try {
     const {
@@ -10,7 +11,7 @@ export const createCoupon = async (req, res) => {
       startDate,
       endDate,
       usageLimit,
-      perUserLimit,
+      usagePerUser,
     } = req.body;
 
     // check duplicate code
@@ -28,7 +29,7 @@ export const createCoupon = async (req, res) => {
       startDate,
       endDate,
       usageLimit: usageLimit || null,
-      perUserLimit: perUserLimit || null,
+      usagePerUser: usagePerUser || null,
     });
 
     await coupon.save();
@@ -103,5 +104,27 @@ export const toggleCouponStatus = async (req, res) => {
     console.log("Toggle Coupon Error:", error);
 
     res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+//get coupon users
+
+export const getAllCouponUsage = async (req, res) => {
+  try {
+    const usage = await CouponUsage.find()
+      .populate("userId", "name email")
+      .populate("couponId", "code discountType value maxUsagePerUser")
+      .sort({ createdAt: -1 });
+    res.status(200).json({
+      success: true,
+      count: usage.length,
+      usage,
+    });
+  } catch (error) {
+    console.error("Get Coupon Usage Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
   }
 };

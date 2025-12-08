@@ -5,6 +5,8 @@ import {
   Zap,
   Package,
   Tag,
+  HeartIcon,
+  Heart,
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useAddToCart } from "../../hooks/users/useAddCart";
@@ -12,15 +14,20 @@ import { toast } from "sonner";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
+import { useAddWishList } from "../../hooks/users/useAddWishList";
+import { usegetWishList } from "../../hooks/users/usegetWishList";
+import { useRemoveWishList } from "../../hooks/users/useRemoveWishList";
 
 export default function ProductListCard({ data }) {
   const PORT = import.meta.env.VITE_API_URL;
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-
+  const { mutate: addWishList } = useAddWishList();
+  const { mutate: deleteWishList } = useRemoveWishList();
+  const { data: wishList } = usegetWishList();
   const [currentVariant, setCurrentVariant] = useState(null);
   const [selectedVariantIndex, setSelectedVariantIndex] = useState(0);
-
+  const [like, setLike] = useState(false);
   const [currentSize, setCurrentSize] = useState(null);
   const [selectedSizeIndex, setSelectedSizeIndex] = useState(0);
 
@@ -89,7 +96,7 @@ export default function ProductListCard({ data }) {
 
     const payload = {
       variantId: currentVariant?._id,
-      productId: data?.products?._id,
+      productId: data?.product?._id,
       sizeLabel: currentSize?.label,
       price: finalPrice,
     };
@@ -104,7 +111,7 @@ export default function ProductListCard({ data }) {
       },
     });
   };
-  //buynow
+  // buynow
   const handleBuyNow = () => {
     if (currentSize?.stock === 0) {
       toast.message("Stock Unavailable");
@@ -121,6 +128,65 @@ export default function ProductListCard({ data }) {
       },
     });
   };
+  // const existItem = wishList?.wishList?.find(
+  //   (item) =>
+  //     String(item.productId?._id) === String(data?.product?._id) &&
+  //     String(item.variantId?._id) === String(currentVariant?._id)
+  // );
+
+  // useEffect(() => {
+  //   if (wishList?.wishList) {
+  //     const exist = wishList?.wishList?.some(
+  //       (item) =>
+  //         String(item.productId?._id) === String(data?.product?._id) &&
+  //         String(item.variantId?._id) === String(currentVariant._id)
+  //     );
+  //     setLike(exist);
+  //   }
+  // }, [wishList]);
+  // const HandleWishList = (productId, variantId) => {
+  //   if (!token) {
+  //     toast.message("Please Login to continue");
+  //     return;
+  //   }
+  //   if (!existItem) {
+  //     addWishList(
+  //       { productId: productId, variantId: variantId },
+  //       {
+  //         onSuccess: () => {
+  //           setLike(true);
+  //           queryClient.invalidateQueries(["wishList"]);
+  //         },
+  //       }
+  //     );
+  //   } else {
+  //     deleteWishList(
+  //       { id: existItem._id },
+  //       {
+  //         onSuccess: () => {
+  //           setLike(false);
+  //           queryClient.invalidateQueries(["wishList"]);
+  //         },
+  //       }
+  //     );
+  //   }
+  // };
+
+  const HandleWishList = (productId, variantId, sizeLabel) => {
+    if (!token) {
+      toast.message("Please Login to continue");
+      return;
+    }
+    addWishList(
+      { productId: productId, variantId: variantId, sizeLabel: sizeLabel },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries(["wishList"]);
+        },
+      }
+    );
+  };
+
   return (
     <div className="max-w-5xl mx-auto rounded-2xl overflow-hidden bg-white hover:shadow-2xl transition-all duration-500 border border-gray-100 shadow-lg">
       <div className="flex flex-col lg:flex-row">
@@ -183,13 +249,27 @@ export default function ProductListCard({ data }) {
         {/* Content Section */}
         <div className="lg:w-3/5 p-8 flex flex-col bg-gradient-to-br from-white to-gray-50">
           {/* Brand */}
-          <div className="inline-flex items-center gap-2 mb-3">
-            <Package className="w-4 h-4 text-purple-600" />
-            <h3 className="text-sm font-bold text-purple-700 uppercase tracking-wide">
-              {data?.product?.brandID?.brand_name}
-            </h3>
+          <div className="flex items-center justify-between">
+            <div className="inline-flex items-center gap-2 mb-3">
+              <Package className="w-4 h-4 text-purple-600" />
+              <h3 className="text-sm font-bold text-purple-700 uppercase tracking-wide">
+                {data?.product?.brandID?.brand_name}
+              </h3>
+            </div>
+            <button
+              className="flex items-center gap-1 bg-pink-500 text-white rounded px-2 py-1 text-xs font-semibold font-sans transition-all duration-200 hover:bg-pink-600 active:scale-95 shadow-sm"
+              onClick={() =>
+                HandleWishList(
+                  data?.product._id,
+                  currentVariant._id,
+                  currentSize.label
+                )
+              }
+            >
+              <Heart size={12} strokeWidth={3} />
+              <span>Wishlist</span>
+            </button>
           </div>
-
           {/* Product Name */}
           <h1 className="text-xl font-bold text-gray-900 mb-3 leading-tight">
             {data?.product?.name}
@@ -329,6 +409,14 @@ export default function ProductListCard({ data }) {
               <Zap className="w-3 h-3" />
               Buy Now
             </button>
+            {/* <button
+              onClick={() =>
+                HandleWishList(data?.products?._id, currentVariant._id)
+              }
+              className="flex-1 bg-gradient-to-r from-rose-600 to-pink-600 text-white py-2 rounded-xl flex items-center justify-center gap-2 text-xs font-bold hover:from-rose-700 hover:to-pink-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
+            >
+              🩷
+            </button> */}
           </div>
         </div>
       </div>

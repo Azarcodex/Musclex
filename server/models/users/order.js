@@ -19,6 +19,14 @@ const orderedItemSchema = new mongoose.Schema({
   },
   quantity: { type: Number, required: true, min: 1 },
   price: { type: Number, required: true },
+  //additional
+  discountPerItem: {
+    type: Number,
+  },
+  commissionPercent: {
+    type: Number,
+  },
+  //for sales report
   sizeLabel: { type: String, required: true },
   status: {
     type: String,
@@ -63,13 +71,17 @@ const orderedItemSchema = new mongoose.Schema({
   },
   refundStatus: {
     type: String,
-    enum: ["Not Initiated", "Pending", "Completed"],
+    enum: ["Not Initiated", "Pending", "Completed", "Not Applicable"],
     default: "Not Initiated",
   },
   vendorCreditStatus: {
     type: String,
-    enum: ["NotCredited", "Credited", "Reversed"],
+    enum: ["NotCredited", "Credited", "Reversed", "Not Applicable"],
     default: "NotCredited",
+  },
+  StockRestored: {
+    type: Boolean,
+    default: false,
   },
 });
 
@@ -127,7 +139,7 @@ const orderSchema = new mongoose.Schema(
 
     paymentStatus: {
       type: String,
-      enum: ["Pending", "Paid", "Failed", "Refunded"],
+      enum: ["Pending", "Paid", "Failed", "Refunded", "Not Applicable"],
       default: "Pending",
     },
 

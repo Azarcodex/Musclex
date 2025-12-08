@@ -49,6 +49,10 @@ import CouponManagement from "./pages/admin/Coupon";
 import ProtectedRoute from "./components/user/Protected";
 import Wallet from "./pages/user/UserPage/Wallet";
 import VendorWalletPage from "./pages/vendor/Wallet";
+import VendorAuthRoute from "./components/vendor/VendorAuthRoute";
+import Referral from "./pages/user/UserPage/Referral";
+import CouponUsers from "./pages/admin/CouponUsers";
+import OrderFailed from "./pages/user/OrderFailure";
 const App = () => {
   return (
     <>
@@ -72,6 +76,7 @@ const App = () => {
           <Route path="category" element={<Category />} />
           <Route path="addOffer" element={<AdminCategoryOffers />} />
           <Route path="coupon" element={<CouponManagement />} />
+          <Route path="couponUsers" element={<CouponUsers />} />
         </Route>
         {/* <Route
           path="*"
@@ -111,6 +116,10 @@ const App = () => {
         />
         <Route path="/user/ordersuccess/:id" element={<OrderSuccessPage />} />
         <Route
+          path="/user/orderfailed/:tempOrderId"
+          element={<OrderFailed />}
+        />
+        <Route
           path="/user/userdetails"
           element={
             <ProtectedRoute>
@@ -121,6 +130,7 @@ const App = () => {
           <Route path="profile" element={<Profile />} />
           <Route path="address" element={<AddressesPage />} />
           <Route path="wallet" element={<Wallet />} />
+          <Route path="referral" element={<Referral />} />
         </Route>
         <Route path="/user/changePassword" element={<ChangePassword />} />
         <Route
@@ -136,7 +146,14 @@ const App = () => {
           element={<UserOrderTrack />}
         />
         //invoice //🏪🏪vendor side//
-        <Route path="/vendor/register" element={<RegisterVendor />} />
+        <Route
+          path="/vendor/register"
+          element={
+            <VendorAuthRoute>
+              <RegisterVendor />
+            </VendorAuthRoute>
+          }
+        />
         <Route path="/vendor/login" element={<LoginVendor />} />
         <Route
           path="/vendor/dashboard"

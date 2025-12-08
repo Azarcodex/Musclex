@@ -1,7 +1,11 @@
 import React from "react";
 import { X, ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
-import { useQuantityChange, useRemoveCart } from "../../hooks/users/useAddCart";
+import {
+  useQuantityChange,
+  useRemoveCart,
+  useValidateCart,
+} from "../../hooks/users/useAddCart";
 import { confirm } from "../utils/Confirmation";
 import { useNavigate } from "react-router-dom";
 
@@ -10,7 +14,8 @@ export default function Cart({ cartData }) {
   const navigate = useNavigate();
   const { mutate: RemoveCart } = useRemoveCart();
   const { mutate: updateQuantity } = useQuantityChange();
-
+  const { mutate: Validate } = useValidateCart();
+  console.log(Validate);
   const total = cartData?.totalAmount + shipping;
 
   const HandleDelete = async (id) => {
@@ -22,7 +27,22 @@ export default function Cart({ cartData }) {
       });
     }
   };
-  console.log(cartData);
+
+  const HandleValidate = () => {
+    Validate(undefined, {
+      onSuccess: () => {
+        navigate("/user/checkout");
+      },
+      onError: (err) => {
+        const errors = err?.response?.data?.errors;
+        if (errors && errors.length > 0) {
+          toast.error(errors[0].message);
+        } else {
+          toast.error("Something went wrong");
+        }
+      },
+    });
+  };
   return (
     <div className="min-h-1/2 bg-gray-50 p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
@@ -176,7 +196,7 @@ export default function Cart({ cartData }) {
 
               <button
                 className="w-full bg-violet-500 hover:bg-red-600 text-white font-medium py-3 rounded-lg flex items-center justify-center gap-2 transition-colors"
-                onClick={() => navigate("/user/checkout")}
+                onClick={HandleValidate}
               >
                 <ShoppingCart size={20} />
                 CHECKOUT

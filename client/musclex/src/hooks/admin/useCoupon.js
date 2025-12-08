@@ -1,5 +1,11 @@
 import { toast } from "sonner";
-import { addCoupon, getCoupons, toggleCouponStatus, updateCoupon } from "../../services/admin/couponService";
+import {
+  addCoupon,
+  couponUsers,
+  getCoupons,
+  toggleCouponStatus,
+  updateCoupon,
+} from "../../services/admin/couponService";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 export const useCreateCoupon = () => {
   const queryClient = useQueryClient();
@@ -46,5 +52,12 @@ export const useToggleCouponStatus = () => {
     onError: (err) => {
       toast.error(err.response?.data?.message || "Failed to update status");
     },
+  });
+};
+
+export const useGetCouponUsers = () => {
+  return useQuery({
+    queryKey: ["couponUsers"],
+    queryFn: couponUsers,
   });
 };

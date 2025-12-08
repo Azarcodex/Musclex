@@ -31,20 +31,21 @@ export default function ProductCard({ product }) {
       const exist = data?.wishList?.some(
         (item) =>
           String(item.productId?._id) === String(product?._id) &&
-          String(item.variantId?._id) === String(product?.variants?._id)
+          String(item.variantId?._id) === String(product?.variants?._id) &&
+          item.sizeLabel === product?.size?.label
       );
       setLike(exist);
     }
   }, [data, product]);
 
-  const HandleWishList = (productId, variantId) => {
+  const HandleWishList = (productId, variantId,sizeLabel) => {
     if (!token) {
       toast.message("Please Login to continue");
       return;
     }
     if (!existItem) {
       addWishList(
-        { productId: productId, variantId: variantId },
+        { productId: productId, variantId: variantId,sizeLabel:sizeLabel },
         {
           onSuccess: () => {
             setLike(true);
@@ -140,7 +141,13 @@ export default function ProductCard({ product }) {
         {/* Heart Icon */}
         <button
           className="cursor-pointer absolute top-4 right-4 bg-white p-2 rounded-full hover:bg-gray-100"
-          onClick={() => HandleWishList(product._id, product.variants._id)}
+          onClick={() =>
+            HandleWishList(
+              product._id,
+              product.variants._id,
+              product?.size?.label
+            )
+          }
         >
           <Heart
             className={`w-6 h-6 text-gray-700 ${

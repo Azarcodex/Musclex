@@ -16,6 +16,7 @@ export default function AdminCategoryOffers() {
   const [editOpen, setEditOpen] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState(null);
   const { data: CategoryList } = usegetAllCategory();
+  console.log(CategoryList);
   const {
     register,
     handleSubmit,
@@ -93,7 +94,7 @@ export default function AdminCategoryOffers() {
     );
   };
   const HandleVisibility = async (offerId) => {
-    console.log(offerId)
+    console.log(offerId);
     const wait = await confirm({
       message: "Are you sure you want to make changes",
     });

@@ -3,16 +3,24 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import {
   useCreateProductOffer,
+  useEditVendorOffer,
   useGetAllVendorProducts,
   useGetProductOffers,
+  useToggleProductOffer,
 } from "../../hooks/vendor/useOffer";
+import { confirm } from "../../components/utils/Confirmation.jsx";
 
 export default function ProductOffers() {
   const [open, setOpen] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [editingOfferId, setEditingOfferId] = useState(null);
 
   const { data: productData } = useGetAllVendorProducts();
   const { data: offersData } = useGetProductOffers();
+
   const { mutate: createOffer } = useCreateProductOffer();
+  const { mutate: ToggleProductOffer } = useToggleProductOffer();
+  const { mutate: editOffer } = useEditVendorOffer();
 
   const {
     register,
@@ -31,12 +39,34 @@ export default function ProductOffers() {
     },
   });
 
+  //  ADD OFFER SUBMIT
   const onSubmit = (formData) => {
-    const payload = {
-      ...formData,
-      productIds: formData.productIds,
-    };
+    const payload = { ...formData };
 
+    if (editMode) {
+      //  EDIT OFFER
+      editOffer(
+        {
+          offerId: editingOfferId,
+          payload,
+        },
+        {
+          onSuccess: (res) => {
+            toast.success("Offer Updated Successfully");
+            reset();
+            setOpen(false);
+            setEditMode(false);
+            setEditingOfferId(null);
+          },
+          onError: (err) => {
+            toast.error(err.response?.data?.message);
+          },
+        }
+      );
+      return;
+    }
+
+    //  CREATE OFFER
     createOffer(payload, {
       onSuccess: (res) => {
         toast.success(res.message);
@@ -44,9 +74,38 @@ export default function ProductOffers() {
         setOpen(false);
       },
       onError: (err) => {
-        toast.error(err.response.data.message);
+        toast.error(err.response?.data?.message);
       },
     });
+  };
+
+  //  TOGGLE OFFER
+  const handleToggle = async (offerId, currentState) => {
+    const wait = await confirm({ message: "Do you want to change status?" });
+    if (wait) {
+      ToggleProductOffer(offerId, {
+        onSuccess: () => {
+          toast.success(currentState ? "Offer Deactivated" : "Offer Activated");
+        },
+      });
+    }
+  };
+
+  // EDIT BUTTON HANDLER
+  const handleEdit = (offer) => {
+    setEditMode(true);
+    setEditingOfferId(offer._id);
+    setOpen(true);
+
+    // Prefill form
+    setValue(
+      "productIds",
+      offer.productIds.map((p) => p._id)
+    );
+    setValue("discountType", offer.discountType);
+    setValue("value", offer.value);
+    setValue("startDate", offer.startDate.split("T")[0]);
+    setValue("endDate", offer.endDate.split("T")[0]);
   };
 
   return (
@@ -55,7 +114,12 @@ export default function ProductOffers() {
         <h1 className="text-2xl font-bold text-gray-800">Product Offers</h1>
         <button
           className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
-          onClick={() => setOpen(true)}
+          onClick={() => {
+            reset();
+            setEditMode(false);
+            setEditingOfferId(null);
+            setOpen(true);
+          }}
         >
           Add Offer
         </button>
@@ -65,17 +129,16 @@ export default function ProductOffers() {
       {open && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg w-full max-w-lg shadow-xl p-6">
-            <h2 className="text-xl font-semibold mb-4">Add Product Offer</h2>
+            <h2 className="text-xl font-semibold mb-4">
+              {editMode ? "Edit Product Offer" : "Add Product Offer"}
+            </h2>
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            
+              {/* PRODUCT SELECT */}
               <div>
                 <label className="text-sm font-medium">Select Products</label>
 
-                <div
-                  className="border border-purple-300 rounded-lg p-2 mt-1 max-h-40
-                             overflow-y-auto bg-white"
-                >
+                <div className="border rounded-lg p-2 mt-1 max-h-40 overflow-y-auto bg-white">
                   {productData?.products?.map((prod) => {
                     const selected = watch("productIds")?.includes(prod._id);
 
@@ -93,27 +156,20 @@ export default function ProductOffers() {
                             setValue("productIds", [...current, prod._id]);
                           }
                         }}
-                        className={`cursor-pointer px-3 py-2 rounded-lg mb-1 transition-all
-                          ${
-                            selected
-                              ? "bg-purple-600 text-white shadow-sm"
-                              : "bg-gray-100 text-gray-800 hover:bg-purple-100"
-                          }`}
+                        className={`cursor-pointer px-3 py-2 rounded-lg mb-1 ${
+                          selected
+                            ? "bg-purple-600 text-white"
+                            : "bg-gray-100 text-gray-800 hover:bg-purple-100"
+                        }`}
                       >
                         {prod.name}
                       </div>
                     );
                   })}
                 </div>
-
-                {errors.productIds && (
-                  <p className="text-red-500 text-xs mt-1">
-                    {errors.productIds.message}
-                  </p>
-                )}
               </div>
 
-              {/* Discount Type */}
+              {/* DISCOUNT TYPE */}
               <div>
                 <label className="text-sm font-medium">Discount Type</label>
                 <select
@@ -126,7 +182,7 @@ export default function ProductOffers() {
                 </select>
               </div>
 
-              {/* Value */}
+              {/* VALUE */}
               <div>
                 <label className="text-sm font-medium">Value</label>
                 <input
@@ -135,7 +191,6 @@ export default function ProductOffers() {
                     required: "Required",
                     min: { value: 1, message: "Minimum value is 1" },
                   })}
-                  placeholder="Enter discount value"
                   className="w-full border p-2 rounded mt-1"
                 />
                 {errors.value && (
@@ -143,7 +198,7 @@ export default function ProductOffers() {
                 )}
               </div>
 
-              {/* Dates */}
+              {/* DATES */}
               <div>
                 <label className="text-sm font-medium">Start Date</label>
                 <input
@@ -162,14 +217,16 @@ export default function ProductOffers() {
                 />
               </div>
 
-              {/* Buttons */}
+              {/* BUTTONS */}
               <div className="flex justify-end gap-3 mt-6">
                 <button
                   type="button"
-                  className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+                  className="px-4 py-2 bg-gray-200 rounded"
                   onClick={() => {
                     reset();
                     setOpen(false);
+                    setEditMode(false);
+                    setEditingOfferId(null);
                   }}
                 >
                   Cancel
@@ -177,9 +234,9 @@ export default function ProductOffers() {
 
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
+                  className="px-4 py-2 bg-purple-600 text-white rounded"
                 >
-                  Save Offer
+                  {editMode ? "Update Offer" : "Save Offer"}
                 </button>
               </div>
             </form>
@@ -197,6 +254,8 @@ export default function ProductOffers() {
               <th className="p-3 text-left">Value</th>
               <th className="p-3 text-left">Start</th>
               <th className="p-3 text-left">End</th>
+              <th className="p-3 text-left">Status</th>
+              <th className="p-3 text-left">Edit</th>
             </tr>
           </thead>
 
@@ -205,17 +264,39 @@ export default function ProductOffers() {
               offersData.offers.map((offer) => (
                 <tr key={offer._id} className="border-b">
                   <td className="p-3">
-                    {offer.productIds?.map((p) => p.name).join(", ")}
+                    {offer.productIds.map((p) => p.name).join(", ")}
                   </td>
                   <td className="p-3 capitalize">{offer.discountType}</td>
                   <td className="p-3">{offer.value}</td>
                   <td className="p-3">{offer.startDate.split("T")[0]}</td>
                   <td className="p-3">{offer.endDate.split("T")[0]}</td>
+
+                  {/* TOGGLE */}
+                  <td className="p-3">
+                    <button
+                      onClick={() => handleToggle(offer._id, offer.isActive)}
+                      className={`px-3 py-1 rounded text-white text-sm ${
+                        offer.isActive ? "bg-green-600" : "bg-red-600"
+                      }`}
+                    >
+                      {offer.isActive ? "Active" : "Inactive"}
+                    </button>
+                  </td>
+
+                  {/* EDIT */}
+                  <td className="p-3">
+                    <button
+                      className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+                      onClick={() => handleEdit(offer)}
+                    >
+                      Edit
+                    </button>
+                  </td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan="5" className="p-4 text-center text-gray-500">
+                <td colSpan="6" className="p-4 text-center text-gray-500">
                   No product offers yet.
                 </td>
               </tr>

@@ -34,9 +34,11 @@ import {
 import {
   createCoupon,
   getAllCoupons,
+  getAllCouponUsage,
   toggleCouponStatus,
   updateCoupon,
 } from "../controllers/admin/couponcontroller.js";
+import { toggleProductStatus } from "../controllers/admin/productControll.js";
 const router = express.Router();
 
 // register
@@ -45,6 +47,9 @@ router.post("/register", registerAdmin);
 router.post("/login", LoginAdmin);
 //allUsers
 router.get("/getUsers", getUsers);
+
+//deactivate a product
+router.patch("/product/:id", toggleProductStatus);
 //verify
 router.put("/:id/verify", verifyUsers);
 //allVendors
@@ -89,4 +94,6 @@ router.get("/coupon", Protected, getAllCoupons);
 router.patch("/coupon/:id", updateCoupon);
 
 router.patch("/coupon/:id/status", toggleCouponStatus);
+
+router.get("/coupon-usage", Protected, getAllCouponUsage);
 export default router;

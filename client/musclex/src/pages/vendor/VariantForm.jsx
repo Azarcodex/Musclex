@@ -159,10 +159,13 @@ const VariantForm = () => {
               Flavour
             </label>
             <input
-              {...register("flavour", { required: true })}
+              {...register("flavour", { required: "enter flavour name" })}
               placeholder="Enter flavour name"
               className="border-b-2 border-purple-950 outline-0 w-full bg-transparent"
             />
+            {errors.flavour && (
+              <p className="text-red-600">{errors.flavour.message}</p>
+            )}
           </div>
         )}
 

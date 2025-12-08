@@ -3,70 +3,8 @@ import Variant from "../../models/products/Variant.js";
 import VendorWallet from "../../models/vendors/vendorWallet.js";
 import VendorWalletLedger from "../../models/vendors/vendorLedger.js";
 import Wallet from "../../models/wallet/walletschema.js";
-// export const updateReturnStatusVendor = async (req, res) => {
-//   try {
-//     const vendorId = req.vendor._id;
-//     const { orderId, itemId } = req.params;
-//     const { newStatus } = req.body;
-//     // if (req.body.vendorReason) {
-//     //   const { vendorReason } = req.body;
-//     // }
-//     const order = await Order.findById(orderId);
-//     if (!order) return res.status(404).json({ message: "Order not found" });
-
-//     const item = order.orderedItems.find(
-//       (item) => item._id.toString() === itemId
-//     );
-//     if (!item) return res.status(404).json({ message: "Item not found" });
-
-//     if (item.vendorID.toString() !== vendorId.toString()) {
-//       return res.status(403).json({ message: "Unauthorized vendor" });
-//     }
-
-//     const current = item.returnStatus;
-
-//     if (current === "Rejected" || current === "Completed") {
-//       return res.status(400).json({ message: "No further updates allowed" });
-//     }
-
-//     if (current === "Requested" && newStatus === "Completed") {
-//       return res.status(400).json({ message: "Approve before completing" });
-//     }
-
-//     if (current === "Approved" && newStatus !== "Completed") {
-//       return res.status(400).json({
-//         message: "Approved return can only be marked as Completed",
-//       });
-//     }
-
-//     item.returnStatus = newStatus;
-
-//     if (newStatus === "Completed") {
-//       const variant = await Variant.findById(item.variantID);
-//       if (variant) {
-//         const sizeObj = variant.size.find((s) => s.label === item.sizeLabel);
-//         if (sizeObj) sizeObj.stock += item.quantity;
-//         await variant.save();
-//       }
-
-//       item.refundStatus = "Pending";
-//     }
-//     if (newStatus === "Rejected") {
-//       item.vendorReason = req.body.vendorReason;
-//     }
-
-//     await order.save();
-
-//     res.json({
-//       success: true,
-//       message: "Return status updated",
-//       order,
-//     });
-//   } catch (error) {
-//     console.log(error);
-//     res.status(500).json({ message: "Internal Server Error" });
-//   }
-// };
+import WalletLedger from "../../models/wallet/wallerLedger.js";
+import { reversalForOrder } from "../walletService/vendor/vendorWalletService.js";
 
 export const updateReturnStatusVendor = async (req, res) => {
   try {
@@ -80,7 +18,6 @@ export const updateReturnStatusVendor = async (req, res) => {
     const item = order.orderedItems.find(
       (i) => i._id.toString() === itemId.toString()
     );
-
     if (!item) return res.status(404).json({ message: "Item not found" });
 
     if (item.vendorID.toString() !== vendorId.toString()) {
@@ -89,12 +26,12 @@ export const updateReturnStatusVendor = async (req, res) => {
 
     const current = item.returnStatus;
 
-    // Prevent further changes
+    // Block further updates
     if (["Rejected", "Completed"].includes(current)) {
       return res.status(400).json({ message: "No further updates allowed" });
     }
 
-    // Logical flow checks
+    // Logic constraints
     if (current === "Requested" && newStatus === "Completed") {
       return res.status(400).json({ message: "Approve before completing" });
     }
@@ -105,7 +42,9 @@ export const updateReturnStatusVendor = async (req, res) => {
       });
     }
 
-    // Handle REJECT
+    // -----------------------------------------
+    //   REJECT RETURN
+    // -----------------------------------------
     if (newStatus === "Rejected") {
       item.returnStatus = "Rejected";
       item.vendorReason = vendorReason || "";
@@ -118,7 +57,9 @@ export const updateReturnStatusVendor = async (req, res) => {
       });
     }
 
-    // Handle APPROVE
+    // -----------------------------------------
+    //   APPROVE RETURN
+    // -----------------------------------------
     if (newStatus === "Approved") {
       item.returnStatus = "Approved";
       await order.save();
@@ -130,37 +71,55 @@ export const updateReturnStatusVendor = async (req, res) => {
       });
     }
 
-    // Handle COMPLETE (refund)
+    // -----------------------------------------
+    //   COMPLETE RETURN (REFUND)
+    // -----------------------------------------
     if (newStatus === "Completed") {
-      const refundAmount = item.price * item.quantity;
+      const subtotal = order.totalPrice; // before discount
+      const finalPaidOriginal = order.finalAmount; // after discount
+      const itemTotal = item.price * item.quantity;
 
-      // Vendor must have full balance
-      const vendorWallet = await VendorWallet.findOne({ vendorId });
-      if (!vendorWallet) {
-        return res.status(400).json({ message: "Vendor wallet not found" });
+      // Check if coupon applied
+      const couponApplied = order.couponApplied === true;
+
+      let refundAmount = 0;
+
+      if (!couponApplied) {
+        // ⭐ NO COUPON → ALWAYS FULL REFUND
+        refundAmount = itemTotal;
+      } else {
+        // ⭐ Coupon applied → proportional refund based on ORIGINAL FINAL AMOUNT
+        const totalActiveItems = order.orderedItems.filter(
+          (x) => x.status !== "Cancelled" && x.returnStatus !== "Completed"
+        );
+
+        if (totalActiveItems.length === 1) {
+          // Only this last item → refund entire remaining paid amount
+          refundAmount = finalPaidOriginal;
+        } else {
+          refundAmount = Math.round((itemTotal / subtotal) * finalPaidOriginal);
+        }
       }
 
-      if (vendorWallet.balance < refundAmount) {
+      // Vendor balance check
+      const vendorWallet = await VendorWallet.findOne({ vendorId });
+      if (!vendorWallet || vendorWallet.balance < refundAmount) {
         return res.status(400).json({
           message: "Vendor does not have enough balance for refund",
         });
       }
 
-      // Deduct vendor wallet
-      vendorWallet.balance -= refundAmount;
-      await vendorWallet.save();
-
-      // Vendor ledger entry
-      await VendorWalletLedger.create({
-        vendorWalletId: vendorWallet._id,
-        vendorId,
+      // Reverse vendor credit
+      await reversalForOrder({
+        vendorId: item.vendorID,
         orderId: order._id,
-        amount: refundAmount,
-        type: "REVERSAL",
-        note: `Refund for returned item ${itemId}`,
+        amount: itemTotal,
+        commissionPercent: 10,
       });
 
-      // Refund to USER wallet
+      item.vendorCreditStatus = "Reversed";
+
+      // Refund to user wallet
       let userWallet = await Wallet.findOne({ userId: order.userID });
       if (!userWallet) {
         userWallet = await Wallet.create({
@@ -172,7 +131,6 @@ export const updateReturnStatusVendor = async (req, res) => {
       userWallet.balance += refundAmount;
       await userWallet.save();
 
-      // User ledger entry
       await WalletLedger.create({
         walletId: userWallet._id,
         userId: order.userID,
@@ -190,7 +148,7 @@ export const updateReturnStatusVendor = async (req, res) => {
         await variant.save();
       }
 
-      // Update item fields
+      // Update status
       item.returnStatus = "Completed";
       item.refundStatus = "Completed";
       item.refundAmount = refundAmount;

@@ -54,4 +54,48 @@ api.interceptors.response.use(
   }
 );
 
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const message =
+      error?.response?.data?.message ||
+      error?.response?.data?.error ||
+      "Something went wrong";
+
+    const status = error?.response?.status;
+
+    // Normalize error object
+    error.message = message;
+
+    // BLOCKED USER HANDLING (already done by you)
+    if (status === 403) {
+      localStorage.removeItem("user");
+      window.location.href = "/user/login";
+      toast.error("Your account has been blocked.");
+    }
+
+    // Unauthorized token expired
+    // if (status === 401) {
+    //   localStorage.removeItem("user");
+    //   localStorage.removeItem("vendor");
+    //   localStorage.removeItem("admin");
+
+    //   toast.error("Session expired. Please login again.");
+
+    //   window.location.href = "/user/login";
+    // }
+
+    if (status === 400 || status === 404) {
+      toast.error(message);
+    }
+
+    // Internal server errors
+    if (status >= 500) {
+      toast.error("Server Error. Try again later.");
+    }
+
+    return Promise.reject(error);
+  }
+);
+
 export default api;

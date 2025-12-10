@@ -25,3 +25,8 @@ export const validateCart = async () => {
   const response = await api.get("/api/user/cart/validate");
   return response.data;
 };
+
+export const AddToCartFromWishList = async (data) => {
+  const response = await api.post("/api/user/wishList/addtocart", data);
+  return response.data;
+};

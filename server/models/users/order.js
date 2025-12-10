@@ -83,6 +83,10 @@ const orderedItemSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  cancelReason: {
+    type: String,
+    default: null,
+  },
 });
 
 const shippingAddressSchema = new mongoose.Schema({

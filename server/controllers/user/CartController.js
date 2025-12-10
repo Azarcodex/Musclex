@@ -3,6 +3,7 @@ import Cart from "../../models/products/cart.js";
 import Product from "../../models/products/Product.js";
 import Variant from "../../models/products/Variant.js";
 import Offer from "../../models/offer/offer.js";
+import Wishlist from "../../models/products/wishlist.js";
 export const AddCart = async (req, res) => {
   try {
     const userId = req.user._id;
@@ -29,6 +30,48 @@ export const AddCart = async (req, res) => {
       return res.status(200).json({ message: "Item is already in cart" });
     } else {
       await Cart.create({ userId, productId, variantId, price, sizeLabel });
+    }
+    res.status(200).json({ message: "Item added to the cart" });
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+//add to cart from wishList
+
+export const AddCartFromWishList = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { productId, variantId, sizeLabel, quantity } = req.body;
+    // console.log(productId, variantId, sizeLabel);
+    const product = await Product.findById(productId);
+    // if (!product.isActive) {
+    //   return res.status(400).json({ message: "Item is being deactivated" });
+    // }
+    const variant = await Variant.findById(variantId);
+    if (!variant) {
+      return res.status(404).json({ message: "Variant not found" });
+    }
+    const size = variant.size.find((s) => s.label === sizeLabel);
+    if (!size) return res.status(404).json({ message: "Invalid size" });
+    const price = size.salePrice;
+    const existing = await Cart.findOne({
+      userId,
+      productId,
+      sizeLabel,
+      variantId,
+    });
+    if (existing) {
+      return res.status(200).json({ message: "Item is already in cart" });
+    } else {
+      await Cart.create({ userId, productId, variantId, price, sizeLabel });
+      await Wishlist.deleteOne({
+        userId: userId,
+        productId: productId,
+        variantId: variantId,
+        sizeLabel: sizeLabel,
+      });
     }
     res.status(200).json({ message: "Item added to the cart" });
   } catch (e) {

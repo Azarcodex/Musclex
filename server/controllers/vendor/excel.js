@@ -4,7 +4,7 @@ import Order from "../../models/users/order.js";
 
 export const salesReportExcel = async (req, res) => {
   try {
-    const vendorId = req.vendor._id; // or req.user._id
+    const vendorId = req.vendor._id;
     if (!vendorId) {
       return res.status(400).json({ message: "Vendor not identified" });
     }
@@ -12,31 +12,27 @@ export const salesReportExcel = async (req, res) => {
     const vendorObjectId = new mongoose.Types.ObjectId(vendorId);
     const { filter } = req.body || {};
 
-    // 🔹 Base match: only delivered orders
-    const matchStage = {
-      orderStatus: "Delivered",
-    };
+    // -------------------------
+    // DATE FILTER (same as your salesReport)
+    // -------------------------
+    const matchStage = {};
 
-    // 🔹 Date filter (same as salesReport)
-    if (filter && filter.type) {
+    if (filter?.type) {
       const now = new Date();
       let start, end;
 
       if (filter.type === "day") {
         end = now;
-        start = new Date(now);
-        start.setDate(now.getDate() - 1);
+        start = new Date(now.setDate(now.getDate() - 1));
       } else if (filter.type === "week") {
         end = now;
-        start = new Date(now);
-        start.setDate(now.getDate() - 7);
+        start = new Date(now.setDate(now.getDate() - 7));
       } else if (filter.type === "month") {
         end = now;
-        start = new Date(now);
-        start.setDate(now.getDate() - 30);
+        start = new Date(now.setDate(now.getDate() - 30));
       } else if (filter.type === "range" && filter.from && filter.to) {
-        start = new Date(filter.from + "T00:00:00.000Z");
-        end = new Date(filter.to + "T23:59:59.999Z");
+        start = new Date(filter.from + "T00:00:00Z");
+        end = new Date(filter.to + "T23:59:59Z");
       }
 
       if (start && end) {
@@ -44,41 +40,38 @@ export const salesReportExcel = async (req, res) => {
       }
     }
 
-    // 🔹 SAME PIPELINE AS salesReport, but no pagination
+    // -------------------------
+    // BASE PIPELINE (same as salesReport)
+    // -------------------------
     const basePipeline = [
       { $match: matchStage },
+
       { $unwind: "$orderedItems" },
 
-      // Lookup variant
-      {
-        $lookup: {
-          from: "variants",
-          localField: "orderedItems.variantID",
-          foreignField: "_id",
-          as: "variants",
-        },
-      },
-      { $unwind: "$variants" },
-
-      // Lookup product (vendor here)
       {
         $lookup: {
           from: "products",
           localField: "orderedItems.productID",
           foreignField: "_id",
-          as: "products",
+          as: "product",
         },
       },
-      { $unwind: "$products" },
+      { $unwind: "$product" },
 
-      // 🔥 Filter for THIS vendor only
+      { $match: { "product.vendorID": vendorObjectId } },
+
+      { $match: { "orderedItems.status": "Delivered" } },
+
       {
-        $match: {
-          "products.vendorID": vendorObjectId,
+        $lookup: {
+          from: "variants",
+          localField: "orderedItems.variantID",
+          foreignField: "_id",
+          as: "variant",
         },
       },
+      { $unwind: "$variant" },
 
-      // Lookup customer
       {
         $lookup: {
           from: "users",
@@ -88,84 +81,141 @@ export const salesReportExcel = async (req, res) => {
         },
       },
       { $unwind: "$customer" },
-
-      {
-        $project: {
-          _id: 0,
-          orderDate: "$createdAt",
-          customerName: "$customer.name",
-          productName: "$products.name",
-          flavour: "$variants.flavour",
-          sizeLabel: "$orderedItems.sizeLabel",
-          quantity: "$orderedItems.quantity",
-          price: "$orderedItems.price",
-          total: {
-            $multiply: ["$orderedItems.quantity", "$orderedItems.price"],
-          },
-        },
-      },
-
-      { $sort: { orderDate: -1 } },
     ];
 
-    const orders = await Order.aggregate(basePipeline);
+    // -------------------------
+    // FETCH ALL ORDERS FOR EXCEL
+    // -------------------------
+    const orders = await Order.aggregate([
+      ...basePipeline,
+      {
+        $project: {
+          orderId: "$_id",
+          orderDate: "$createdAt",
+          customerName: "$customer.name",
+          productName: "$product.name",
+          flavour: "$variant.flavour",
+          sizeLabel: "$orderedItems.sizeLabel",
+          quantity: "$orderedItems.quantity",
+          price: { $toDouble: "$orderedItems.price" },
+          discountPerItem: { $ifNull: ["$orderedItems.discountPerItem", 0] },
+          commissionPercent: {
+            $ifNull: ["$orderedItems.commissionPercent", 10],
+          },
 
-    // -------- Summary calculation --------
-    const totalRevenue = orders.reduce((sum, o) => sum + o.total, 0);
-    const totalItems = orders.reduce((sum, o) => sum + o.quantity, 0);
-    const totalOrders = orders.length;
-    const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+          originalTotal: {
+            $multiply: [
+              "$orderedItems.quantity",
+              { $toDouble: "$orderedItems.price" },
+            ],
+          },
 
-    // -------- Excel rows --------
+          couponDiscount: {
+            $multiply: [
+              "$orderedItems.quantity",
+              { $ifNull: ["$orderedItems.discountPerItem", 0] },
+            ],
+          },
+
+          commissionAmount: {
+            $multiply: [
+              "$orderedItems.quantity",
+              {
+                $multiply: [
+                  { $toDouble: "$orderedItems.price" },
+                  {
+                    $divide: [
+                      { $ifNull: ["$orderedItems.commissionPercent", 10] },
+                      100,
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+
+          vendorEarning: {
+            $subtract: [
+              {
+                $subtract: [
+                  {
+                    $multiply: [
+                      "$orderedItems.quantity",
+                      { $toDouble: "$orderedItems.price" },
+                    ],
+                  },
+                  {
+                    $multiply: [
+                      "$orderedItems.quantity",
+                      { $ifNull: ["$orderedItems.discountPerItem", 0] },
+                    ],
+                  },
+                ],
+              },
+              {
+                $multiply: [
+                  "$orderedItems.quantity",
+                  {
+                    $multiply: [
+                      { $toDouble: "$orderedItems.price" },
+                      {
+                        $divide: [
+                          { $ifNull: ["$orderedItems.commissionPercent", 10] },
+                          100,
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+
+          paymentMethod: "$paymentMethod",
+        },
+      },
+      { $sort: { orderDate: -1 } },
+    ]);
+
+    // -------------------------
+    // EXCEL DATA FORMAT
+    // -------------------------
     const excelData = orders.map((o) => ({
+      "Order ID": o.orderId.toString(),
       "Order Date": new Date(o.orderDate).toLocaleString("en-IN"),
       Customer: o.customerName,
       Product: o.productName,
       Flavour: o.flavour,
       Size: o.sizeLabel,
       Qty: o.quantity,
-      "Unit Price": o.price,
-      Total: o.total,
+      "Unit Price (₹)": o.price,
+      "Original Total (₹)": o.originalTotal,
+      "Coupon Discount (₹)": o.couponDiscount,
+      "Commission (%)": o.commissionPercent,
+      "Commission Amount (₹)": o.commissionAmount,
+      "Vendor Earning (₹)": o.vendorEarning,
+      Payment: o.paymentMethod,
     }));
 
-    // Empty row
-    excelData.push({});
-
-    // Summary rows
-    excelData.push({ "Order Date": "TOTAL REVENUE", Total: totalRevenue });
-    excelData.push({ "Order Date": "TOTAL ORDERS", Total: totalOrders });
-    excelData.push({
-      "Order Date": "TOTAL PRODUCTS SOLD",
-      Total: totalItems,
-    });
-    excelData.push({
-      "Order Date": "AVERAGE ORDER VALUE",
-      Total: avgOrderValue.toFixed(2),
-    });
-
-    // -------- Worksheet + column widths --------
+    // -------------------------
+    // EXCEL SHEET + AUTO COLUMN WIDTH
+    // -------------------------
     const ws = XLSX.utils.json_to_sheet(excelData);
 
     ws["!cols"] = Object.keys(excelData[0]).map((key) => ({
-      wch: Math.max(key.length, 18),
+      wch: Math.max(key.length, 20),
     }));
 
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Sales Report");
 
-    const buffer = XLSX.write(wb, {
-      bookType: "xlsx",
-      type: "buffer",
-    });
-
+    const buffer = XLSX.write(wb, { bookType: "xlsx", type: "buffer" });
     const fileName = `sales_report_${new Date()
       .toISOString()
       .slice(0, 10)}.xlsx`;
 
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename=${fileName}`
-    );
+    res.setHeader("Content-Disposition", `attachment; filename=${fileName}`);
+
     res.setHeader(
       "Content-Type",
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -173,7 +223,7 @@ export const salesReportExcel = async (req, res) => {
 
     return res.send(buffer);
   } catch (error) {
-    console.error(error);
-    return res.status(500).json({ message: "Excel export failed" });
+    console.error("Excel error:", error);
+    return res.status(500).json({ message: "Failed to export Excel" });
   }
 };

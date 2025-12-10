@@ -256,19 +256,6 @@ export default function ProductListCard({ data }) {
                 {data?.product?.brandID?.brand_name}
               </h3>
             </div>
-            <button
-              className="flex items-center gap-1 bg-pink-500 text-white rounded px-2 py-1 text-xs font-semibold font-sans transition-all duration-200 hover:bg-pink-600 active:scale-95 shadow-sm"
-              onClick={() =>
-                HandleWishList(
-                  data?.product._id,
-                  currentVariant._id,
-                  currentSize.label
-                )
-              }
-            >
-              <Heart size={12} strokeWidth={3} />
-              <span>Wishlist</span>
-            </button>
           </div>
           {/* Product Name */}
           <h1 className="text-xl font-bold text-gray-900 mb-3 leading-tight">
@@ -350,23 +337,24 @@ export default function ProductListCard({ data }) {
 
           {/* Variant Selection */}
           <div className="mb-6">
-            <h3 className="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wide">
+            {/* <h3 className="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wide">
               Select Variant
-            </h3>
+            </h3> */}
             <div className="flex flex-wrap gap-3">
-              {data?.variants?.map((v, id) => (
-                <button
-                  key={id}
-                  onClick={() => handleVariantChange(v, id)}
-                  className={`px-2 py-1 rounded-xl text-sm font-semibold transition-all duration-300 ${
-                    selectedVariantIndex === id
-                      ? "bg-gradient-to-r from-purple-600 to-purple-700 text-white shadow-lg transform scale-105"
-                      : "bg-white text-gray-700 border-2 border-gray-200 hover:border-purple-300 hover:shadow-md"
-                  }`}
-                >
-                  {v.flavour}
-                </button>
-              ))}
+              {data?.product?.catgid?.catgName === "supplements" &&
+                data?.variants?.map((v, id) => (
+                  <button
+                    key={id}
+                    onClick={() => handleVariantChange(v, id)}
+                    className={`px-2 py-1 rounded-xl text-sm font-semibold transition-all duration-300 ${
+                      selectedVariantIndex === id
+                        ? "bg-gradient-to-r from-purple-600 to-purple-700 text-white shadow-lg transform scale-105"
+                        : "bg-white text-gray-700 border-2 border-gray-200 hover:border-purple-300 hover:shadow-md"
+                    }`}
+                  >
+                    {v.flavour}
+                  </button>
+                ))}
             </div>
           </div>
 
@@ -401,13 +389,18 @@ export default function ProductListCard({ data }) {
               <ShoppingCart className="w-3 h-3" />
               Add to Cart
             </button>
-
             <button
-              onClick={handleBuyNow}
+              onClick={() =>
+                HandleWishList(
+                  data?.product._id,
+                  currentVariant._id,
+                  currentSize.label
+                )
+              }
               className="flex-1 bg-gradient-to-r from-rose-600 to-pink-600 text-white py-2 rounded-xl flex items-center justify-center gap-2 text-xs font-bold hover:from-rose-700 hover:to-pink-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
             >
-              <Zap className="w-3 h-3" />
-              Buy Now
+              <Heart size={12} strokeWidth={3} />
+              add to WishList
             </button>
             {/* <button
               onClick={() =>

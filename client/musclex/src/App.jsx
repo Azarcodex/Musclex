@@ -53,6 +53,7 @@ import VendorAuthRoute from "./components/vendor/VendorAuthRoute";
 import Referral from "./pages/user/UserPage/Referral";
 import CouponUsers from "./pages/admin/CouponUsers";
 import OrderFailed from "./pages/user/OrderFailure";
+import InvoicePage from "./pages/user/invoice";
 const App = () => {
   return (
     <>
@@ -145,6 +146,7 @@ const App = () => {
           path="/user/orders/track/:orderId"
           element={<UserOrderTrack />}
         />
+        <Route path="/user/orders/invoice/:orderId" element={<InvoicePage />} />
         //invoice //🏪🏪vendor side//
         <Route
           path="/vendor/register"

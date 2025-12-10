@@ -7,10 +7,12 @@ import {
   Image,
   PencilIcon,
   X,
+  Trash2,
 } from "lucide-react";
 import {
   useEditUsername,
   useGetUserdata,
+  useRemoveProfileImage,
   useUploadImage,
 } from "../../../hooks/users/useGetUserdata";
 import { useForm } from "react-hook-form";
@@ -30,6 +32,7 @@ const Profile = () => {
 
   const { mutate: updateName } = useEditUsername();
   const { mutate: uploadImage } = useUploadImage();
+  const { mutate: removeImage, isPending: isLoading } = useRemoveProfileImage();
   const queryClient = useQueryClient();
 
   const {
@@ -74,6 +77,14 @@ const Profile = () => {
     );
   };
 
+  const handleRemove = () => {
+    removeImage(undefined, {
+      onSuccess: (res) => toast.success(res.message),
+      onError: (err) =>
+        toast.error(err.response?.data?.message || "Failed to remove image"),
+    });
+  };
+
   return (
     <div className="p-5 h-full relative">
       <div className="max-w-xl mx-auto">
@@ -86,12 +97,30 @@ const Profile = () => {
             <div className="relative -mt-16 mb-4">
               <div className="w-32 h-32 rounded-full border-4 border-white shadow-xl overflow-hidden bg-gray-100 mx-auto">
                 {data?.user?.profileImage ? (
-                  <img
-                    src={`${import.meta.env.VITE_API_URL}${
-                      data.user.profileImage
-                    }`}
-                    className="w-full h-full object-cover"
-                  />
+                  <div className="relative w-32 h-32 group">
+                    <img
+                      src={`${import.meta.env.VITE_API_URL}${
+                        data.user.profileImage
+                      }`}
+                      className="w-full h-full object-cover rounded-full border shadow-sm"
+                      alt="Profile"
+                    />
+
+                    {/* Delete Button - shows on hover */}
+                    <button
+                      onClick={handleRemove}
+                      disabled={isLoading}
+                      className="
+      absolute bottom-1 right-[50px]
+      bg-red-600 text-white rounded-full p-2 shadow-md
+      opacity-0 group-hover:opacity-100 transition-opacity
+      hover:bg-red-700
+    "
+                      title="Remove Profile Image"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-500 to-indigo-600">
                     <span className="text-5xl font-extrabold text-white">

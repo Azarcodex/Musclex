@@ -30,9 +30,10 @@ export const cancelOrder = async (id) => {
 };
 
 //cancel product orders
-export const cancelProductOrder = async ({ orderId, item_id }) => {
+export const cancelProductOrder = async ({ reason, orderId, item_id }) => {
   const response = await api.patch(
-    `/api/user/order/cancel/${orderId}/${item_id}`
+    `/api/user/order/cancel/${orderId}/${item_id}`,
+    { reason }
   );
   return response.data;
 };

@@ -64,18 +64,44 @@ export const getOrdersData = async (req, res) => {
           discount: 1,
           finalAmount: 1,
           shippingAddress: "$address",
-
+          couponCode: "$couponCode",
+          couponApplied: "$couponApplied",
+          // orderedItem: {
+          //   _id: "$orderedItems._id",
+          //   productID: {
+          //     _id: "$product._id",
+          //     name: "$product.name",
+          //   },
+          //   flavour: "$variant.flavour",
+          //   sizeLabel: "$orderedItems.sizeLabel",
+          //   quantity: "$orderedItems.quantity",
+          //   price: "$orderedItems.price",
+          //   status: "$orderedItems.status",
+          // },
           orderedItem: {
             _id: "$orderedItems._id",
+
             productID: {
               _id: "$product._id",
               name: "$product.name",
             },
+
             flavour: "$variant.flavour",
             sizeLabel: "$orderedItems.sizeLabel",
             quantity: "$orderedItems.quantity",
             price: "$orderedItems.price",
             status: "$orderedItems.status",
+
+            deliveredDate: "$orderedItems.deliveredDate",
+            returnReason: "$orderedItems.returnReason",
+            vendorReason: "$orderedItems.vendorReason",
+            returnDate: "$orderedItems.returnDate",
+            refundAmount: "$orderedItems.refundAmount",
+            returnStatus: "$orderedItems.returnStatus",
+            refundStatus: "$orderedItems.refundStatus",
+            vendorCreditStatus: "$orderedItems.vendorCreditStatus",
+            StockRestored: "$orderedItems.StockRestored",
+            cancelReason: "$orderedItems.cancelReason",
           },
         },
       },
@@ -94,7 +120,8 @@ export const getOrdersData = async (req, res) => {
           discount: { $first: "$discount" },
           finalAmount: { $first: "$finalAmount" },
           shippingAddress: { $first: "$shippingAddress" },
-
+          couponCode: { $first: "$couponCode" },
+          couponApplied: { $first: "$couponApplied" },
           orderedItems: { $push: "$orderedItem" },
         },
       },

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AddtoCart,
+  AddToCartFromWishList,
   getCart,
   QuantityChange,
   removeFromCart,
@@ -50,5 +51,11 @@ export const useQuantityChange = () => {
 export const useValidateCart = () => {
   return useMutation({
     mutationFn: validateCart,
+  });
+};
+
+export const useAddCartFromWishList = () => {
+  return useMutation({
+    mutationFn: AddToCartFromWishList,
   });
 };

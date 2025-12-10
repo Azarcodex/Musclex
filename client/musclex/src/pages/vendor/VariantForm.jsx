@@ -254,10 +254,17 @@ const VariantForm = () => {
               <div>
                 <label className="block text-sm font-semibold">SKU</label>
                 <input
-                  {...register(`sizes.${index}.sku`, { required: true })}
+                  {...register(`sizes.${index}.sku`, {
+                    required: "just enter a sku code",
+                  })}
                   placeholder="Eg: CHOC-1KG-4821"
                   className="border-b border-purple-800 outline-none w-full bg-transparent"
                 />
+                {errors?.sizes?.[index]?.sku && (
+                  <p className="text-red-600 text-sm">
+                    {errors.sizes[index].sku.message}
+                  </p>
+                )}
               </div>
 
               <button
@@ -322,6 +329,20 @@ const VariantForm = () => {
               </div>
             ))}
           </div>
+        )}
+        {/* Hidden validator for images */}
+        <input
+          type="hidden"
+          {...register("imagesCheck", {
+            validate: () =>
+              selectedFiles.length > 0 || "Please upload at least one image.",
+          })}
+        />
+
+        {errors.imagesCheck && (
+          <p className="text-red-600 text-sm mt-1">
+            {errors.imagesCheck.message}
+          </p>
         )}
 
         {/* Submit */}

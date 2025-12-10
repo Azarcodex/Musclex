@@ -11,7 +11,8 @@ import {
   ChevronRight,
   Filter,
   Tag, // Added for coupon icon
-  Check, // Added for applied checkmark
+  Check,
+  PrinterIcon, // Added for applied checkmark
 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import {
@@ -39,7 +40,13 @@ export default function UserOrdersPage() {
     formState: { errors },
   } = useForm();
   const [returnView, setReturnView] = useState(false);
+  const [returnModalOrderId, setReturnModalOrderId] = useState(null);
+  const [returnModalItemId, setReturnModalItemId] = useState(null);
 
+  //cancel
+  const [cancelProductView, setCancelProductView] = useState(false);
+  const [cancelModalOrderId, setcancelModalOrderId] = useState(null);
+  const [cancelModalItemId, setcancelModalItemId] = useState(null);
   const statusOptions = [
     "All",
     "Pending",
@@ -113,23 +120,23 @@ export default function UserOrdersPage() {
     }
   };
 
-  const HandleProductCancel = async (orderId, item_id) => {
+  const HandleProductCancel = async (data, orderId, item_id) => {
     const wait = await confirm({
       message: "Are you sure you want to cancel these item",
     });
     if (wait) {
       cancelProductOrder(
-        { orderId, item_id },
+        { reason: data.cancelReason, orderId, item_id },
         {
-          onSuccess: (data) => toast.success(data.message),
+          onSuccess: (data) => {
+            toast.success(data.message);
+            setCancelProductView(false);
+            reset();
+          },
           onError: (err) => toast.error(err.response.data.message),
         }
       );
     }
-  };
-
-  const HandleReturnOrderView = () => {
-    setReturnView(true);
   };
 
   const onSubmit = async (data, orderId, itemId) => {
@@ -341,9 +348,11 @@ export default function UserOrdersPage() {
                                 "Out for Delivery",
                               ].includes(order.orderStatus) && (
                                 <button
-                                  onClick={() =>
-                                    HandleProductCancel(order._id, item._id)
-                                  }
+                                  onClick={() => {
+                                    setcancelModalOrderId(order._id);
+                                    setcancelModalItemId(item._id);
+                                    setCancelProductView(true);
+                                  }}
                                   className="text-xs font-medium text-red-600 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded transition-colors"
                                 >
                                   Cancel Item
@@ -357,78 +366,167 @@ export default function UserOrdersPage() {
                                   Write Review
                                 </button>
                                 <button
-                                  onClick={HandleReturnOrderView}
+                                  onClick={() => {
+                                    setReturnModalOrderId(order._id);
+                                    setReturnModalItemId(item._id);
+                                    setReturnView(true);
+                                  }}
                                   className="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-2 py-1 rounded transition-colors"
                                 >
                                   <RotateCcw size={14} />
                                   Return Item
                                 </button>
-                                {returnView && (
-                                  <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                                    <div
-                                      className="absolute inset-0 bg-black/50"
-                                      onClick={() => setReturnView(false)}
-                                    />
-                                    <div className="relative z-50 w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200">
-                                      <div className="p-6 border-b border-gray-100 flex items-center gap-3 bg-gray-50/50">
-                                        <div className="p-2 bg-purple-100 rounded-lg text-purple-600">
-                                          <RefreshCw size={20} />
+                                {returnView &&
+                                  returnModalOrderId === order._id &&
+                                  returnModalItemId === item._id && (
+                                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                                      <div
+                                        className="absolute inset-0 bg-black/50"
+                                        onClick={() => setReturnView(false)}
+                                      />
+
+                                      <div className="relative z-50 w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200">
+                                        <div className="p-6 border-b border-gray-100 flex items-center gap-3 bg-gray-50/50">
+                                          <div className="p-2 bg-purple-100 rounded-lg text-purple-600">
+                                            <RefreshCw size={20} />
+                                          </div>
+                                          <h2 className="text-lg font-bold text-gray-900">
+                                            Return Request
+                                          </h2>
                                         </div>
-                                        <h2 className="text-lg font-bold text-gray-900">
-                                          Return Request
-                                        </h2>
-                                      </div>
-                                      <div className="p-6">
-                                        <form
-                                          onSubmit={handleSubmit((data) =>
-                                            onSubmit(data, order._id, item._id)
-                                          )}
-                                          className="space-y-4"
-                                        >
-                                          <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                              Reason for return
-                                            </label>
-                                            <textarea
-                                              placeholder="Please describe why you are returning this item..."
-                                              rows={3}
-                                              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 resize-none text-sm"
-                                              {...register("returnReason", {
-                                                required:
-                                                  "Please provide a reason",
-                                              })}
-                                            />
-                                            {errors.returnReason && (
-                                              <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
-                                                <AlertCircle size={12} />{" "}
-                                                {errors.returnReason.message}
-                                              </p>
+
+                                        <div className="p-6">
+                                          <form
+                                            onSubmit={handleSubmit((data) =>
+                                              onSubmit(
+                                                data,
+                                                returnModalOrderId,
+                                                returnModalItemId
+                                              )
                                             )}
-                                          </div>
-                                          <div className="flex gap-3 pt-2">
-                                            <button
-                                              type="button"
-                                              onClick={() =>
-                                                setReturnView(false)
-                                              }
-                                              className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                                            >
-                                              Cancel
-                                            </button>
-                                            <button
-                                              type="submit"
-                                              className="flex-1 px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors shadow-sm"
-                                            >
-                                              Submit Request
-                                            </button>
-                                          </div>
-                                        </form>
+                                            className="space-y-4"
+                                          >
+                                            <div>
+                                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Reason for return
+                                              </label>
+                                              <textarea
+                                                placeholder="Please describe why you are returning this item..."
+                                                rows={3}
+                                                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 resize-none text-sm"
+                                                {...register("returnReason", {
+                                                  required:
+                                                    "Please provide a reason",
+                                                })}
+                                              />
+                                              {errors.returnReason && (
+                                                <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
+                                                  <AlertCircle size={12} />
+                                                  {errors.returnReason.message}
+                                                </p>
+                                              )}
+                                            </div>
+
+                                            <div className="flex gap-3 pt-2">
+                                              <button
+                                                type="button"
+                                                onClick={() =>
+                                                  setReturnView(false)
+                                                }
+                                                className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                                              >
+                                                Cancel
+                                              </button>
+
+                                              <button
+                                                type="submit"
+                                                className="flex-1 px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors shadow-sm"
+                                              >
+                                                Submit Request
+                                              </button>
+                                            </div>
+                                          </form>
+                                        </div>
                                       </div>
                                     </div>
-                                  </div>
-                                )}
+                                  )}
                               </>
                             )}
+
+                            {/* //cancel reason */}
+
+                            {cancelProductView &&
+                              cancelModalOrderId === order._id &&
+                              cancelModalItemId === item._id && (
+                                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                                  <div
+                                    className="absolute inset-0 bg-black/50"
+                                    onClick={() => setCancelProductView(false)}
+                                  />
+
+                                  <div className="relative z-50 w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200">
+                                    <div className="p-6 border-b border-gray-100 flex items-center gap-3 bg-gray-50/50">
+                                      <div className="p-2 bg-purple-100 rounded-lg text-purple-600">
+                                        <RefreshCw size={20} />
+                                      </div>
+                                      <h2 className="text-lg font-bold text-gray-900">
+                                        cancel Reason
+                                      </h2>
+                                    </div>
+
+                                    <div className="p-6">
+                                      <form
+                                        onSubmit={handleSubmit((data) =>
+                                          HandleProductCancel(
+                                            data,
+                                            cancelModalOrderId,
+                                            cancelModalItemId
+                                          )
+                                        )}
+                                        className="space-y-4"
+                                      >
+                                        <div>
+                                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Reason for return
+                                          </label>
+                                          <textarea
+                                            placeholder="Please describe why you are returning this item..."
+                                            rows={3}
+                                            className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 resize-none text-sm"
+                                            {...register("cancelReason", {
+                                              required: "enter a reason",
+                                            })}
+                                          />
+                                          {errors.cancelReason && (
+                                            <p className="text-red-700 text-xs">
+                                              *{errors.cancelReason.message}
+                                            </p>
+                                          )}
+                                        </div>
+
+                                        <div className="flex gap-3 pt-2">
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              setCancelProductView(false)
+                                            }
+                                            className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                                          >
+                                            Cancel
+                                          </button>
+
+                                          <button
+                                            type="submit"
+                                            className="flex-1 px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors shadow-sm"
+                                          >
+                                            Submit
+                                          </button>
+                                        </div>
+                                      </form>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
 
                             {item.status === "Returned" && (
                               <div className="flex items-center gap-2">
@@ -484,8 +582,14 @@ export default function UserOrdersPage() {
                           </span>
                         </span>
                       </div>
-                      <button className="bg-purple-800 rounded-md p-0.5 text-white text-xs">
-                        print Invoice
+                      <button
+                        onClick={() =>
+                          navigate(`/user/orders/invoice/${order._id}`)
+                        }
+                        className="flex items-center gap-3 bg-purple-600 rounded-sm p-0.5 text-white text-xs"
+                      >
+                        <PrinterIcon className="w-3 h-3" />
+                        Print Invoice
                       </button>
                     </div>
 

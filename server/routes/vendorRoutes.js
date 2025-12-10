@@ -49,6 +49,7 @@ import {
   getVendorOffers,
   toggleVendorOffer,
 } from "../controllers/vendor/offerController.js";
+import { salesReportPdf } from "../controllers/vendor/salesReportPdf.js";
 const router = express.Router();
 
 router.post("/register", registerVendor);
@@ -102,7 +103,14 @@ router.patch("/product/offer/:offerId", VendorProtection, editVendorOffer);
 
 router.post("/product-offer", VendorProtection, createProductOffer);
 //toggle offer
-router.patch("/product/offer/toggle/:offerId",VendorProtection,toggleVendorOffer)
+router.patch(
+  "/product/offer/toggle/:offerId",
+  VendorProtection,
+  toggleVendorOffer
+);
 router.get("/all-products", VendorProtection, getAllProducts);
+
+//sales report
+router.post("/sales-report/pdf", VendorProtection, salesReportPdf);
 
 export default router;

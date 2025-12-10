@@ -389,7 +389,7 @@ export const cancelOrder = async (req, res) => {
       return res.status(400).json({
         success: false,
         message:
-          "Order cannot be cancelled because one or more items are already Shipped/Delivered.",
+          "Order cannot be cancelled because one or more items are already Shipped/Delivered/Returned.",
       });
     }
 
@@ -494,7 +494,7 @@ export const cancelProductOrder = async (req, res) => {
   try {
     const userId = req.user._id;
     const { orderId, item_id } = req.params;
-
+    const { reason } = req.body;
     const order = await Order.findOne({ _id: orderId, userID: userId });
     if (!order) return res.status(404).json({ message: "Order not found" });
 
@@ -599,6 +599,7 @@ export const cancelProductOrder = async (req, res) => {
 
     // Mark item cancelled
     item.status = "Cancelled";
+    item.cancelReason = reason;
 
     // If all items cancelled → cancel whole order
     const allCancelled = order.orderedItems.every(
@@ -627,7 +628,7 @@ export const returnOrderItem = async (req, res) => {
     const userId = req.user._id;
     const { orderId, itemId } = req.params;
     const { reason } = req.body;
-
+    console.log("✅✅✅✅🏡" + reason);
     const order = await Order.findById(orderId);
     if (!order) {
       return res

@@ -74,34 +74,19 @@ export const updateReturnStatusVendor = async (req, res) => {
     // -----------------------------------------
     //   COMPLETE RETURN (REFUND)
     // -----------------------------------------
+    // -----------------------------------------
+    //   COMPLETE RETURN (REFUND) — FIXED LOGIC
+    // -----------------------------------------
     if (newStatus === "Completed") {
-      const subtotal = order.totalPrice; // before discount
-      const finalPaidOriginal = order.finalAmount; // after discount
       const itemTotal = item.price * item.quantity;
+      const couponDiscount = (item.discountPerItem || 0) * item.quantity;
 
-      // Check if coupon applied
-      const couponApplied = order.couponApplied === true;
+      // FINAL accurate refund
+      const refundAmount = itemTotal - couponDiscount; // <-- CORRECT
 
-      let refundAmount = 0;
+      if (refundAmount < 0) refundAmount = 0;
 
-      if (!couponApplied) {
-        // ⭐ NO COUPON → ALWAYS FULL REFUND
-        refundAmount = itemTotal;
-      } else {
-        // ⭐ Coupon applied → proportional refund based on ORIGINAL FINAL AMOUNT
-        const totalActiveItems = order.orderedItems.filter(
-          (x) => x.status !== "Cancelled" && x.returnStatus !== "Completed"
-        );
-
-        if (totalActiveItems.length === 1) {
-          // Only this last item → refund entire remaining paid amount
-          refundAmount = finalPaidOriginal;
-        } else {
-          refundAmount = Math.round((itemTotal / subtotal) * finalPaidOriginal);
-        }
-      }
-
-      // Vendor balance check
+      // Vendor wallet check
       const vendorWallet = await VendorWallet.findOne({ vendorId });
       if (!vendorWallet || vendorWallet.balance < refundAmount) {
         return res.status(400).json({
@@ -137,7 +122,7 @@ export const updateReturnStatusVendor = async (req, res) => {
         amount: refundAmount,
         type: "REFUND",
         referenceId: order.orderId,
-        note: `Refund for returned item ${itemId}`,
+        note: `Refund for item ${itemId}`,
       });
 
       // Restore stock
@@ -148,7 +133,7 @@ export const updateReturnStatusVendor = async (req, res) => {
         await variant.save();
       }
 
-      // Update status
+      // Final updates
       item.returnStatus = "Completed";
       item.refundStatus = "Completed";
       item.refundAmount = refundAmount;
@@ -159,6 +144,7 @@ export const updateReturnStatusVendor = async (req, res) => {
       return res.json({
         success: true,
         message: "Return completed & refunded successfully",
+        refundAmount,
         order,
       });
     }

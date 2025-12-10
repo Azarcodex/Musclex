@@ -13,13 +13,16 @@ import { useRemoveWishList } from "../../hooks/users/useRemoveWishList";
 import { confirm } from "../../components/utils/Confirmation";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
-import { useAddToCart, useGetCart } from "../../hooks/users/useAddCart";
+import {
+  useAddCartFromWishList,
+  useGetCart,
+} from "../../hooks/users/useAddCart";
 
 const WishList = () => {
   const { data: wishList } = usegetWishList();
   const { mutate: Remove } = useRemoveWishList();
   const queryClient = useQueryClient();
-  const { mutate: AddCart } = useAddToCart();
+  const { mutate: AddCart } = useAddCartFromWishList();
   const { data: getCart } = useGetCart();
   const navigate = useNavigate();
 

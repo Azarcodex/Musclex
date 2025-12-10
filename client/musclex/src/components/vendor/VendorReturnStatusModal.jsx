@@ -20,7 +20,12 @@ function VendorReturnStatusModal({ item, orderId, setOpenModal, onUpdate }) {
   const handleSubmit = () => {
     if (!selectedStatus) return;
     onUpdate(
-      { orderId: orderId, itemId: item._id, newStatus: selectedStatus,vendorReason },
+      {
+        orderId: orderId,
+        itemId: item._id,
+        newStatus: selectedStatus,
+        vendorReason,
+      },
       {
         onSuccess: (data) => {
           setOpenModal(false);

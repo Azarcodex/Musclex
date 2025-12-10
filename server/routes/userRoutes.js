@@ -28,6 +28,7 @@ import {
 } from "../controllers/user/addressController.js";
 import {
   AddCart,
+  AddCartFromWishList,
   getCart,
   QuantityChange,
   removeFromCart,
@@ -45,9 +46,12 @@ import {
 } from "../controllers/user/OrderController.js";
 import { SearchData } from "../controllers/user/searchController.js";
 import { FeaturedProducts } from "../controllers/vendor/addProducts.js";
-import { ImageController } from "../controllers/user/profileImageController.js";
+import {
+  ImageController,
+  removeImage,
+} from "../controllers/user/profileImageController.js";
 import { fetchBrandUser } from "../controllers/vendor/BrandController.js";
-import { getInvoice } from "../controllers/user/invoice.js";
+import { getSingleOrder } from "../controllers/user/invoice.js";
 import {
   applyCoupon,
   getAvailableCoupons,
@@ -84,6 +88,7 @@ router.put(
   uploadProfileImage.single("avatar"),
   ImageController
 );
+router.delete("/profile/image", protectedUser, removeImage);
 //password change
 router.patch("/changePassword", protectedUser, changePassword);
 //address
@@ -94,6 +99,12 @@ router.delete("/address/:id", protectedUser, deleteAddress);
 router.patch("/address/default/:id", protectedUser, DefaultAddress);
 //cartHandling
 router.post("/addtocart", protectedUser, AuthUser, AddCart);
+router.post(
+  "/wishList/addtocart",
+  protectedUser,
+  AuthUser,
+  AddCartFromWishList
+);
 router.get("/getcart", protectedUser, getCart);
 router.get("/cart/validate", protectedUser, validatCart);
 router.delete("/cart/:id", protectedUser, removeFromCart);
@@ -118,10 +129,14 @@ router.patch(
 router.get("/search", SearchData);
 //invoice
 
-router.get("/:orderId/invoice", getInvoice);
+// router.get("/:orderId/invoice", getInvoice);
 router.post("/coupon/apply", protectedUser, applyCoupon);
 //coupons
 router.get("/coupons", protectedUser, getAvailableCoupons);
 //wallets
 router.get("/wallet", protectedUser, walletDashboard);
+
+//order invoice
+router.get("/orders/:orderId", protectedUser, getSingleOrder);
+
 export default router;

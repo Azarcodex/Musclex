@@ -128,6 +128,22 @@ export default function SalesReport() {
       alert("Failed to download sales report.");
     }
   };
+  //pdf download
+
+  const downloadPdf = async () => {
+    const res = await api.post(
+      "/api/vendor/sales-report/pdf",
+      { filter: filter },
+      { responseType: "blob" }
+    );
+
+    const url = window.URL.createObjectURL(new Blob([res.data]));
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "sales-report.pdf");
+    document.body.appendChild(link);
+    link.click();
+  };
 
   // --- Render Component ---
 
@@ -139,12 +155,20 @@ export default function SalesReport() {
           <h1 className="text-3xl font-bold text-slate-800">
             📊 Sales Report Dashboard
           </h1>
-          <button
-            onClick={downloadExcel}
-            className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg shadow-md transition-colors duration-200 text-sm"
-          >
-            Download Excel
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={downloadExcel}
+              className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg shadow-md transition-colors duration-200 text-sm"
+            >
+              Download Excel
+            </button>
+            <button
+              onClick={downloadPdf}
+              className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg shadow-md transition-colors duration-200 text-sm"
+            >
+              Download pdf
+            </button>
+          </div>
         </div>
         <p className="text-slate-600 mb-8">
           Track your sales performance and revenue metrics.

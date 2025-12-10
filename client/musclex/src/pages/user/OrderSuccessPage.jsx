@@ -79,12 +79,7 @@ export default function OrderSuccessPage() {
 
           {/* Invoice Link */}
           <button
-            onClick={() =>
-              window.open(
-                `${import.meta.env.VITE_API_URL}/api/user/${id}/invoice`,
-                "_blank"
-              )
-            }
+            onClick={() => navigate(`/user/orders/invoice/${id}`)}
             className="flex cursor-pointer rounded-md items-center justify-center gap-2 w-full text-sm text-gray-600 hover:text-gray-800 mb-6 py-2"
           >
             <FileText size={16} />

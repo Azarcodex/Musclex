@@ -234,6 +234,9 @@ export const verifyRazorpayPayment = async (req, res) => {
       couponCode: couponCode || null,
       couponApplied: !!couponCode,
       orderStatus: "Pending",
+      razorpayOrderId: razorpay_order_id,
+      razorpayPaymentId: razorpay_payment_id,
+      razorpaySignature: razorpay_signature,
     });
 
     // ------------------------------------------------

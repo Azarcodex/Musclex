@@ -187,6 +187,9 @@ export const verifyRetryPayment = async (req, res) => {
       couponCode: temp.couponCode,
       couponApplied: !!temp.couponCode,
       orderStatus: "Pending",
+      razorpayOrderId: razorpay_order_id,
+      razorpayPaymentId: razorpay_payment_id,
+      razorpaySignature: razorpay_signature,
     });
 
     // ---------------------------------------------

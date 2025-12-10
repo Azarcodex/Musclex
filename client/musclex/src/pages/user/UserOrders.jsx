@@ -487,7 +487,7 @@ export default function UserOrdersPage() {
                                       >
                                         <div>
                                           <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Reason for return
+                                            Reason for cancel
                                           </label>
                                           <textarea
                                             placeholder="Please describe why you are returning this item..."
@@ -582,15 +582,17 @@ export default function UserOrdersPage() {
                           </span>
                         </span>
                       </div>
-                      <button
-                        onClick={() =>
-                          navigate(`/user/orders/invoice/${order._id}`)
-                        }
-                        className="flex items-center gap-3 bg-purple-600 rounded-sm p-0.5 text-white text-xs"
-                      >
-                        <PrinterIcon className="w-3 h-3" />
-                        Print Invoice
-                      </button>
+                      {order.orderStatus !== "Cancelled" && (
+                        <button
+                          onClick={() =>
+                            navigate(`/user/orders/invoice/${order._id}`)
+                          }
+                          className="flex items-center gap-3 bg-purple-600 rounded-sm p-0.5 text-white text-xs"
+                        >
+                          <PrinterIcon className="w-3 h-3" />
+                          Print Invoice
+                        </button>
+                      )}
                     </div>
 
                     <div className="flex items-center gap-3">

@@ -257,21 +257,25 @@ export default function Checkout() {
             },
             theme: { color: "#8B5CF6" },
 
-            config: {
-              display: {
-                retry: {
-                  enabled: false,
-                  max_count: 0,
-                },
-              },
-            },
+            // config: {
+            //   display: {
+            //     retry: {
+            //       enabled: false,
+            //       max_count: 0,
+            //     },
+            //   },
+            // },
           };
 
           const rzp = new window.Razorpay(options);
           rzp.on("payment.failed", function () {
+            rzp.close();
             navigate(`/user/orderfailed/${data.tempOrderId}`, {
               replace: true,
             });
+            setTimeout(() => {
+              window.location.reload();
+            }, 100);
           });
 
           rzp.open();

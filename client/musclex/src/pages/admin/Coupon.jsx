@@ -153,39 +153,65 @@ export default function CouponManagement() {
                 <label className="text-sm font-medium">Coupon Code</label>
                 <input
                   type="text"
-                  {...register("code", { required: true })}
+                  {...register("code", { required: "Coupon code is required" })}
                   className="w-full border p-2 rounded mt-1"
                 />
+                {errors.code && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.code.message}
+                  </p>
+                )}
               </div>
 
               <div>
                 <label className="text-sm font-medium">Discount Type</label>
                 <select
-                  {...register("discountType", { required: true })}
+                  {...register("discountType", {
+                    required: "Select a discount type",
+                  })}
                   className="w-full border p-2 rounded mt-1"
                 >
                   <option value="">Select</option>
                   <option value="percent">Percent (%)</option>
                   <option value="flat">Flat (₹)</option>
                 </select>
+                {errors.discountType && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.discountType.message}
+                  </p>
+                )}
               </div>
 
               <div>
                 <label className="text-sm font-medium">Discount Value</label>
                 <input
                   type="number"
-                  {...register("discountValue", { required: true })}
+                  {...register("discountValue", {
+                    required: "Enter discount value",
+                  })}
                   className="w-full border p-2 rounded mt-1"
                 />
+                {errors.discountValue && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.discountValue.message}
+                  </p>
+                )}
               </div>
 
               <div>
                 <label className="text-sm font-medium">Minimum Purchase</label>
                 <input
                   type="number"
-                  {...register("minPurchase", { required: true })}
+                  {...register("minPurchase", {
+                    required: "Enter minimum purchase amount",
+                  })}
                   className="w-full border p-2 rounded mt-1"
                 />
+                {errors.minPurchase && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.minPurchase.message}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -202,18 +228,30 @@ export default function CouponManagement() {
                   <label className="text-sm font-medium">Start Date</label>
                   <input
                     type="date"
-                    {...register("startDate", { required: true })}
+                    {...register("startDate", {
+                      required: "Start date required",
+                    })}
                     className="w-full border p-2 rounded mt-1"
                   />
+                  {errors.startDate && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.startDate.message}
+                    </p>
+                  )}
                 </div>
 
                 <div>
                   <label className="text-sm font-medium">End Date</label>
                   <input
                     type="date"
-                    {...register("endDate", { required: true })}
+                    {...register("endDate", { required: "End date required" })}
                     className="w-full border p-2 rounded mt-1"
                   />
+                  {errors.endDate && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.endDate.message}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -225,6 +263,7 @@ export default function CouponManagement() {
                   className="w-full border p-2 rounded mt-1"
                 />
               </div>
+
               <div>
                 <label className="text-sm font-medium">Usage Per User</label>
                 <input
@@ -293,7 +332,7 @@ export default function CouponManagement() {
                       onClick={() => handleEdit(c)}
                     />
 
-                    {c.isActive ? (
+                    {!c.isActive ? (
                       <EyeOff
                         className="w-5 h-5 text-red-600 cursor-pointer"
                         onClick={() => handleVisibility(c)}

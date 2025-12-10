@@ -3,6 +3,7 @@ import { Package, TrendingUp, DollarSign, ShoppingCart, TrendingDown } from "luc
 // Assuming this hook fetches the data structure you provided based on page and filter
 import { useGetSalesReport } from "../../hooks/vendor/useGetSalesReport";
 import api from "../../api/axios";
+import { toast } from "sonner";
 
 export default function SalesReport() {
   // --- Pagination Setup ---
@@ -125,7 +126,7 @@ export default function SalesReport() {
       link.remove();
     } catch (error) {
       console.log("Excel download error:", error);
-      alert("Failed to download sales report.");
+      toast.error("Failed to download sales report.");
     }
   };
   //pdf download

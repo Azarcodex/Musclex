@@ -1,67 +1,83 @@
-{returnView &&
-  returnModalOrderId === order._id &&
-  returnModalItemId === item._id && (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div
-        className="absolute inset-0 bg-black/50"
-        onClick={() => setReturnView(false)}
-      />
+const handleRazorpayPayment = () => {
+  if (!selectedAddress) {
+    toast.error("Select an address first");
+    return;
+  }
 
-      <div className="relative z-50 w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200">
-        <div className="p-6 border-b border-gray-100 flex items-center gap-3 bg-gray-50/50">
-          <div className="p-2 bg-purple-100 rounded-lg text-purple-600">
-            <RefreshCw size={20} />
-          </div>
-          <h2 className="text-lg font-bold text-gray-900">
-            Return Request
-          </h2>
-        </div>
+  const amount = Number(finalTotal);
 
-        <div className="p-6">
-          <form
-            onSubmit={handleSubmit((data) =>
-              onSubmit(data, returnModalOrderId, returnModalItemId)
-            )}
-            className="space-y-4"
-          >
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Reason for return
-              </label>
-              <textarea
-                placeholder="Please describe why you are returning this item..."
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 resize-none text-sm"
-                {...register("returnReason", {
-                  required: "Please provide a reason",
-                })}
-              />
-              {errors.returnReason && (
-                <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
-                  <AlertCircle size={12} />
-                  {errors.returnReason.message}
-                </p>
-              )}
-            </div>
+  const cleanedFinalItems = finalItems.map((item) => ({
+    productID: item.productId?._id,
+    variantID: item.variantId?._id,
+    vendorID: item.productId?.vendorID,
+    quantity: item.quantity,
+    sizeLabel: item.sizeLabel,
+    price: item.finalPrice,
+  }));
 
-            <div className="flex gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => setReturnView(false)}
-                className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                Cancel
-              </button>
+  const orderPayload = {
+    addressID: selectedAddress,
+    orderedItems: cleanedFinalItems,
+    paymentMethod: "Razorpay",
+    totalPrice: subtotal,
+    discount,
+    finalAmount: finalTotal,
+    couponCode: passcoupon || null,
+  };
 
-              <button
-                type="submit"
-                className="flex-1 px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors shadow-sm"
-              >
-                Submit Request
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-)}
+  createRazorpayOrder(
+    { amount, orderPayload },
+    {
+      onSuccess: (data) => {
+        const options = {
+          key: import.meta.env.VITE_RAZORPAY_KEY_ID,
+          amount: data.amount,
+          currency: "INR",
+          order_id: data.razorpayOrderId,
+          name: "Muscle X",
+          description: "Order Payment",
+
+          handler: function (response) {
+            verifyPayment(
+              {
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                orderPayload,
+              },
+              {
+                onSuccess: (res) => {
+                  toast.success("Payment Successful!");
+                  navigate(`/user/ordersuccess/${res.order._id}`, {
+                    replace: true,
+                  });
+                },
+                onError: () => {
+                  navigate(`/user/orderfailed/${data.tempOrderId}`, {
+                    replace: true,
+                  });
+                },
+              }
+            );
+          },
+
+          theme: { color: "#8B5CF6" },
+        };
+
+        const rzp = new window.Razorpay(options);
+
+        // REAL FAIL HANDLER
+        rzp.on("payment.failed", () => {
+          rzp.close();
+          navigate(`/user/orderfailed/${data.tempOrderId}`, {
+            replace: true,
+          });
+        });
+
+        rzp.open();
+      },
+
+      onError: () => toast.error("Failed to initialize payment"),
+    }
+  );
+};

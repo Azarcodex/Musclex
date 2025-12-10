@@ -182,6 +182,7 @@ export default function ProductListCard({ data }) {
       {
         onSuccess: () => {
           queryClient.invalidateQueries(["wishList"]);
+          toast.success("addes to wishList");
         },
       }
     );

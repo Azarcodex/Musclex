@@ -117,6 +117,7 @@ export const salesReport = async (req, res) => {
       {
         $project: {
           _id: 0,
+          rowKey: { $toString: "$orderedItems._id" },
           orderId: "$_id",
           orderDate: "$createdAt",
           customerName: "$customer.name",

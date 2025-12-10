@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Package, TrendingUp, DollarSign, ShoppingCart } from "lucide-react";
+import { Package, TrendingUp, DollarSign, ShoppingCart, TrendingDown } from "lucide-react";
 // Assuming this hook fetches the data structure you provided based on page and filter
 import { useGetSalesReport } from "../../hooks/vendor/useGetSalesReport";
 import api from "../../api/axios";
@@ -56,11 +56,11 @@ export default function SalesReport() {
   };
 
   const { data } = useGetSalesReport(page, filter);
-  // console.log(data);
+  console.log(data);
 
-  // --- Calculations (Adjusted for JSON structure) ---
   // Using totalVendorEarning as the final revenue for the vendor
   const totalRevenue = data?.summary?.totalVendorEarning || 0;
+  const totalDiscount = data?.summary?.totalCouponDiscount;
   const totalProducts = data?.summary?.totalQty || 0;
   // Total orders is the number of items in the current page's array
   const totalOrders = data?.pagination?.totalItems || 0;
@@ -175,7 +175,7 @@ export default function SalesReport() {
         </p>
 
         {/* --- Stats Cards --- */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
           {/* Total Revenue Card */}
           <div className="bg-white rounded-xl shadow-lg p-6 border border-slate-200 hover:shadow-xl transition-shadow duration-300">
             <div className="flex items-start justify-between mb-4">
@@ -233,6 +233,21 @@ export default function SalesReport() {
             </p>
             <p className="text-3xl font-extrabold text-slate-800">
               {formatCurrency(avgOrderValue)}
+            </p>
+          </div>
+
+          {/*total discount */}
+          <div className="bg-white rounded-xl shadow-lg p-6 border border-slate-200 hover:shadow-xl transition-shadow duration-300">
+            <div className="flex items-start justify-between mb-4">
+              <div className="p-3 bg-orange-100 rounded-lg">
+                <TrendingDown className="w-6 h-6 text-orange-600" />
+              </div>
+            </div>
+            <p className="text-slate-600 text-sm mb-1 font-medium">
+              Discount
+            </p>
+            <p className="text-3xl font-extrabold text-slate-800">
+              {formatCurrency(totalDiscount)}
             </p>
           </div>
         </div>
@@ -342,7 +357,7 @@ export default function SalesReport() {
 
                     return (
                       <tr
-                        key={order.orderId || index}
+                        key={order.rowKey}
                         className="hover:bg-slate-50 transition-colors"
                       >
                         <td className="px-6 py-4 text-sm font-medium text-slate-900">

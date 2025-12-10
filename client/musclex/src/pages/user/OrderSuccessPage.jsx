@@ -8,7 +8,6 @@ export default function OrderSuccessPage() {
   const navigate = useNavigate();
   const { data: orderSummary } = useGetOrderSummary(id);
   console.log(orderSummary);
-  console.log(orderSummary);
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString("en-US", {
@@ -41,11 +40,30 @@ export default function OrderSuccessPage() {
             Your order is placed
           </h1>
           <h2 className=" text-center">
-            <span className="text-purple-500 text-sm">orderId:</span>
+            <span className="text-purple-500 text-sm">orderID:</span>
             <span className="text-pink-600 text-sm ml-1">
               {orderSummary?.result?.orderId}
             </span>
           </h2>
+          {orderSummary?.result?.razorpayOrderId && (
+            <h2 className=" text-center">
+              <span className="text-purple-500 text-sm">razorpayOrderId:</span>
+              <span className="text-pink-600 text-sm ml-1">
+                {orderSummary?.result?.razorpayOrderId}
+              </span>
+            </h2>
+          )}
+          {orderSummary?.result?.razorpayPaymentId && (
+            <h2 className=" text-center">
+              <span className="text-purple-500 text-sm">
+                razorpayPaymentId:
+              </span>
+              <span className="text-pink-600 text-sm ml-1">
+                {orderSummary?.result?.razorpayPaymentId}
+              </span>
+            </h2>
+          )}
+
           {/* Subtext */}
           <p className="text-gray-600 text-sm mb-6">
             Thank you for your payment.

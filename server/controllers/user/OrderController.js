@@ -281,6 +281,8 @@ export const orderSummary = async (req, res) => {
       orderId: orderDetails.orderId,
       user: user.email,
       expectedDelivery: orderDetails?.expectedDelivery,
+      razorpayOrderId: orderDetails?.razorpayOrderId,
+      razorpayPaymentId: orderDetails?.razorpayPaymentId,
     };
     res.status(200).json({ success: true, result: response });
   } catch (error) {

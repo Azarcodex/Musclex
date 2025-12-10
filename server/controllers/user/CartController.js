@@ -65,7 +65,14 @@ export const AddCartFromWishList = async (req, res) => {
     if (existing) {
       return res.status(200).json({ message: "Item is already in cart" });
     } else {
-      await Cart.create({ userId, productId, variantId, price, sizeLabel });
+      await Cart.create({
+        userId,
+        productId,
+        variantId,
+        price,
+        sizeLabel,
+        fromWishList: true,
+      });
       await Wishlist.deleteOne({
         userId: userId,
         productId: productId,
@@ -236,16 +243,52 @@ export const removeFromCart = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user._id;
-    const cart = await Cart.findOneAndDelete({ _id: id, userId: userId });
-    if (!cart) {
-      return res.status(404).json({ message: "item not found" });
+
+    // Find the cart item (to check origin)
+    const cartItem = await Cart.findOne({ _id: id, userId });
+    if (!cartItem) {
+      return res.status(404).json({ message: "Item not found" });
     }
-    res.status(200).json({ success: true, message: "Deleted successfully" });
+
+    const { productId, variantId, sizeLabel, fromWishList } = cartItem;
+
+    // Delete from cart
+    await Cart.deleteOne({ _id: id, userId });
+
+    if (fromWishList) {
+      const exists = await Wishlist.findOne({
+        userId,
+        productId,
+        variantId,
+        sizeLabel,
+      });
+
+      if (!exists) {
+        await Wishlist.create({
+          userId,
+          productId,
+          variantId,
+          sizeLabel,
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: "Moved back to wishlist",
+      });
+    }
+
+    // Normal cart item → just remove
+    return res.status(200).json({
+      success: true,
+      message: "Cart item removed",
+    });
   } catch (e) {
     console.log(e);
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
 //quantity
 export const QuantityChange = async (req, res) => {
   try {

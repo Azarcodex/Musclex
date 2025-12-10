@@ -40,7 +40,7 @@ export default function UserPanel() {
     { icon: User, label: "My Profile", link: "profile" },
     { icon: MapPin, label: "Address", link: "address" },
     { icon: ShoppingBag, label: "My Orders", link: "/user/orders" },
-    { icon: Heart, label: "My Wishlist", link: "wishlist" },
+    { icon: Heart, label: "My Wishlist", link: "/user/wishlist" },
     { icon: Wallet, label: "My Wallet", link: "wallet" },
     { icon: Gift, label: "Referrals", link: "referral" },
     { icon: LogOut, label: "Logout" },

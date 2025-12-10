@@ -464,29 +464,30 @@ export default function VendorOrders() {
                                     >
                                       {item.status}
                                     </span>
-                                    {item.status === "Cancelled" && (
-                                      <div className="flex items-center flex-col gap-4">
-                                        <button
-                                          className="text-xs text-purple-500 hover:underline"
-                                          onClick={() =>
-                                            setShowCancelReason(
-                                              (prevShowCancelReason) =>
-                                                !prevShowCancelReason
-                                            )
-                                          }
-                                        >
-                                          {showCancelReason
-                                            ? "hide reason"
-                                            : "show reason"}
-                                        </button>
-                                        {showCancelReason &&
-                                          item.cancelReason && (
-                                            <span className="text-xs text-gray-700 p-2 border border-gray-200 rounded">
-                                              Reason: {item.cancelReason}
-                                            </span>
-                                          )}
-                                      </div>
-                                    )}
+                                    {item.status === "Cancelled" &&
+                                      item.cancelReason && (
+                                        <div className="flex items-center flex-col gap-4">
+                                          <button
+                                            className="text-xs text-purple-500 hover:underline"
+                                            onClick={() =>
+                                              setShowCancelReason(
+                                                (prevShowCancelReason) =>
+                                                  !prevShowCancelReason
+                                              )
+                                            }
+                                          >
+                                            {showCancelReason
+                                              ? "hide reason"
+                                              : "show reason"}
+                                          </button>
+                                          {showCancelReason &&
+                                            item.cancelReason && (
+                                              <span className="text-xs text-gray-700 p-2 border border-gray-200 rounded">
+                                                Reason: {item.cancelReason}
+                                              </span>
+                                            )}
+                                        </div>
+                                      )}
                                     {item.status !== "Cancelled" &&
                                       item.status !== "Returned" &&
                                       order.orderStatus !== "Cancelled" && (

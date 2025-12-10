@@ -29,6 +29,10 @@ const cartSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
+    fromWishList: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );

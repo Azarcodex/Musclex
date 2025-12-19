@@ -232,7 +232,7 @@ export const verifyRetryPayment = async (req, res) => {
         commissionPercent,
       });
     }
-
+    await newOrder.save();
     // ---------------------------------------------
     // 9) CLEAR CART (only for cart checkout)
     // ---------------------------------------------

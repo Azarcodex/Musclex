@@ -11,10 +11,10 @@ export const useUserLogin = () => {
   return useMutation({
     mutationFn: loginUser,
     onSuccess: (data) => {
-      console.log(data)
       if (data?.token) {
         setAuthtoken(data?.token);
         dispatch(setUserAuthToken(data?.token));
+        toast.success(data.message);
         navigate("/");
       }
     },

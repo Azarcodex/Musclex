@@ -31,3 +31,18 @@ export const toggleProductStatus = async (req, res) => {
     });
   }
 };
+
+export const ControlProductFeature = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const product = await Product.findById(id);
+    if (!product) {
+      return res.status(400).json({ message: "Product not found" });
+    }
+    product.isFeatured = !product.isFeatured;
+    await product.save();
+    res.status(200).json({ message: "updated successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Internal server Error" });
+  }
+};

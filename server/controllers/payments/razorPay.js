@@ -60,13 +60,6 @@ export const verifyRazorpayPayment = async (req, res) => {
       orderPayload,
     } = req.body;
 
-    // console.log("Incoming verify payload:", {
-    //   razorpay_order_id,
-    //   razorpay_payment_id,
-    //   razorpay_signature,
-    //   orderPayload,
-    // });
-
     if (!orderPayload) {
       return res.status(400).json({
         success: false,
@@ -105,6 +98,8 @@ export const verifyRazorpayPayment = async (req, res) => {
       quantity: item.quantity,
       price: item.price,
       sizeLabel: item.sizeLabel,
+      brandID: item.brandID,
+      categoryID: item.categoryID,
     }));
 
     // 4️ VALIDATE STOCK AND PREPARE ORDERED ITEMS
@@ -133,6 +128,8 @@ export const verifyRazorpayPayment = async (req, res) => {
         productID: item.productId,
         variantID: item.variantId,
         vendorID: item.vendorId,
+        brandID: item.brandID,
+        categoryID: item.categoryID,
         quantity: item.quantity,
         price: item.price,
         sizeLabel: item.sizeLabel,
@@ -239,6 +236,13 @@ export const verifyRazorpayPayment = async (req, res) => {
       razorpaySignature: razorpay_signature,
     });
 
+    //delete the tempOrder
+
+    await TempOrder.findOneAndDelete({
+      userID,
+      razorpayOrderId: razorpay_order_id,
+    });
+
     // ------------------------------------------------
     // 9️ VENDOR CREDIT + ADMIN COMMISSION DISTRIBUTION
     // ------------------------------------------------
@@ -263,23 +267,24 @@ export const verifyRazorpayPayment = async (req, res) => {
     for (const item of newOrder.orderedItems) {
       const itemTotal = item.price * item.quantity;
 
-      // distribute coupon discount proportionally
-      const proportionalDiscount = (itemTotal / subtotal) * totalDiscount;
+      const proportionalDiscount = Math.round(
+        (itemTotal / subtotal) * totalDiscount
+      );
 
-      // vendor receives after discount
-      const receivableAfterDiscount = itemTotal - proportionalDiscount;
+      const discountPerItem = Math.round(proportionalDiscount / item.quantity);
 
-      // vendor final credited amount
-      const vendorReceivable = receivableAfterDiscount;
+      item.discountPerItem = discountPerItem;
+      item.finalItemPrice = itemTotal - proportionalDiscount;
 
-      // CREDIT VENDOR WALLET
       await creditVendorForOrder({
         vendorId: item.vendorID,
         orderId: newOrder._id,
-        amount: vendorReceivable,
+        amount: item.finalItemPrice,
         commissionPercent,
       });
     }
+
+    await newOrder.save();
 
     // 1️ CLEAR CART ONLY ON FIRST SUCCESS PAYMENT
     await Cart.deleteMany({ userId: userID });

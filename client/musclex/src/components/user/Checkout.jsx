@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { MapPin, Plus, CreditCard, Wallet, ShoppingBag } from "lucide-react";
 import { useGetCheckout } from "../../hooks/users/useGetCheckout";
 import { useOrder } from "../../hooks/users/useOrder";
@@ -30,11 +30,63 @@ export default function Checkout() {
   const [finalTotal, setFinalTotal] = useState(0);
 
   const { data: checkoutItems, isLoading } = useGetCheckout();
+  // console.log(checkoutItems);
+  // console.log(checkoutItems?.canPlaceOrder);
+
   const { mutate: placeOrder, isLoading: placingOrder } = useOrder();
   const { mutate: applyCouponFn, isLoading: applyingCoupon } = useApplyCoupon();
+
+  //disbaling logic
+
+  const COD_LIMIT = checkoutItems?.orderLimit ?? 1000;
+
+  const isCODAllowed = finalTotal <= COD_LIMIT;
+
+  // const isDisabled = placingOrder || !canPlaceOrderFinal;
+  // const disabledTitle = !canPlaceOrderFinal
+  //   ? `Order value exceeds
+  //             ₹${checkoutItems?.orderLimit ?? 1000}`
+  //   : "";
+
+  console.log("💚💚💚" + finalTotal);
   //razorpay
   const { mutate: createRazorpayOrder } = useCreateRazorpayOrder();
   const { mutate: verifyPayment } = useVerifyRazorpayPayment();
+  const rzpRef = useRef(null);
+  const [paymentInProgress, setPaymentInProgress] = useState(false);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden || document.visibilityState === "hidden") {
+        try {
+          rzpRef.current?.close();
+        } catch (e) {}
+        rzpRef.current = null;
+        setPaymentInProgress(false);
+      }
+    };
+
+    const handleBlur = () => {
+      try {
+        rzpRef.current?.close();
+      } catch (e) {}
+      rzpRef.current = null;
+      setPaymentInProgress(false);
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("blur", handleBlur);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("blur", handleBlur);
+      try {
+        rzpRef.current?.close();
+      } catch (e) {}
+      rzpRef.current = null;
+      setPaymentInProgress(false);
+    };
+  }, []);
   const addresses = checkoutItems?.addresses || [];
   const cartItems = checkoutItems?.checkOutItems || [];
   const cartTotal = checkoutItems?.total ?? 0;
@@ -55,7 +107,6 @@ export default function Checkout() {
   } else {
     finalItems = cartItems || [];
   }
-  console.log("➕➕➕💗" + JSON.stringify(cartItems));
 
   useEffect(() => {
     if (defaultAddress) {
@@ -116,82 +167,12 @@ export default function Checkout() {
       },
     });
   };
-  //razorpay integration
-  // const handleRazorpayPayment = () => {
-  //   if (!selectedAddress) {
-  //     toast.error("Select an address first");
-  //     return;
-  //   }
-
-  //   const amount = Number(finalTotal);
-
-  //   // Build order payload for database
-  //   const cleanedFinalItems = finalItems.map((item) => ({
-  //     productID: item.productId?._id,
-  //     variantID: item.variantId?._id,
-  //     vendorID: item.productId?.vendorID,
-  //     quantity: item.quantity,
-  //     sizeLabel: item.sizeLabel,
-  //     price: item.finalPrice,
-  //   }));
-
-  //   const orderPayload = {
-  //     addressID: selectedAddress,
-  //     orderedItems: cleanedFinalItems,
-  //     paymentMethod: "Razorpay",
-  //     totalPrice: subtotal, // before discount
-  //     discount: discount,
-  //     finalAmount: finalTotal,
-  //     couponCode: passcoupon || null,
-  //   };
-  //   // console.log(orderPayload);
-  //   // 1️ Create Razorpay Order
-  //   createRazorpayOrder(amount, {
-  //     onSuccess: (order) => {
-  //       const options = {
-  //         key: import.meta.env.VITE_RAZORPAY_KEY_ID,
-  //         amount: amount * 100,
-  //         currency: "INR",
-  //         order_id: order.orderId,
-  //         name: "Muscle X",
-  //         description: "Order Payment",
-  //         handler: function (response) {
-  //           // 2️ Verify Payment
-  //           verifyPayment(
-  //             {
-  //               razorpay_order_id: response.razorpay_order_id,
-  //               razorpay_payment_id: response.razorpay_payment_id,
-  //               razorpay_signature: response.razorpay_signature,
-  //               orderPayload,
-  //             },
-  //             {
-  //               onSuccess: (res) => {
-  //                 toast.success("Payment Successful!");
-  //                 navigate(`/user/ordersuccess/${res.order._id}`);
-  //               },
-  //               onError: (err) => {
-  //                 toast.error(err.response.data.message);
-  //               },
-  //             }
-  //           );
-  //         },
-  //         prefill: {
-  //           name: checkoutItems?.user?.name || "",
-  //           email: checkoutItems?.user?.email || "",
-  //           contact: checkoutItems?.user?.phone || "",
-  //         },
-  //         theme: { color: "#8B5CF6" },
-  //       };
-
-  //       const rzp = new window.Razorpay(options);
-  //       rzp.open();
-  //     },
-
-  //     onError: () => toast.error("Failed to initialize payment"),
-  //   });
-  // };
 
   const handleRazorpayPayment = () => {
+    if (paymentInProgress) {
+      toast.error("A payment is already in progress");
+      return;
+    }
     if (!selectedAddress) {
       toast.error("Select an address first");
       return;
@@ -202,6 +183,8 @@ export default function Checkout() {
       productID: item.productId?._id,
       variantID: item.variantId?._id,
       vendorID: item.productId?.vendorID,
+      categoryID: item?.productId?.catgid?._id,
+      brandID: item?.productId?.brandID?._id,
       quantity: item.quantity,
       sizeLabel: item.sizeLabel,
       price: item.finalPrice,
@@ -237,16 +220,26 @@ export default function Checkout() {
                   razorpay_order_id: response.razorpay_order_id,
                   razorpay_payment_id: response.razorpay_payment_id,
                   razorpay_signature: response.razorpay_signature,
-                  orderPayload, // IMPORTANT
+                  orderPayload,
                 },
                 {
                   onSuccess: (res) => {
+                    try {
+                      rzpRef.current?.close();
+                    } catch (e) {}
+                    rzpRef.current = null;
+                    setPaymentInProgress(false);
                     toast.success("Payment Successful!");
                     navigate(`/user/ordersuccess/${res.order._id}`, {
                       replace: true,
                     });
                   },
                   onError: (err) => {
+                    try {
+                      rzpRef.current?.close();
+                    } catch (e) {}
+                    rzpRef.current = null;
+                    setPaymentInProgress(false);
                     console.log(err);
                     navigate(`/user/orderfailed/${data.tempOrderId}`, {
                       replace: true,
@@ -256,20 +249,17 @@ export default function Checkout() {
               );
             },
             theme: { color: "#8B5CF6" },
-
-            // config: {
-            //   display: {
-            //     retry: {
-            //       enabled: false,
-            //       max_count: 0,
-            //     },
-            //   },
-            // },
           };
 
           const rzp = new window.Razorpay(options);
+          rzpRef.current = rzp;
+          setPaymentInProgress(true);
           rzp.on("payment.failed", function () {
-            rzp.close();
+            try {
+              rzpRef.current?.close();
+            } catch (e) {}
+            rzpRef.current = null;
+            setPaymentInProgress(false);
             navigate(`/user/orderfailed/${data.tempOrderId}`, {
               replace: true,
             });
@@ -449,19 +439,7 @@ export default function Checkout() {
               >
                 View Coupons
               </button>
-              {/* <Modal
-                isOpen={isOpen}
-                onRequestClose={() => setIsOpen(false)}
-                contentLabel="Example Modal"
-                style={{
-                  content: {
-                    width: "90%",
-                    maxWidth: "720px",
-                    margin: "auto",
-                    padding: "20px",
-                  },
-                }}
-              > */}
+
               {isOpen && (
                 <CouponList
                   coupons={coupons}
@@ -547,21 +525,36 @@ export default function Checkout() {
               <button
                 className="w-full text-[13px] bg-purple-500 hover:bg-purple-600 text-white font-medium py-2 rounded-md flex items-center justify-center gap-2 transition"
                 onClick={handleRazorpayPayment}
-                disabled={placingOrder}
+                disabled={placingOrder || paymentInProgress}
               >
                 <ShoppingBag size={14} />
-                {placingOrder ? "Processing..." : "PAY WITH RAZORPAY"}
+                {placingOrder
+                  ? "Processing..."
+                  : paymentInProgress
+                  ? "Payment in progress..."
+                  : "PAY WITH RAZORPAY"}
               </button>
 
               <button
                 onClick={() => handlePlaceOrder("COD")}
-                className="w-full text-[13px] bg-gray-800 hover:bg-gray-900 text-white font-medium py-2 rounded-md flex items-center justify-center gap-2 transition"
-                disabled={placingOrder}
+                disabled={placingOrder || !isCODAllowed}
+                title={
+                  !isCODAllowed
+                    ? `Cash on Delivery is available only for orders up to ₹${COD_LIMIT}`
+                    : ""
+                }
+                className={`w-full text-[13px] font-medium py-2 rounded-md
+    flex items-center justify-center gap-2 transition
+    ${
+      placingOrder || !isCODAllowed
+        ? "bg-gray-400 cursor-not-allowed"
+        : "bg-gray-800 hover:bg-gray-900 text-white"
+    }
+  `}
               >
                 <CreditCard size={14} />
                 {placingOrder ? "Processing..." : "CASH ON DELIVERY"}
               </button>
-
               <button
                 onClick={() => handlePlaceOrder("Wallet")}
                 className="w-full text-[13px] bg-gray-800 hover:bg-gray-900 text-white font-medium py-2 rounded-md flex items-center justify-center gap-2 transition"

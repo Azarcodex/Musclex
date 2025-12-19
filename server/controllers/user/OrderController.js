@@ -45,7 +45,7 @@ export const OrderController = async (req, res) => {
       finalItems = items;
     } else {
       finalItems = await Cart.find({ userId })
-        .populate("productId", "name vendorID")
+        .populate("productId", "name vendorID brandID catgid")
         .populate("variantId", "size flavour images");
 
       if (!finalItems.length) {
@@ -76,13 +76,15 @@ export const OrderController = async (req, res) => {
       }
 
       // Deduct stock
-      sizeObj.stock -= item.quantity;
-      await variant.save();
+      // sizeObj.stock -= item.quantity;
+      // await variant.save();
 
       tempItems.push({
         productID: item.productId._id,
         variantID: item.variantId._id,
         vendorID: item.productId.vendorID,
+        categoryID: item.productId.catgid._id,
+        brandID: item.productId.brandID._id,
         quantity: item.quantity,
         price: item.finalPrice,
         sizeLabel: item.sizeLabel,
@@ -147,19 +149,19 @@ export const OrderController = async (req, res) => {
       }
 
       // Update coupon usage
-      coupon.usageCount += 1;
-      await coupon.save();
+      // coupon.usageCount += 1;
+      // await coupon.save();
 
-      if (usage) {
-        usage.count += 1;
-        await usage.save();
-      } else {
-        await couponUsuage.create({
-          couponId: coupon._id,
-          userId,
-          count: 1,
-        });
-      }
+      // if (usage) {
+      //   usage.count += 1;
+      //   await usage.save();
+      // } else {
+      //   await couponUsuage.create({
+      //     couponId: coupon._id,
+      //     userId,
+      //     count: 1,
+      //   });
+      // }
     }
 
     // -----------------------------------------
@@ -185,6 +187,12 @@ export const OrderController = async (req, res) => {
     // FINAL AMOUNT
     // -----------------------------------------
     const finalAmount = Math.max(subtotal - discount, 0);
+
+    if (paymentMethod === "COD" && finalAmount > 1000) {
+      return res.status(400).json({
+        message: "Cash on Delivery is not available for orders above ₹1000",
+      });
+    }
 
     const expectedDelivery = new Date();
     expectedDelivery.setDate(expectedDelivery.getDate() + 5);
@@ -230,6 +238,32 @@ export const OrderController = async (req, res) => {
       orderStatus: "Pending",
       expectedDelivery,
     });
+
+    //coupon user mnagement
+
+    if (couponCode) {
+      const coupon = await Coupon.findOne({ code: couponCode });
+      await Coupon.findByIdAndUpdate(coupon._id, {
+        $inc: { usageCount: 1 },
+      });
+
+      await couponUsuage.findOneAndUpdate(
+        { couponId: coupon._id, userId },
+        { $inc: { count: 1 } },
+        { upsert: true }
+      );
+    }
+
+    //validating variant
+    for (const item of orderedItems) {
+      const variant = await Variant.findById(item.variantID);
+      const sizeObj = variant.size.find((s) => s.label === item.sizeLabel);
+      if (!sizeObj || sizeObj.stock < item.quantity) {
+        throw new Error("Stock inconsistency detected");
+      }
+      sizeObj.stock -= item.quantity;
+      await variant.save();
+    }
 
     // CAPTURE WALLET HOLD
     if (paymentMethod === "Wallet") {
@@ -560,12 +594,18 @@ export const cancelProductOrder = async (req, res) => {
           0
         );
 
-        // proportional discount share
-        const itemDiscountShare =
-          (itemTotal / totalOrderItemsAmount) * order.discount;
+        if (totalOrderItemsAmount > 0) {
+          let itemDiscountShare =
+            (itemTotal / totalOrderItemsAmount) * order.discount;
 
-        refundAmt = itemTotal - itemDiscountShare;
-        refundAmt = Math.max(Math.floor(refundAmt), 0);
+          //  FIX: discount cannot exceed item total
+          itemDiscountShare = Math.min(itemDiscountShare, itemTotal);
+
+          refundAmt = itemTotal - itemDiscountShare;
+        } else {
+          refundAmt = 0;
+        }
+        refundAmt = Math.floor(refundAmt);
       }
 
       // Deposit refund into wallet

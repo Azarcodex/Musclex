@@ -1,252 +1,204 @@
 import React, { useState } from "react";
-import { usegetCategories } from "../../hooks/users/usegetCategories";
-import DataTable from "../../components/utils/Table";
-import {
-  Eye,
-  EyeClosed,
-  EyeIcon,
-  EyeOff,
-  EyeOffIcon,
-  LucideEye,
-  LucideEyeClosed,
-  Pencil,
-  PlusSquare,
-  Trash,
-  X,
-} from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, EyeOff, X } from "lucide-react";
 import { useForm } from "react-hook-form";
-import { useAddCategory } from "../../hooks/vendor/useAddCategory";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
-import { useEditCategory } from "../../hooks/vendor/useEditCategory";
+
 import { confirm } from "../../components/utils/Confirmation";
-import { usecategoryvisibility } from "../../hooks/admin/usecategoryvisibility";
-// import { categoryController } from "../../services/admin/adminService";
 import { usegetAllCategory } from "../../hooks/admin/useGetAllCategory";
+import { useAddCategory } from "../../hooks/vendor/useAddCategory";
+import { useEditCategory } from "../../hooks/vendor/useEditCategory";
 import { useDeleteCategory } from "../../hooks/vendor/useDeleteCategory";
+import { usecategoryvisibility } from "../../hooks/admin/usecategoryvisibility";
 
 const Category = () => {
   const { data } = usegetAllCategory();
-  console.log(data);
-  const [modelOpen, setModelOpen] = useState(false);
-  const [editItem, setEditItem] = useState("");
-  const {
-    register,
-    handleSubmit,
-    reset,
-    setValue,
-    formState: { errors },
-  } = useForm();
-  const { mutate } = useAddCategory();
-  const { mutate: Editing } = useEditCategory();
-  const { mutate: visibility } = usecategoryvisibility();
+  const categories = data?.category || [];
+
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editItem, setEditItem] = useState(null);
+
+  const { register, handleSubmit, reset } = useForm();
+  const queryClient = useQueryClient();
+
+  const { mutate: addCategory } = useAddCategory();
+  const { mutate: editCategory } = useEditCategory();
   const { mutate: deleteCategory } = useDeleteCategory();
-  const querClient = useQueryClient();
-  const onSubmit = (data) => {
-    mutate(data, {
-      onSuccess: (data) => {
-        setModelOpen(false);
-        toast.success(`${data.message}`);
-        querClient.invalidateQueries(["category"]);
-        reset();
+  const { mutate: toggleVisibility } = usecategoryvisibility();
+
+  // ---------- HANDLERS ----------
+
+  const openAddModal = () => {
+    reset({ catgName: "" });
+    setEditItem(null);
+    setModalOpen(true);
+  };
+
+  const openEditModal = (category) => {
+    reset({ catgName: category.catgName });
+    setEditItem(category);
+    setModalOpen(true);
+  };
+
+  const closeModal = () => {
+    reset();
+    setEditItem(null);
+    setModalOpen(false);
+  };
+
+  const handleAdd = (formData) => {
+    addCategory(formData, {
+      onSuccess: (res) => {
+        toast.success(res.message);
+        queryClient.invalidateQueries(["category"]);
+        closeModal();
       },
-      onError: (err) => {
-        console.log(err);
-        toast.error(`${err.response.data.message}`);
-      },
+      onError: (err) => toast.error(err.response?.data?.message || "Error"),
     });
   };
-  const HandleEdit = (row) => {
-    setModelOpen(true);
-    setEditItem(row);
-    // setValue("catgName" + row.catgName);
-    reset({ catgName: row.catgName });
-    // reset({ catgName: row.catgName });
-  };
-  const HandleDelete = async (id) => {
-    const wait = await confirm({ message: "Are you sure you want to delete" });
-    if (wait) {
-      deleteCategory(
-        { id: id },
-        {
-          onSuccess: (data) => {
-            toast.message(`${data.message}`);
-            querClient.invalidateQueries(["category"]);
-          },
-          onError: (err) => {
-            toast.error(`${err.response.data.message}`);
-          },
-        }
-      );
-    }
-  };
-  const HandleVisibility = async (id) => {
-    const wait = await confirm({ message: "Do you want to make changes" });
-    if (wait) {
-      visibility(
-        { id: id },
-        {
-          onSuccess: (data) => {
-            toast.message(`${data.message}`);
-            querClient.invalidateQueries(["category"]);
-          },
-          onError: (err) => {
-            toast.error(`${err.response.data.message}`);
-          },
-        }
-      );
-    }
-  };
-  const onSubmitEdit = (formData) => {
-    Editing(
-      { id: editItem._id, data: { catgName: formData.catgName } },
+
+  const handleEdit = (formData) => {
+    editCategory(
+      { id: editItem._id, data: formData },
       {
-        onSuccess: (values) => {
-          setEditItem("");
-          setModelOpen(false);
-          toast.success(`${values.message}`);
-          querClient.invalidateQueries(["category"]);
-          reset();
+        onSuccess: (res) => {
+          toast.success(res.message);
+          queryClient.invalidateQueries(["category"]);
+          closeModal();
         },
-        onError: (err) => {
-          toast.error(`${err.response.data.message}`);
-        },
+        onError: (err) => toast.error(err.response?.data?.message || "Error"),
       }
     );
   };
-  const columns = [
-    { header: "#", cell: (info) => info.row.index + 1 },
-    { header: "categoryName", accessorKey: "catgName" },
-    { header: "TotalProducts", accessorKey: "totalCount" },
-    {
-      header: "Date",
-      cell: (info) => {
-        const createdAt = info.row.original?.createdAt;
-        if (!createdAt) return "N/A";
 
-        const date = new Date(createdAt);
-        if (isNaN(date)) return "Invalid Date";
+  const handleDelete = async (id) => {
+    const ok = await confirm({ message: "Delete this category?" });
+    if (!ok) return;
 
-        return date.toLocaleDateString("en-IN", {
-          year: "numeric",
-          month: "short",
-          day: "numeric",
-        });
-      },
-    },
-    {
-      header: "Actions",
-      cell: (info) => {
-        const row = info.row.original;
-        console.log(row)
-        return (
-          <div className="flex items-center justify-evenly">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                HandleEdit(row);
-              }}
-            >
-              <Pencil className="w-4 h-4 text-purple-900" />
-            </button>
-            <button onClick={() => HandleVisibility(row._id)}>
-              {row.isActive ? (
-                <EyeIcon className="w-4 h-4 text-green-500" />
-              ) : (
-                <EyeOffIcon className="w-4 h-4 text-red-800" />
-              )}
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                HandleDelete(row._id);
-              }}
-            >
-              <Trash className="w-4 h-4" />
-            </button>
-          </div>
-        );
-      },
-    },
-  ];
+    deleteCategory(
+      { id },
+      {
+        onSuccess: (res) => {
+          toast.success(res.message);
+          queryClient.invalidateQueries(["category"]);
+        },
+        onError: (err) => toast.error(err.response?.data?.message || "Error"),
+      }
+    );
+  };
+
+  const handleVisibility = async (id) => {
+    const ok = await confirm({ message: "Change category visibility?" });
+    if (!ok) return;
+
+    toggleVisibility(
+      { id },
+      {
+        onSuccess: (res) => {
+          toast.success(res.message);
+          queryClient.invalidateQueries(["category"]);
+        },
+        onError: (err) => toast.error(err.response?.data?.message || "Error"),
+      }
+    );
+  };
+
+  // ---------- JSX ----------
+
   return (
-    <div>
-      <div className={`relative h-full ${modelOpen ? "blur-3xl" : ""}`}>
-        <div className="place-self-end">
-          <button
-            onClick={() => {
-              reset({ catgName: "" });
-              setEditItem("");
-              setModelOpen(true);
-            }}
-            className="font-semibold rounded-md flex items-center border-2 px-1 py-2 bg-purple-600 text-white border-purple-600 hover:bg-purple-400"
-          >
-            add category
-            <PlusSquare className="text-white w-8 h-8" />
-          </button>
-        </div>
-        <DataTable columns={columns} data={data?.category} />
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold">Categories</h1>
+        <button
+          onClick={openAddModal}
+          className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700"
+        >
+          <Plus size={18} /> Add Category
+        </button>
       </div>
-      {modelOpen && (
-        <div className="p-10 rounded-md text-white absolute bg-purple-600 max-w-7xl top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-          <h2 className="text-center text-sm font-bold uppercase">
-            {editItem ? "Edit category" : "add category"}
-          </h2>
-          <span className="float-right">
-            <X
-              onClick={() => {
-                setModelOpen(!modelOpen);
-                reset();
-                setEditItem(null);
-              }}
-            />
-          </span>
-          <label className="block text-sm font-semibold text-white mb-2">
-            Category Name <span className="text-red-500">*</span>
-          </label>
-          <input
-            {...register("catgName", {
-              //   minLength: {
-              //     value: 2,
-              //     message: "Category name must be at least 2 characters",
-              //   },
-              //   maxLength: {
-              //     value: 50,
-              //     message: "Category name must not exceed 50 characters",
-              //   },
-            })}
-            type="text"
-            autoComplete="off"
-            placeholder="enter category name"
-            className={`w-full border rounded-lg px-4 py-2 text-md focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all ${
-              errors.name ? "border-purple-500" : "border-gray-300"
-            }`}
-          />
-          {/* {errors.catgName&& (
-            <p className="text-red-500 text-sm mt-2">{errors.catgName.message}</p>
-          )} */}
-          <div className="flex justify-center">
-            {!editItem ? (
-              <button
-                type="button"
-                onClick={handleSubmit(onSubmit)}
-                className="px-2 text-sm py-1.5 mx-auto  mt-3 bg-purple-600 hover:bg-purple-50 border border-white hover:text-black text-white rounded-lg font-semibold transition-colors shadow-sm"
-              >
-                Add Category
-              </button>
+
+      {/* Table */}
+      <div className="bg-white rounded-lg shadow overflow-x-auto">
+        <table className="w-full">
+          <thead className="bg-gray-100">
+            <tr>
+              <th className="p-3 text-left">#</th>
+              <th className="p-3 text-left">Category</th>
+              <th className="p-3 text-left">Products</th>
+              <th className="p-3 text-left">Created</th>
+              <th className="p-3 text-center">Actions</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {categories.length === 0 ? (
+              <tr>
+                <td colSpan="5" className="p-6 text-center text-gray-500">
+                  No categories found
+                </td>
+              </tr>
             ) : (
-              <button
-                type="button"
-                onClick={handleSubmit(onSubmitEdit)}
-                className="px-2 text-sm py-1.5 mx-auto  mt-3 bg-purple-600 hover:bg-purple-50 border border-white hover:text-black text-white rounded-lg font-semibold transition-colors shadow-sm"
-              >
-                save changes
-              </button>
+              categories.map((cat, i) => (
+                <tr key={cat._id} className="border-t hover:bg-gray-50">
+                  <td className="p-3">{i + 1}</td>
+                  <td className="p-3 font-medium">{cat.catgName}</td>
+                  <td className="p-3">{cat.totalCount || 0}</td>
+                  <td className="p-3">
+                    {new Date(cat.createdAt).toLocaleDateString()}
+                  </td>
+                  <td className="p-3 flex justify-center gap-3">
+                    <button onClick={() => openEditModal(cat)}>
+                      <Pencil size={16} className="text-purple-600" />
+                    </button>
+                    <button onClick={() => handleVisibility(cat._id)}>
+                      {cat.isActive ? (
+                        <Eye size={16} className="text-green-600" />
+                      ) : (
+                        <EyeOff size={16} className="text-red-600" />
+                      )}
+                    </button>
+                    <button onClick={() => handleDelete(cat._id)}>
+                      <Trash2 size={16} className="text-red-600" />
+                    </button>
+                  </td>
+                </tr>
+              ))
             )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Modal */}
+      {modalOpen && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white w-full max-w-md rounded-lg p-6 relative">
+            <button onClick={closeModal} className="absolute right-3 top-3">
+              <X />
+            </button>
+
+            <h2 className="text-lg font-bold mb-4">
+              {editItem ? "Edit Category" : "Add Category"}
+            </h2>
+
+            <form
+              onSubmit={handleSubmit(editItem ? handleEdit : handleAdd)}
+              className="space-y-4"
+            >
+              <input
+                {...register("catgName", { required: true })}
+                placeholder="Category name"
+                className="w-full border rounded px-3 py-2"
+              />
+
+              <button
+                type="submit"
+                className="w-full bg-purple-600 text-white py-2 rounded hover:bg-purple-700"
+              >
+                {editItem ? "Save Changes" : "Add Category"}
+              </button>
+            </form>
           </div>
-          <p className="text-sm text-white-500 mt-2">
-            Enter a unique category name for your products
-          </p>
         </div>
       )}
     </div>

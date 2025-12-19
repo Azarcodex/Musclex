@@ -57,6 +57,8 @@ import {
   getAvailableCoupons,
 } from "../controllers/user/couponController.js";
 import { walletDashboard } from "../controllers/user/wallet.js";
+import { homeBannerController } from "../controllers/banners/homebanner.controller.js";
+import { resetPasswordAfterOtp } from "../controllers/user/resetPassword.js";
 const router = express.Router();
 
 router.post("/register", registerUser);
@@ -79,6 +81,10 @@ router.post("/wishList", protectedUser, AuthUser, AddWishList);
 router.delete("/wishList/:id", protectedUser, removeWishList);
 //product listings
 router.get("/product/:productId", productListings);
+
+//reset password
+router.post("/reset", resetPasswordAfterOtp);
+
 //UserPage
 router.get("/userdetail", protectedUser, getUserDetails);
 router.patch("/userEdit", UpdateName);
@@ -138,5 +144,8 @@ router.get("/wallet", protectedUser, walletDashboard);
 
 //order invoice
 router.get("/orders/:orderId", protectedUser, getSingleOrder);
+
+//getting slides
+router.get("/slides", homeBannerController);
 
 export default router;

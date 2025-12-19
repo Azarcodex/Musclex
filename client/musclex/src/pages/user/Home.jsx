@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Navbar } from "../../components/user/Navbar";
 import { HeroSlider } from "../../components/user/HeroSlider";
 import FeaturedProducts from "../../components/user/Features";
-import LatestProducts from "../../components/user/LatestProducts";
+// import LatestProducts from "../../components/user/LatestProducts";
 import MuscleXFeatures from "../../components/user/FeatureCard";
 import BecomeVendor from "../../components/user/BecomeVendor";
 import Footer from "../../components/user/Footer";
@@ -14,7 +14,7 @@ const Home = () => {
       <Navbar />
       <HeroSlider />
       <FeaturedProducts />
-      <LatestProducts />
+      {/* <LatestProducts /> */}
       <MuscleXFeatures />
       <BecomeVendor />
       <Footer />

@@ -82,10 +82,10 @@ export const updateReturnStatusVendor = async (req, res) => {
       const couponDiscount = (item.discountPerItem || 0) * item.quantity;
 
       // FINAL accurate refund
-      const refundAmount = itemTotal - couponDiscount; // <-- CORRECT
+      const refundAmount = itemTotal - couponDiscount; //
 
       if (refundAmount < 0) refundAmount = 0;
-
+      console.log(refundAmount, couponDiscount, item.discountPerItem);
       // Vendor wallet check
       const vendorWallet = await VendorWallet.findOne({ vendorId });
       if (!vendorWallet || vendorWallet.balance < refundAmount) {
@@ -98,7 +98,7 @@ export const updateReturnStatusVendor = async (req, res) => {
       await reversalForOrder({
         vendorId: item.vendorID,
         orderId: order._id,
-        amount: itemTotal,
+        amount: refundAmount,
         commissionPercent: 10,
       });
 

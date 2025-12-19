@@ -31,7 +31,7 @@ function VendorPanel() {
     {
       label: "Dashboard",
       icon: <LayoutDashboard size={20} />,
-      path: "/dashboard",
+      path: "/vendor/dashboard/analysis",
     },
     {
       label: "Products",

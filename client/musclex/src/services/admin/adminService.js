@@ -13,15 +13,15 @@ export const VerifyUsers = async (userId) => {
   return response.data;
 };
 //fetch vendors
-export const fetchVendors = async ({ page, search }) => {
+export const fetchVendors = async ({ page, search, statusFilter }) => {
   const response = await api.get(
-    `/api/admin/getVendors?page=${page}&limit=4&search=${search}`
+    `/api/admin/getVendors?page=${page}&limit=4&search=${search}&status=${statusFilter}`
   );
   return response.data;
 };
 //status control Vendors
 export const UpdateStatusVendors = async ({ vendorId, status }) => {
-  const response = await api.patch(`/api/admin/${vendorId}/status`, { status },);
+  const response = await api.patch(`/api/admin/${vendorId}/status`, { status });
   return response.data;
 };
 //product permission controller
@@ -39,8 +39,10 @@ export const vendorProducts = async ({ page, limit, debounce }) => {
 };
 
 //fetch own vendor products
-export const vendorOwnProducts = async (id) => {
-  const response = await api.get(`/api/admin/vendor/products/${id}`);
+export const vendorOwnProducts = async ({ id, page, debounce }) => {
+  const response = await api.get(
+    `/api/admin/vendor/products/${id}?page=${page}&query=${debounce}`
+  );
   return response.data;
 };
 //category controller

@@ -50,6 +50,7 @@ import {
   toggleVendorOffer,
 } from "../controllers/vendor/offerController.js";
 import { salesReportPdf } from "../controllers/vendor/salesReportPdf.js";
+import { getVendorDashboard } from "../controllers/vendor/dashboard.js";
 const router = express.Router();
 
 router.post("/register", registerVendor);
@@ -112,5 +113,8 @@ router.get("/all-products", VendorProtection, getAllProducts);
 
 //sales report
 router.post("/sales-report/pdf", VendorProtection, salesReportPdf);
+
+//vendorDashbaord
+router.get("/dashboard",VendorProtection,getVendorDashboard)
 
 export default router;

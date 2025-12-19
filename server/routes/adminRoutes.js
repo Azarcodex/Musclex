@@ -38,7 +38,18 @@ import {
   toggleCouponStatus,
   updateCoupon,
 } from "../controllers/admin/couponcontroller.js";
-import { toggleProductStatus } from "../controllers/admin/productControll.js";
+import {
+  ControlProductFeature,
+  toggleProductStatus,
+} from "../controllers/admin/productControll.js";
+import { getDashboard } from "../controllers/admin/adminAnalyticsController.js";
+import {
+  createBanner,
+  deleteBanner,
+  getBanners,
+  updateBanner,
+} from "../controllers/banners/banner.controller.js";
+import { upload } from "../utils/multerConfig.js";
 const router = express.Router();
 
 // register
@@ -96,4 +107,20 @@ router.patch("/coupon/:id", updateCoupon);
 router.patch("/coupon/:id/status", toggleCouponStatus);
 
 router.get("/coupon-usage", Protected, getAllCouponUsage);
+
+//DASHBOARD
+router.get("/dashboard/analytics", Protected, getDashboard);
+
+//Banners
+
+router.post("/banners", Protected, upload.single("image"), createBanner);
+
+router.get("/banners", Protected, getBanners);
+
+router.patch("/banners/:id", Protected, upload.single("image"), updateBanner);
+
+router.delete("/banners/:id", Protected, deleteBanner);
+
+//control product feature
+router.patch("/product/feature/:id", Protected, ControlProductFeature);
 export default router;

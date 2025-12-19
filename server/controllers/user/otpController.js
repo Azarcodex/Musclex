@@ -3,24 +3,25 @@ import User from "../../models/users/user.js";
 import Wallet from "../../models/wallet/walletschema.js";
 import ReferralReward from "../../models/referral/referral.js";
 import WalletLedger from "../../models/wallet/wallerLedger.js";
+import MESSAGES from "../../constants/messages.js";
 export const otpController = async (req, res) => {
   try {
     const { email, otp } = req.body;
     console.log(email, otp);
     if (!email || !otp) {
-      return res.status(400).json({ message: "No email and token" });
+      return res.status(400).json({ message: MESSAGES.NO_EMAIL_AND_TOKEN });
     }
     const pending = await OTP.findOne({ "pendingData.email": email });
     if (!pending) {
-      return res.status(400).json({ message: "no pending registration" });
+      return res.status(400).json({ message: MESSAGES.NO_PENDING_REGISTRATION });
     }
     if (pending.otp !== otp) {
-      return res.status(400).json({ message: "Incorrect OTP" });
+      return res.status(400).json({ message: MESSAGES.INCORRECT_OTP });
     }
     // 3️Expiry check
     if (pending.expiresAt < new Date()) {
       await OTP.deleteOne({ _id: pending._id });
-      return res.status(410).json({ message: "OTP expired" });
+      return res.status(410).json({ message: MESSAGES.OTP_EXPIRED });
     }
     // const verify = await OTP.findOne({ otp: otp });
     // if (!verify) {
@@ -31,7 +32,7 @@ export const otpController = async (req, res) => {
     const exist = await User.findOne({ email: email });
     if (exist) {
       await OTP.deleteOne({ _id: pending._id });
-      return res.status(400).json({ message: "User already exists" });
+      return res.status(400).json({ message: MESSAGES.USER_ALREADY_EXISTS });
     }
     const newUser = await User.create({
       name,
@@ -110,11 +111,11 @@ export const otpController = async (req, res) => {
 
     await OTP.deleteOne({ _id: pending._id });
     return res.status(201).json({
-      message: "Registration complete. User created and verified.",
+      message: MESSAGES.REGISTRATION_COMPLETE,
       user: newUser,
     });
   } catch (error) {
     console.log(error);
-    res.status(500).json({ message: error.error });
+    res.status(500).json({ message: MESSAGES.INTERNAL_SERVER_ERROR });
   }
 };

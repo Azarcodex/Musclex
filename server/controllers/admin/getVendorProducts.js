@@ -1,6 +1,7 @@
 import Product from "../../models/products/Product.js";
 import Vendor from "../../models/vendors/Vendor.js";
-
+import Category from "../../models/products/category.js";
+import Brand from "../../models/products/brand.js";
 export const getVendorProducts = async (req, res) => {
   try {
     const page = parseInt(req.query.page);
@@ -62,24 +63,79 @@ export const getVendorProducts = async (req, res) => {
     res.status(500).json({ success: false, message: "Internal error" });
   }
 };
-//vendor idividual products
-export const fetchVendorProducts = async function (req, res) {
+
+export const fetchVendorProducts = async (req, res) => {
   try {
     const { vendorId } = req.params;
-    // console.log(vendorId);
+    const page = parseInt(req.query.page) || 1;
+    const search = req.query.query || "";
+    const limit = 2;
+    const skip = (page - 1) * limit;
+
+    // Validate vendor
     const vendor = await Vendor.findById(vendorId);
     if (!vendor) {
-      return res.json({ message: "Vendor not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Vendor not found",
+      });
     }
-    const products = await Product.find({ vendorID: vendorId })
+
+    // Base product query
+    const productQuery = {
+      vendorID: vendorId,
+    };
+
+    // SEARCH LOGIC
+    if (search) {
+      // Find matching categories
+      const categories = await Category.find({
+        catgName: { $regex: search, $options: "i" },
+      }).select("_id");
+
+      // Find matching brands
+      const brands = await Brand.find({
+        brand_name: { $regex: search, $options: "i" },
+      }).select("_id");
+
+      const categoryIds = categories.map((c) => c._id);
+      const brandIds = brands.map((b) => b._id);
+
+      productQuery.$or = [
+        { name: { $regex: search, $options: "i" } }, // product name
+        { catgid: { $in: categoryIds } }, // category
+        { brandID: { $in: brandIds } }, // brand
+      ];
+    }
+
+    // Fetch products
+    const products = await Product.find(productQuery)
       .populate("brandID", "brand_name")
-      .populate("catgid", "catgName");
-    res
-      .status(200)
-      .json({ success: true, message: "product fetched", products: products });
+      .populate("catgid", "catgName")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    // Count with same query
+    const totalProducts = await Product.countDocuments(productQuery);
+    const totalPages = Math.ceil(totalProducts / limit);
+
+    res.status(200).json({
+      success: true,
+      message: "Products fetched successfully",
+      products,
+      pagination: {
+        totalProducts,
+        totalPages,
+        currentPage: page,
+        limit,
+      },
+    });
   } catch (err) {
-    res
-      .status(500)
-      .json({ success: false, message: "Internal server error occurred" });
+    console.error("fetchVendorProducts error:", err);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error occurred",
+    });
   }
 };

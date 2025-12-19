@@ -87,6 +87,8 @@ export const verifyRetryPayment = async (req, res) => {
         productID: item.productID,
         variantID: item.variantID,
         vendorID: item.vendorID,
+        categoryID: item.categoryID,
+        brandID: item.brandID,
         quantity: item.quantity,
         price: item.price,
         sizeLabel: item.sizeLabel,
@@ -192,6 +194,12 @@ export const verifyRetryPayment = async (req, res) => {
       razorpaySignature: razorpay_signature,
     });
 
+    //-----------delete the tempOrder--------
+    await TempOrder.findOneAndDelete({
+      userID: userID,
+      razorpayOrderId: razorpay_order_id,
+    });
+
     // ---------------------------------------------
     // 8) CREDIT VENDORS (your commission logic stays same)
     // ---------------------------------------------
@@ -202,11 +210,16 @@ export const verifyRetryPayment = async (req, res) => {
       const itemTotal = item.price * item.quantity;
 
       // proportional discount per vendor
-      const proportionalDiscount = (itemTotal / subtotal) * totalDiscount;
+      const proportionalDiscount = Math.round(
+        (itemTotal / subtotal) * totalDiscount
+      );
 
       // amount vendor should get before admin commission
       const receivableAfterDiscount = itemTotal - proportionalDiscount;
+      const discountPerItem = Math.round(proportionalDiscount / item.quantity);
 
+      item.discountPerItem = discountPerItem;
+      item.finalItemPrice = itemTotal - proportionalDiscount;
       const adminCommission =
         (receivableAfterDiscount * commissionPercent) / 100;
 
@@ -224,12 +237,6 @@ export const verifyRetryPayment = async (req, res) => {
     // 9) CLEAR CART (only for cart checkout)
     // ---------------------------------------------
     await Cart.deleteMany({ userId: userID });
-
-    // ---------------------------------------------
-    // 10) MARK TEMP ORDER COMPLETE
-    // ---------------------------------------------
-    temp.paymentStatus = "Paid";
-    await temp.save();
 
     return res.status(200).json({
       success: true,

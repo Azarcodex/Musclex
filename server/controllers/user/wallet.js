@@ -1,6 +1,7 @@
 import Wallet from "../../models/wallet/walletschema.js";
 import WalletHold from "../../models/wallet/reservation.js";
 import WalletLedger from "../../models/wallet/wallerLedger.js";
+import MESSAGES from "../../constants/messages.js";
 export const walletDashboard = async (req, res) => {
   try {
     const userId = req.user._id;
@@ -17,7 +18,7 @@ export const walletDashboard = async (req, res) => {
       holds,
     });
   } catch (err) {
-    res.status(500).json({ success: false, message: "Server error" });
+    res.status(500).json({ success: false, message: MESSAGES.SERVER_ERROR });
   }
 };
 

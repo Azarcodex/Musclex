@@ -1,6 +1,7 @@
 import api from "../../api/axios";
 
 export const fetchProducts = async (
+  page,
   selectedCategory,
   selectedBrands,
   priceRange,
@@ -9,6 +10,7 @@ export const fetchProducts = async (
 ) => {
   console.log(selectedCategory);
   const params = {};
+  params.page = page;
   if (selectedCategory.length > 0) {
     params.category = selectedCategory.join(",");
   }
@@ -26,11 +28,5 @@ export const fetchProducts = async (
     params.sortValue = sortValue;
   }
   const response = await api.get(`/api/user/products/`, { params });
-  return response.data;
-};
-
-//featured
-export const featured = async () => {
-  const response = await api.get("/api/user/products/featured");
   return response.data;
 };

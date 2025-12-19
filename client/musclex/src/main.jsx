@@ -8,6 +8,7 @@ import { Toaster } from "sonner";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { Provider } from "react-redux";
 import { store } from "./store/store.js";
+import ScrollToTop from "./components/utils/ScrolltoTop.jsx";
 // import Modal from "react-modal";
 // Modal.setAppElement("#root");
 const queryClient = new QueryClient();
@@ -18,6 +19,7 @@ createRoot(document.getElementById("root")).render(
       <GoogleOAuthProvider clientId={google_client_id}>
         <QueryClientProvider client={queryClient}>
           <BrowserRouter>
+            <ScrollToTop />
             <App />
             <Toaster richColors position="top-center" />
           </BrowserRouter>

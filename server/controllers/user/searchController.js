@@ -1,5 +1,6 @@
 import Product from "../../models/products/Product.js";
 import Variant from "../../models/products/Variant.js";
+import MESSAGES from "../../constants/messages.js";
 
 export const SearchData = async (req, res) => {
   try {
@@ -7,20 +8,10 @@ export const SearchData = async (req, res) => {
     if (!query || query.trim() === "") {
       return res
         .status(400)
-        .json({ success: false, message: "Search query is required" });
+        .json({ success: false, message: MESSAGES.SEARCH_QUERY_REQUIRED });
     }
     const regex = new RegExp(query, "i");
-    // const products = await Product.find({
-    //   isDeleted: false,
-    //   $or: [
-    //     { name: regex },
-    //     { description: regex },
-    //     { "brandID.brand_name": regex },
-    //     { "catgid.catgName": regex },
-    //   ],
-    // })
-    //   .populate("brandID", "brand_name")
-    //   .populate("catgid", "catgName").lean();
+
     const products = await Product.aggregate([
       { $match: { isDeleted: false } },
       {
@@ -59,7 +50,7 @@ export const SearchData = async (req, res) => {
     if (products.length === 0) {
       return res
         .status(404)
-        .json({ success: false, message: "No products found" });
+        .json({ success: false, message: MESSAGES.NO_PRODUCTS_FOUND });
     }
     const ProductList = await Promise.all(
       products.map(async (product) => {
@@ -70,13 +61,14 @@ export const SearchData = async (req, res) => {
           ...product,
           variant,
           image: variant?.images?.[0],
-          count:products.length        };
+          count: products.length,
+        };
       })
     );
     res
       .status(200)
       .json({ success: true, count: ProductList.length, results: ProductList });
   } catch (e) {
-    res.status(500).json({ success: false, message: "Server error" });
+    res.status(500).json({ success: false, message: MESSAGES.SERVER_ERROR });
   }
 };

@@ -109,12 +109,18 @@ export const getCheckoutData = async (req, res) => {
       (sum, i) => sum + i.finalPrice * i.quantity,
       0
     );
+    console.log(total);
+    const ORDER_LIMIT = 1000;
+
+    const canPlaceOrder = total <= ORDER_LIMIT;
 
     return res.status(200).json({
       success: true,
       addresses,
       checkOutItems,
       total,
+      ORDER_LIMIT,
+      canPlaceOrder,
     });
   } catch (err) {
     console.log(err);

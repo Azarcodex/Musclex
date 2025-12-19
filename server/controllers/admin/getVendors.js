@@ -3,17 +3,37 @@ import Vendor from "../../models/vendors/Vendor.js";
 export const getVendors = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    // console.log(page);
-    const limit = parseInt(req.query.limit);
-    const {search}=req.query
-    const query=search?{$or:[{shopName:{$regex:search,$options:"i"}},{email:{$regex:search,$options:"i"}}]}:{}
-    const totalVendors = await Vendor.countDocuments();
+    const limit = parseInt(req.query.limit) || 10;
+    const { search, status } = req.query;
+
     const skip = (page - 1) * limit;
+
+    //  Build query properly
+    const query = {};
+
+    if (search) {
+      query.$or = [
+        { shopName: { $regex: search, $options: "i" } },
+        { email: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    //  STATUS FILTER
+    if (status && status !== "all") {
+      query.status = status;
+    }
+
+    //  COUNT WITH SAME QUERY
+    const totalVendors = await Vendor.countDocuments(query);
+
     const vendors = await Vendor.find(query)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
-    const totalPages = Math.round(totalVendors / limit);
+
+    //  CEIL
+    const totalPages = Math.ceil(totalVendors / limit);
+
     res.status(200).json({
       success: true,
       vendors,
@@ -25,9 +45,11 @@ export const getVendors = async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).json({ success: true, message: "server error occured" });
+    console.error(error);
+    res.status(500).json({ success: false, message: "Server error occurred" });
   }
 };
+
 //status controller
 export const updateVendorStatus = async (req, res) => {
   try {

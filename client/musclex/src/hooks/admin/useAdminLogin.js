@@ -16,7 +16,7 @@ export const useAdminLogin = () => {
       if (data?.token) {
         setAuthtoken(data.token);
         dispatch(setAdminToken(data?.token));
-        navigate("/admin/dashboard", { replace: true });
+        navigate("/admin/dashboard/analytics", { replace: true });
       }
     },
     onError: (err) => {

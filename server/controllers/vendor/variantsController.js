@@ -14,7 +14,7 @@ export const getVariantsByProduct = async (req, res) => {
 export const addVariant = async (req, res) => {
   try {
     const { productId } = req.body;
-    let flavour = (req.body.flavour || "default").trim();
+    let flavour = req.body.flavour.trim();
 
     if (!productId) {
       return res.status(400).json({ message: "All fields are required" });

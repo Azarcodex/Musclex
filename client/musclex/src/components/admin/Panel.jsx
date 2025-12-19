@@ -36,12 +36,12 @@ function Panel() {
     {
       label: "Dashboard",
       icon: <LayoutDashboard size={20} />,
-      path: "/dashboard",
+      path: "/admin/dashboard/analytics",
     },
     {
       label: "Home Slides",
       icon: <Image size={20} />,
-      path: "/dashboard/home-slides",
+      path: "/admin/dashboard/banner",
     },
     {
       label: "Vendors",

@@ -1,63 +1,60 @@
 import React, { useState } from "react";
-import { ShoppingCart, Heart, ChevronLeft, ChevronRight } from "lucide-react";
-import { useGetProducts } from "../../hooks/vendor/useGetProducts";
-import { useGetFeatured } from "../../hooks/users/useProductFetch";
+import { ChevronLeft, ChevronRight, Star } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { usegetFeaturedProducts } from "../../hooks/users/useProductListings";
 
-const ProductCard = ({ product, isActive }) => {
+const ProductCard = ({ product }) => {
   const [isHovered, setIsHovered] = useState(false);
+  const navigate = useNavigate();
+
+  // const handleNavigate = () => {
+  //   navigate(`/products/${product._id}`);
+  // };
+
   return (
     <div
-      className="relative bg-white rounded-lg shadow-lg overflow-hidden transition-all duration-300 w-64 flex-shrink-0"
-      style={{
-        border: isHovered ? "3px solid #7c3aed" : "3px solid transparent",
-      }}
+      onClick={() => navigate(`/user/products/${product._id}`)}
+      className="relative bg-white rounded-xl shadow-lg overflow-hidden transition-all duration-300 w-72 flex-shrink-0 group cursor-pointer"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Sale Badge */}
-      {/* {product.badge && (
-        <div className={`absolute top-4 left-4 ${product.badge === 'Sale Ends' ? 'bg-green-500' : 'bg-red-500'} text-white text-xs font-semibold px-3 py-1 rounded-full z-10`}>
-          {product.badge}
-        </div>
-      )} */}
-
       {/* Product Image Container */}
-      <div className="relative bg-gray-50 p-8 flex items-center justify-center h-64">
+      <div className="relative bg-gradient-to-br from-gray-50 to-purple-50 p-8 flex items-center justify-center h-72 overflow-hidden">
         <img
           src={`${import.meta.env.VITE_API_URL}${product.variant?.images?.[0]}`}
           alt={product.name}
-          className="w-40 h-40 rounded-lg object-contain transition-transform duration-300"
+          className="w-48 h-48 object-contain transition-transform duration-500 ease-out"
           style={{
-            transform: isHovered ? "scale(1.1)" : "scale(1)",
+            transform: isHovered ? "scale(1.15) rotate(2deg)" : "scale(1)",
           }}
         />
 
-        {/* Action Icons - Show on Hover */}
+        {/* Overlay Gradient on Hover */}
         <div
-          className="absolute top-4 right-4 flex flex-col gap-2 transition-opacity duration-300"
+          className="absolute inset-0 bg-gradient-to-t from-purple-900/20 to-transparent transition-opacity duration-300"
           style={{
             opacity: isHovered ? 1 : 0,
           }}
-        >
-          <button className="bg-white rounded-full p-2 shadow-md hover:bg-purple-50 transition-colors">
-            <ShoppingCart className="w-4 h-4 text-purple-600" />
-          </button>
-          <button className="bg-white rounded-full p-2 shadow-md hover:bg-purple-50 transition-colors">
-            <Heart className="w-4 h-4 text-purple-600" />
-          </button>
-        </div>
+        />
       </div>
-      <div className="bg-purple-100 flex items-center flex-col">
-        <span>{product.name}</span>
-        <span className="underline">{product?.brandID?.brand_name}</span>
-        <p className="flex items-center justify-center gap-2">
-          <span className="text-pink-600 line-through font-semibold">
-            ${product?.variant?.size?.[0].oldPrice}
+
+      {/* Product Details */}
+      <div className="p-5 bg-white">
+        {/* Brand Name */}
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide">
+            {product?.brandID?.brand_name}
           </span>
-          <span className="text-purple-700 font-bold">
-            ${product?.variant?.size?.[0].salePrice}
-          </span>
-        </p>
+          <div className="flex items-center gap-1">
+            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+            <span className="text-sm font-medium text-gray-700">4.5</span>
+          </div>
+        </div>
+
+        {/* Product Name */}
+        <h3 className="text-lg font-bold text-gray-900 line-clamp-2 min-h-[3.5rem]">
+          {product.name}
+        </h3>
       </div>
     </div>
   );
@@ -65,41 +62,13 @@ const ProductCard = ({ product, isActive }) => {
 
 const FeaturedProducts = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [cardsPerView, setCardsPerView] = useState(3);
+  const cardsPerView = 3;
+  const { data: getProducts } = usegetFeaturedProducts();
 
-  // const products = [
-  //   {
-  //     id: 1,
-  //     name: "Wrist Band",
-  //     price: 42.0,
-  //     image:
-  //       "https://images.unsplash.com/photo-1576243345690-4e4b79b63288?w=400&h=400&fit=crop",
-  //   },
-  //   {
-  //     id: 2,
-  //     name: "Wrist Band",
-  //     price: 42.0,
-  //     image:
-  //       "https://images.unsplash.com/photo-1611312449408-fcece27cdbb7?w=400&h=400&fit=crop",
-  //   },
-  //   {
-  //     id: 3,
-  //     name: "Wrist Band",
-  //     price: 42.0,
-  //     image:
-  //       "https://images.unsplash.com/photo-1576243345690-4e4b79b63288?w=400&h=400&fit=crop",
-  //   },
-  //   {
-  //     id: 4,
-  //     name: "Wrist Band",
-  //     price: 42.0,
-  //     image:
-  //       "https://images.unsplash.com/photo-1611312449408-fcece27cdbb7?w=400&h=400&fit=crop",
-  //   },
-  // ];
-  const { data: getProducts } = useGetFeatured();
-  console.log(getProducts);
-  const maxIndex = Math.max(0, getProducts?.data?.length - cardsPerView);
+  const maxIndex = Math.max(
+    0,
+    (getProducts?.product?.length || 0) - cardsPerView
+  );
 
   const nextSlide = () => {
     if (currentIndex < maxIndex) {
@@ -116,67 +85,73 @@ const FeaturedProducts = () => {
   const goToSlide = (index) => {
     setCurrentIndex(Math.min(index, maxIndex));
   };
+
   return (
-    <div className=" bg-gray-50 py-12 px-4">
-      <div className="max-w-5xl mx-auto">
-        <h2 className="text-4xl font-bold text-center text-gray-900 mb-12">
-          Featured Products
-        </h2>
+    <div className="bg-gradient-to-b from-white to-gray-50 py-16 px-4">
+      <div className="max-w-7xl mx-auto">
+        {/* Section Header */}
+        <div className="text-center mb-12">
+          <span className="text-purple-600 font-semibold text-sm uppercase tracking-wider">
+            Handpicked Selection
+          </span>
+          <h2 className="text-5xl font-bold text-gray-900 mt-2 mb-4">
+            Featured Products
+          </h2>
+          <p className="text-gray-600 text-lg max-w-2xl mx-auto">
+            Discover our carefully curated collection of premium products
+          </p>
+        </div>
 
         <div className="relative">
           {/* Navigation Arrows */}
           <button
             onClick={prevSlide}
             disabled={currentIndex === 0}
-            className={`absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-20 bg-purple-600 text-white rounded-full w-12 h-12 flex items-center justify-center shadow-lg transition-colors ${
+            className={`absolute left-0 top-1/2 -translate-y-1/2 -translate-x-6 z-20 bg-white text-purple-600 rounded-full w-14 h-14 flex items-center justify-center shadow-xl transition-all duration-300 border-2 border-purple-200 ${
               currentIndex === 0
-                ? "opacity-50 cursor-not-allowed"
-                : "hover:bg-purple-700"
+                ? "opacity-30 cursor-not-allowed"
+                : "hover:bg-purple-600 hover:text-white hover:scale-110 hover:shadow-2xl"
             }`}
           >
-            <ChevronLeft className="w-6 h-6" />
+            <ChevronLeft className="w-7 h-7" />
           </button>
 
           <button
             onClick={nextSlide}
             disabled={currentIndex === maxIndex}
-            className={`absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-20 bg-purple-600 text-white rounded-full w-12 h-12 flex items-center justify-center shadow-lg transition-colors ${
+            className={`absolute right-0 top-1/2 -translate-y-1/2 translate-x-6 z-20 bg-white text-purple-600 rounded-full w-14 h-14 flex items-center justify-center shadow-xl transition-all duration-300 border-2 border-purple-200 ${
               currentIndex === maxIndex
-                ? "opacity-50 cursor-not-allowed"
-                : "hover:bg-purple-700"
+                ? "opacity-30 cursor-not-allowed"
+                : "hover:bg-purple-600 hover:text-white hover:scale-110 hover:shadow-2xl"
             }`}
           >
-            <ChevronRight className="w-6 h-6" />
+            <ChevronRight className="w-7 h-7" />
           </button>
 
           {/* Products Container */}
           <div className="overflow-hidden px-8">
             <div
-              className="flex gap-6 transition-transform duration-500 ease-in-out"
+              className="flex gap-8 transition-transform duration-700 ease-in-out"
               style={{
-                transform: `translateX(-${currentIndex * (256 + 24)}px)`,
+                transform: `translateX(-${currentIndex * (288 + 32)}px)`,
               }}
             >
-              {getProducts?.product?.map((product, index) => (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                  isActive={index === currentIndex}
-                />
+              {getProducts?.product?.map((product) => (
+                <ProductCard key={product._id} product={product} />
               ))}
             </div>
           </div>
 
           {/* Dots Indicator */}
-          <div className="flex justify-center gap-2 mt-8">
+          <div className="flex justify-center gap-2.5 mt-10">
             {Array.from({ length: maxIndex + 1 }).map((_, index) => (
               <button
                 key={index}
                 onClick={() => goToSlide(index)}
-                className={`h-2 rounded-full transition-all duration-300 ${
+                className={`h-2.5 rounded-full transition-all duration-300 ${
                   index === currentIndex
-                    ? "w-8 bg-purple-600"
-                    : "w-2 bg-gray-300 hover:bg-gray-400"
+                    ? "w-10 bg-gradient-to-r from-purple-600 to-purple-700 shadow-md"
+                    : "w-2.5 bg-gray-300 hover:bg-gray-400 hover:scale-125"
                 }`}
               />
             ))}

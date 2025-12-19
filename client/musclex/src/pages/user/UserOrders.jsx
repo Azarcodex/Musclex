@@ -558,8 +558,29 @@ export default function UserOrdersPage() {
 
                   <div className="flex items-center gap-1 place-content-end">
                     <span className="text-sm text-purple-600">total:</span>
-                    <span className=" font-sans text-lg">
-                      {order.totalPrice - order.discount}
+                    <span className="font-sans text-lg flex items-center gap-3">
+                      {order.discount > 0 ? (
+                        <>
+                          {/* Original Price */}
+                          <span className="text-gray-400 line-through">
+                            ₹{order.totalPrice}
+                          </span>
+
+                          {/* Final Price */}
+                          <span className="text-green-600 font-bold">
+                            ₹{order.finalAmount}
+                          </span>
+
+                          {/* Discount Badge */}
+                          <span className="text-sm bg-green-100 text-green-700 px-2 py-0.5 rounded-md font-semibold">
+                            -₹{order.discount}
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-gray-900 font-bold">
+                          ₹{order.finalAmount}
+                        </span>
+                      )}
                     </span>
                   </div>
                   <div className="mt-6 pt-6 border-t border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-4">

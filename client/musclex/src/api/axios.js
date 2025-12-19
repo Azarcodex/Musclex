@@ -90,9 +90,9 @@ api.interceptors.response.use(
     }
 
     // Internal server errors
-    // if (status >= 500) {
-    //   toast.error("Server Error. Try again later.");
-    // }
+    if (status >= 500) {
+      toast.error("Server Error. Try again later.");
+    }
 
     return Promise.reject(error);
   }

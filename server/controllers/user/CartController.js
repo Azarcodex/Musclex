@@ -4,6 +4,7 @@ import Product from "../../models/products/Product.js";
 import Variant from "../../models/products/Variant.js";
 import Offer from "../../models/offer/offer.js";
 import Wishlist from "../../models/products/wishlist.js";
+import MESSAGES from "../../constants/messages.js";
 export const AddCart = async (req, res) => {
   try {
     const userId = req.user._id;
@@ -15,10 +16,15 @@ export const AddCart = async (req, res) => {
     // }
     const variant = await Variant.findById(variantId);
     if (!variant) {
-      return res.status(404).json({ message: "Variant not found" });
+      return res.status(404).json({ message: MESSAGES.VARIANT_NOT_FOUND });
     }
     const size = variant.size.find((s) => s.label === sizeLabel);
-    if (!size) return res.status(404).json({ message: "Invalid size" });
+    if (!size) return res.status(404).json({ message: MESSAGES.INVALID_SIZE });
+
+    if (size.stock === 0) {
+      return res.status(404).json({ message: MESSAGES.STOCK_UNAVAILABLE });
+    }
+
     const price = size.salePrice;
     const existing = await Cart.findOne({
       userId,
@@ -34,7 +40,7 @@ export const AddCart = async (req, res) => {
     res.status(200).json({ message: "Item added to the cart" });
   } catch (e) {
     console.log(e);
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({ message: MESSAGES.INTERNAL_SERVER_ERROR });
   }
 };
 
@@ -51,10 +57,15 @@ export const AddCartFromWishList = async (req, res) => {
     // }
     const variant = await Variant.findById(variantId);
     if (!variant) {
-      return res.status(404).json({ message: "Variant not found" });
+      return res.status(404).json({ message: MESSAGES.VARIANT_NOT_FOUND });
     }
     const size = variant.size.find((s) => s.label === sizeLabel);
-    if (!size) return res.status(404).json({ message: "Invalid size" });
+    if (!size) return res.status(404).json({ message: MESSAGES.INVALID_SIZE });
+
+    if (size.stock === 0) {
+      return res.status(404).json({ message: MESSAGES.STOCK_UNAVAILABLE });
+    }
+
     const price = size.salePrice;
     const existing = await Cart.findOne({
       userId,
@@ -83,7 +94,7 @@ export const AddCartFromWishList = async (req, res) => {
     res.status(200).json({ message: "Item added to the cart" });
   } catch (e) {
     console.log(e);
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({ message: MESSAGES.INTERNAL_SERVER_ERROR });
   }
 };
 
@@ -234,7 +245,7 @@ export const getCart = async (req, res) => {
     });
   } catch (err) {
     console.log("getCart error:", err);
-    res.status(500).json({ success: false, message: "Internal server error" });
+    res.status(500).json({ success: false, message: MESSAGES.INTERNAL_SERVER_ERROR });
   }
 };
 
@@ -247,7 +258,7 @@ export const removeFromCart = async (req, res) => {
     // Find the cart item (to check origin)
     const cartItem = await Cart.findOne({ _id: id, userId });
     if (!cartItem) {
-      return res.status(404).json({ message: "Item not found" });
+        return res.status(404).json({ message: MESSAGES.ITEM_NOT_FOUND });
     }
 
     const { productId, variantId, sizeLabel, fromWishList } = cartItem;
@@ -285,7 +296,7 @@ export const removeFromCart = async (req, res) => {
     });
   } catch (e) {
     console.log(e);
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({ message: MESSAGES.INTERNAL_SERVER_ERROR });
   }
 };
 
@@ -297,7 +308,7 @@ export const QuantityChange = async (req, res) => {
     const userId = req.user._id;
     const cart = await Cart.findOne({ _id: id, userId: userId });
     if (!cart) {
-      return res.status(404).jso0n({ message: "Item not found" });
+        return res.status(404).json({ message: MESSAGES.ITEM_NOT_FOUND });
     }
     const variant = await Variant.findById(cart.variantId);
     const sizeArr = variant?.size?.find((s) => s.label === cart.sizeLabel);
@@ -305,9 +316,9 @@ export const QuantityChange = async (req, res) => {
     switch (action) {
       case "inc":
         if (cart.quantity + 1 > stock) {
-          return res
-            .status(400)
-            .json({ message: "stock not available for these quantity" });
+            return res
+              .status(400)
+              .json({ message: MESSAGES.STOCK_UNAVAILABLE });
         }
         cart.quantity += 1;
         break;
@@ -319,12 +330,12 @@ export const QuantityChange = async (req, res) => {
         }
         break;
       default:
-        return res.status(404).json({ message: "Error occurred" });
+        return res.status(404).json({ message: MESSAGES.INVALID_ERROR });
     }
     await cart.save();
-    res.status(200).json({ message: "Updated successfully" });
+    res.status(200).json({ message: MESSAGES.UPDATED_SUCCESSFULLY });
   } catch (error) {
-    res.status(500).json({ message: "Internal server error occurred" });
+    res.status(500).json({ message: MESSAGES.INTERNAL_SERVER_ERROR });
   }
 };
 
@@ -348,7 +359,7 @@ export const validatCart = async (req, res) => {
     if (!cartItems.length) {
       return res.status(400).json({
         valid: false,
-        errors: [{ message: "Your cart is empty" }],
+        errors: [{ message: MESSAGES.CART_EMPTY }],
       });
     }
 
@@ -425,7 +436,7 @@ export const validatCart = async (req, res) => {
     console.log(err);
     return res.status(500).json({
       valid: false,
-      errors: [{ message: "Server error validating cart" }],
+      errors: [{ message: MESSAGES.INTERNAL_SERVER_ERROR }],
     });
   }
 };

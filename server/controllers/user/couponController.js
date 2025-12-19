@@ -158,7 +158,12 @@ export const applyCoupon = async (req, res) => {
 export const getAvailableCoupons = async (req, res) => {
   try {
     const userId = req.user._id;
-    const coupons = await Coupon.find({ isActive: true }).lean();
+    const today = new Date();
+    const coupons = await Coupon.find({
+      isActive: true,
+      startDate: { $lte: today },
+      endDate: { $gte: today },
+    }).lean();
     const userCoupon = await couponUsuage.find({ userId: userId }).lean();
     const displayCoupons = coupons.map((coup) => {
       const matching = userCoupon.find((c) => c.couponId === coup._id);

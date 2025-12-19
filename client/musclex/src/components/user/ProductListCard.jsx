@@ -128,49 +128,6 @@ export default function ProductListCard({ data }) {
       },
     });
   };
-  // const existItem = wishList?.wishList?.find(
-  //   (item) =>
-  //     String(item.productId?._id) === String(data?.product?._id) &&
-  //     String(item.variantId?._id) === String(currentVariant?._id)
-  // );
-
-  // useEffect(() => {
-  //   if (wishList?.wishList) {
-  //     const exist = wishList?.wishList?.some(
-  //       (item) =>
-  //         String(item.productId?._id) === String(data?.product?._id) &&
-  //         String(item.variantId?._id) === String(currentVariant._id)
-  //     );
-  //     setLike(exist);
-  //   }
-  // }, [wishList]);
-  // const HandleWishList = (productId, variantId) => {
-  //   if (!token) {
-  //     toast.message("Please Login to continue");
-  //     return;
-  //   }
-  //   if (!existItem) {
-  //     addWishList(
-  //       { productId: productId, variantId: variantId },
-  //       {
-  //         onSuccess: () => {
-  //           setLike(true);
-  //           queryClient.invalidateQueries(["wishList"]);
-  //         },
-  //       }
-  //     );
-  //   } else {
-  //     deleteWishList(
-  //       { id: existItem._id },
-  //       {
-  //         onSuccess: () => {
-  //           setLike(false);
-  //           queryClient.invalidateQueries(["wishList"]);
-  //         },
-  //       }
-  //     );
-  //   }
-  // };
 
   const HandleWishList = (productId, variantId, sizeLabel) => {
     if (!token) {
@@ -342,8 +299,9 @@ export default function ProductListCard({ data }) {
               Select Variant
             </h3> */}
             <div className="flex flex-wrap gap-3">
-              {data?.product?.catgid?.catgName === "supplements" &&
-                data?.variants?.map((v, id) => (
+              {data?.variants
+                ?.filter((v) => v?.flavour && v.flavour.trim() !== "")
+                .map((v, id) => (
                   <button
                     key={id}
                     onClick={() => handleVariantChange(v, id)}
@@ -403,14 +361,6 @@ export default function ProductListCard({ data }) {
               <Heart size={12} strokeWidth={3} />
               add to WishList
             </button>
-            {/* <button
-              onClick={() =>
-                HandleWishList(data?.products?._id, currentVariant._id)
-              }
-              className="flex-1 bg-gradient-to-r from-rose-600 to-pink-600 text-white py-2 rounded-xl flex items-center justify-center gap-2 text-xs font-bold hover:from-rose-700 hover:to-pink-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
-            >
-              🩷
-            </button> */}
           </div>
         </div>
       </div>

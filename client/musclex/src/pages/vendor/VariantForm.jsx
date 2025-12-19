@@ -16,10 +16,9 @@ const VariantForm = () => {
   const [showCropper, setShowCropper] = useState(false);
 
   const { data: productList } = useRelatedVariantProduct(productId);
-  const isSupplement =
-    productList?.product?.catgid?.catgName?.toLowerCase() === "supplements";
 
   const { mutate } = useAddVariant();
+
   const {
     register,
     handleSubmit,
@@ -28,7 +27,7 @@ const VariantForm = () => {
     formState: { errors },
   } = useForm({
     defaultValues: {
-      flavour: isSupplement ? "" : "default",
+      flavour: "",
       sizes: [{ label: "", oldPrice: "", salePrice: "", stock: "", sku: "" }],
     },
   });
@@ -153,21 +152,19 @@ const VariantForm = () => {
 
       {/* Form */}
       <form onSubmit={handleSubmit(onSubmit)} className="mt-10 space-y-8">
-        {isSupplement && (
-          <div>
-            <label className="block font-semibold text-purple-800 mb-1">
-              Flavour
-            </label>
-            <input
-              {...register("flavour", { required: "enter flavour name" })}
-              placeholder="Enter flavour name"
-              className="border-b-2 border-purple-950 outline-0 w-full bg-transparent"
-            />
-            {errors.flavour && (
+        <div>
+          <label className="block font-semibold text-purple-800 mb-1">
+            Flavour
+          </label>
+          <input
+            {...register("flavour")}
+            placeholder="Enter flavour name if needed for your category"
+            className="border-b-2 border-purple-950 outline-0 w-full bg-transparent"
+          />
+          {/* {errors.flavour && (
               <p className="text-red-600">{errors.flavour.message}</p>
-            )}
-          </div>
-        )}
+            )} */}
+        </div>
 
         {/* Sizes Section */}
         <div className="bg-white p-5 rounded-md shadow-md border border-purple-100">

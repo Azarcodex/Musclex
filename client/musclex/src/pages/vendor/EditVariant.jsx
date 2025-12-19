@@ -41,7 +41,7 @@ const EditVariant = () => {
     formState: { errors },
   } = useForm({
     defaultValues: {
-      flavour: isSupplement ? "" : "default",
+      flavour: "",
       sizes: [{ label: "", oldPrice: "", salePrice: "", stock: "" }],
     },
   });
@@ -131,16 +131,11 @@ const EditVariant = () => {
               Flavour
             </label>
             <input
-              {...register("flavour", {
-                required: "Enter flavour name",
-              })}
+              {...register("flavour")}
               placeholder="Flavour name (e.g. Strawberry)"
               className="border-b-2 border-purple-950 outline-0 bg-transparent p-2 w-full"
               autoComplete="off"
             />
-            {errors.flavour && (
-              <p className="text-red-600 text-sm">{errors.flavour.message}</p>
-            )}
           </div>
         )}
 

@@ -17,10 +17,17 @@ const Register = () => {
   const onSubmit = (values) => {
     mutate(values, {
       onSuccess: (data) => {
-        toast.success("verify the OTP");
-        localStorage.setItem("userId", data.userId);
-        localStorage.setItem("email", data.email);
-        navigate("/user/verify");
+        sessionStorage.clear();
+
+        sessionStorage.setItem("userId", String(data.userId));
+        sessionStorage.setItem("email", String(data.email));
+        sessionStorage.setItem("otpAllowed", "true");
+
+        toast.success("Verify the OTP");
+
+        setTimeout(() => {
+          navigate("/user/verify", { replace: true });
+        }, 0);
       },
     });
   };

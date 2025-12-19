@@ -1,3 +1,4 @@
+import MESSAGES from "../../constants/messages.js";
 import Address from "../../models/users/address.js";
 
 export const addAddress = async (req, res) => {
@@ -35,7 +36,10 @@ export const addAddress = async (req, res) => {
     console.error("addAddress error:", err);
     return res
       .status(500)
-      .json({ success: false, message: err.message || "Server error" });
+      .json({
+        success: false,
+        message: err.message || MESSAGES.INTERNAL_SERVER_ERROR,
+      });
   }
 };
 
@@ -50,7 +54,10 @@ export const getAddresses = async (req, res) => {
     console.error("getAddresses error:", err);
     return res
       .status(500)
-      .json({ success: false, message: err.message || "Server error" });
+      .json({
+        success: false,
+        message: err.message || MESSAGES.INTERNAL_SERVER_ERROR,
+      });
   }
 };
 
@@ -63,7 +70,7 @@ export const updateAddress = async (req, res) => {
     if (!existing) {
       return res
         .status(404)
-        .json({ success: false, message: "Address not found" });
+        .json({ success: false, message: MESSAGES.ADDRESS_NOT_FOUND });
     }
     if (isDefault) {
       await Address.updateMany(
@@ -74,7 +81,9 @@ export const updateAddress = async (req, res) => {
     const updated = await Address.findByIdAndUpdate(id, req.body, {
       new: true,
     });
-    res.status(200).json({ success: true, message: "Updated Successfully" });
+    res
+      .status(200)
+      .json({ success: true, message: MESSAGES.UPDATED_SUCCESSFULLY });
   } catch (e) {
     res.status(500).json({ success: false, message: "Internal Error" });
   }
@@ -87,7 +96,7 @@ export const deleteAddress = async (req, res) => {
     if (!address) {
       return res
         .status(404)
-        .json({ success: false, message: "Address not found" });
+        .json({ success: false, message: MESSAGES.UPDATED_SUCCESSFULLY });
     }
     await Address.deleteOne({ _id: id });
     if (address.isDefault) {
@@ -97,13 +106,15 @@ export const deleteAddress = async (req, res) => {
       another.isDefault = true;
       await another.save();
     }
-    res.status(200).json({ success: true, message: "deleted successfully" });
+    res
+      .status(200)
+      .json({ success: true, message: MESSAGES.DELETED_SUCCESSFULLY });
   } catch (e) {
     res.status(500).json({ success: false, message: "Internal servor error" });
   }
 };
 //default address
-export const DefaultAddress = async (req,res) => {
+export const DefaultAddress = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user._id;

@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
-import { featured, fetchProducts } from "../../services/user/fetchProduct";
+import { fetchProducts } from "../../services/user/fetchProduct";
 
 export const useProductFetch = (
+  page,
   selectedCategory,
   selectedBrands,
   priceRange,
@@ -11,6 +12,7 @@ export const useProductFetch = (
   return useQuery({
     queryKey: [
       "products",
+      page,
       selectedCategory,
       selectedBrands,
       priceRange,
@@ -19,19 +21,12 @@ export const useProductFetch = (
     ],
     queryFn: () =>
       fetchProducts(
+        page,
         selectedCategory,
         selectedBrands,
         priceRange,
         selectedRatings,
         sortValue
       ),
-  });
-};
-
-//featured
-export const useGetFeatured = () => {
-  return useQuery({
-    queryKey: ["featured"],
-    queryFn: featured,
   });
 };

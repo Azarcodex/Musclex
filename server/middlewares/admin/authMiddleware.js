@@ -1,11 +1,12 @@
 import jwt from "jsonwebtoken";
 import Admin from "../../models/Admin/admin.js";
+import MESSAGES from "../../constants/messages.js";
 
 export const Protected = async (req, res, next) => {
   try {
     const headers = req.headers.authorization;
     if (!headers || !headers.startsWith("Bearer")) {
-      return res.status(401).json({ message: "No token Provided" });
+      return res.status(401).json({ message: MESSAGES.NO_TOKEN });
     }
     const extract = headers.split(" ")[1];
     let verify;
@@ -14,11 +15,11 @@ export const Protected = async (req, res, next) => {
     } catch (error) {
       res
         .status(400)
-        .json({ success: false, message: "Invalid token detected" });
+        .json({ success: false, message: MESSAGES.INVALID_TOKEN });
     }
     const admin = await Admin.findById(verify.id).select("-password");
     if (!admin) {
-      return res.status(401).json({ message: "Admin not found" });
+      return res.status(401).json({ message: MESSAGES.ADMIN_NOT_FOUND });
     }
     req.admin = admin;
     next();

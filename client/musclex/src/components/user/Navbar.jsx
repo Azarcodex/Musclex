@@ -7,12 +7,11 @@ import {
   SearchIcon,
   ChevronDownIcon,
   User2,
-  LogOutIcon,
   LucideLogOut,
   LucideBriefcaseBusiness,
   User2Icon,
 } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import { useDispatch, useSelector } from "react-redux";
 import { setSearchQuery } from "../../store/features/searchSlice";
@@ -20,13 +19,32 @@ import { clearUserToken } from "../../store/features/userSlice";
 import { useGetCart } from "../../hooks/users/useAddCart";
 import { usegetWishList } from "../../hooks/users/usegetWishList";
 export function Navbar() {
-  const [active, setActive] = useState("home");
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [active, setActive] = useState(() => {
+    if (location.pathname === "/") return "home";
+    if (location.pathname === "/user/products") return "product";
+    return "home";
+  });
+
   const { data: cartitems } = useGetCart();
   const { data: wishList } = usegetWishList();
-  console.log("📖📖📖" + wishList?.wishList?.length);
   const isAuth = useSelector((state) => state.userAuth.isAuth);
+
+  // Set active based on current location
+  React.useEffect(() => {
+    if (location.pathname === "/") {
+      setActive("home");
+    } else if (location.pathname === "/user/products") {
+      setActive("product");
+    } else {
+      setActive("");
+    }
+  }, [location.pathname]);
+
+  //HANDLING LOGOUT
+
   const handleLogOut = () => {
     dispatch(clearUserToken());
     navigate("/user/login", { replace: true });
@@ -35,6 +53,7 @@ export function Navbar() {
   const HandleChange = (e) => {
     dispatch(setSearchQuery(e.target.value));
   };
+
   return (
     <nav className="w-full relative">
       {/* Top Header Bar */}
@@ -119,32 +138,42 @@ export function Navbar() {
           <div className="flex items-center gap-8">
             <Link
               to={"/"}
-              onClick={() => setActive("home")}
               className={`flex items-center gap-1  font-medium hover:text-purple-700 ${
                 active === "home" ? "text-purple-900" : ""
               }`}
             >
               {" "}
               Home
-              <ChevronDownIcon className="w-4 h-4" />
-              {/* </button> */}
+              {active === "home" && <ChevronDownIcon className="w-4 h-4" />}
             </Link>
             <Link
               to={"/user/products"}
-              className={`text-gray-700 hover:text-purple-600 ${
+              className={`flex items-center gap-1  font-medium hover:text-purple-700 ${
                 active === "product" ? "text-purple-900" : ""
               }`}
-              onClick={() => setActive("product")}
             >
-              Products
+              products
+              {active === "product" && <ChevronDownIcon className="w-4 h-4" />}
             </Link>
-            <a href="#" className="text-gray-700 hover:text-purple-600">
+            <a
+              href="#"
+              onClick={() => toast.message("coming Soon")}
+              className="text-gray-700 hover:text-purple-600"
+            >
               Help
             </a>
-            <a href="#" className="text-gray-700 hover:text-purple-600">
+            <a
+              href="#"
+              onClick={() => toast.message("coming Soon")}
+              className="text-gray-700 hover:text-purple-600"
+            >
               About
             </a>
-            <a href="#" className="text-gray-700 hover:text-purple-600">
+            <a
+              href="#"
+              onClick={() => toast.message("coming Soon")}
+              className="text-gray-700 hover:text-purple-600"
+            >
               Contact
             </a>
             <Link

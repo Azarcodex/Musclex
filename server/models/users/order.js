@@ -12,6 +12,17 @@ const orderedItemSchema = new mongoose.Schema({
     ref: "Variant",
     required: true,
   },
+  categoryID: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Category",
+    required: true,
+  },
+  brandID: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Brand",
+    required: true,
+  },
+
   vendorID: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Vendor",

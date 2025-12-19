@@ -54,6 +54,10 @@ import Referral from "./pages/user/UserPage/Referral";
 import CouponUsers from "./pages/admin/CouponUsers";
 import OrderFailed from "./pages/user/OrderFailure";
 import InvoicePage from "./pages/user/invoice";
+import DashboardAnalytics from "./pages/admin/adminAnalytics";
+import BannerDashboard from "./pages/admin/Banner";
+import VendorDashboardAnalysis from "./pages/vendor/DashboardAnalysis";
+import NotFound from "./pages/user/404";
 const App = () => {
   return (
     <>
@@ -78,6 +82,8 @@ const App = () => {
           <Route path="addOffer" element={<AdminCategoryOffers />} />
           <Route path="coupon" element={<CouponManagement />} />
           <Route path="couponUsers" element={<CouponUsers />} />
+          <Route path="analytics" element={<DashboardAnalytics />} />
+          <Route path="banner" element={<BannerDashboard />} />
         </Route>
         {/* <Route
           path="*"
@@ -99,14 +105,7 @@ const App = () => {
         <Route path="/user/products" element={<Products />} />
         <Route path="/user/products/:id" element={<ProductList />} />
         <Route path="/user/wishlist" element={<WishList />} />
-        <Route
-          path="/user/cart"
-          element={
-            <ProtectedRoute>
-              <CartPage />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/user/cart" element={<CartPage />} />
         <Route
           path="/user/checkout"
           element={
@@ -133,7 +132,14 @@ const App = () => {
           <Route path="wallet" element={<Wallet />} />
           <Route path="referral" element={<Referral />} />
         </Route>
-        <Route path="/user/changePassword" element={<ChangePassword />} />
+        <Route
+          path="/user/changePassword"
+          element={
+            <ProtectedRoute>
+              <ChangePassword />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/user/orders"
           element={
@@ -165,6 +171,7 @@ const App = () => {
             </VendorRoute>
           }
         >
+          <Route path="analysis" element={<VendorDashboardAnalysis />} />
           <Route path="products/list" element={<ProductsTable />} />
           <Route path="products/offers" element={<ProductOffers />} />
           <Route path="products/add" element={<AddProductForm />} />
@@ -181,6 +188,7 @@ const App = () => {
           <Route path="orders/list" element={<VendorOrders />} />
           <Route path="sales/report" element={<SalesReport />} />
         </Route>
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </>
   );

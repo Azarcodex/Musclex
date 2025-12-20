@@ -598,7 +598,7 @@ export const cancelProductOrder = async (req, res) => {
           let itemDiscountShare =
             (itemTotal / totalOrderItemsAmount) * order.discount;
 
-          //  FIX: discount cannot exceed item total
+          //   discount cannot exceed item total
           itemDiscountShare = Math.min(itemDiscountShare, itemTotal);
 
           refundAmt = itemTotal - itemDiscountShare;
@@ -637,6 +637,8 @@ export const cancelProductOrder = async (req, res) => {
     // 4) UPDATE ORDER TOTAL
     // ------------------------------------------------------------
     order.finalAmount -= refundAmt;
+    //additionally added having a doubt
+    order.totalPrice -= refundAmt;
     if (order.finalAmount < 0) order.finalAmount = 0;
 
     // Mark item cancelled

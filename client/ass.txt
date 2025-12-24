@@ -1,83 +1,104 @@
-const handleRazorpayPayment = () => {
-  if (!selectedAddress) {
-    toast.error("Select an address first");
-    return;
-  }
+const [selectedCategory, setSelectedCategory] = useState([]);
+const [selectedBrands, setSelectedBrands] = useState([]);
+const [priceRange, setPriceRange] = useState([0, 60000]);
+const [selectedRatings, setSelectedRatings] = useState([]);
+const [sortValue, setSortValue] = useState("");
 
-  const amount = Number(finalTotal);
+// pagination
+const [page, setPage] = useState(1);
 
-  const cleanedFinalItems = finalItems.map((item) => ({
-    productID: item.productId?._id,
-    variantID: item.variantId?._id,
-    vendorID: item.productId?.vendorID,
-    quantity: item.quantity,
-    sizeLabel: item.sizeLabel,
-    price: item.finalPrice,
-  }));
+// redux search
+const { query } = useSelector((state) => state.search);
+const [debounce, setDebounce] = useState(query);
 
-  const orderPayload = {
-    addressID: selectedAddress,
-    orderedItems: cleanedFinalItems,
-    paymentMethod: "Razorpay",
-    totalPrice: subtotal,
-    discount,
-    finalAmount: finalTotal,
-    couponCode: passcoupon || null,
-  };
+/* -------------------------------
+   DEBOUNCE SEARCH
+-------------------------------- */
+useEffect(() => {
+  const timeout = setTimeout(() => {
+    setDebounce(query);
+  }, 500);
 
-  createRazorpayOrder(
-    { amount, orderPayload },
-    {
-      onSuccess: (data) => {
-        const options = {
-          key: import.meta.env.VITE_RAZORPAY_KEY_ID,
-          amount: data.amount,
-          currency: "INR",
-          order_id: data.razorpayOrderId,
-          name: "Muscle X",
-          description: "Order Payment",
+  return () => clearTimeout(timeout);
+}, [query]);
 
-          handler: function (response) {
-            verifyPayment(
-              {
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
-                orderPayload,
-              },
-              {
-                onSuccess: (res) => {
-                  toast.success("Payment Successful!");
-                  navigate(`/user/ordersuccess/${res.order._id}`, {
-                    replace: true,
-                  });
-                },
-                onError: () => {
-                  navigate(`/user/orderfailed/${data.tempOrderId}`, {
-                    replace: true,
-                  });
-                },
-              }
-            );
-          },
+/* -------------------------------
+   RESET PAGE WHEN FILTERS CHANGE
+-------------------------------- */
+useEffect(() => {
+  setPage(1);
+}, [
+  selectedCategory,
+  selectedBrands,
+  priceRange,
+  selectedRatings,
+  sortValue,
+  debounce,
+]);
 
-          theme: { color: "#8B5CF6" },
-        };
+/* -------------------------------
+   FETCH PRODUCTS (NORMAL)
+-------------------------------- */
+const {
+  data: productData,
+  isPending: isProductLoading,
+} = useProductFetch(
+  page,
+  selectedCategory,
+  selectedBrands,
+  priceRange,
+  selectedRatings,
+  sortValue,
+  debounce // optional if backend supports search
+);
 
-        const rzp = new window.Razorpay(options);
+/* -------------------------------
+   FETCH SEARCH RESULTS
+-------------------------------- */
+const {
+  data: searchData,
+  isPending: isSearchLoading,
+} = useSearch(debounce, {
+  enabled: !!debounce, // 🔥 IMPORTANT
+});
 
-        // REAL FAIL HANDLER
-        rzp.on("payment.failed", () => {
-          rzp.close();
-          navigate(`/user/orderfailed/${data.tempOrderId}`, {
-            replace: true,
-          });
-        });
+/* -------------------------------
+   DECIDE DATA SOURCE
+-------------------------------- */
+const data = debounce ? searchData : productData;
+const isLoading = debounce ? isSearchLoading : isProductLoading;
 
-        rzp.open();
-      },
-
-      onError: () => toast.error("Failed to initialize payment"),
-    }
+/* -------------------------------
+   LOADING UI
+-------------------------------- */
+if (isLoading) {
+  return (
+    <div className="min-h-screen flex flex-col">
+      <div className="flex-1 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-14 w-14 rounded-full border-4 border-purple-200 border-t-purple-600 animate-spin"></div>
+          <p className="text-gray-500 text-sm">Loading products...</p>
+        </div>
+      </div>
+      <Footer />
+    </div>
   );
+}
+
+/* -------------------------------
+   PAGINATION DATA (SAFE)
+-------------------------------- */
+const totalPages = data?.pagination?.totalPages || 1;
+const totalProducts = data?.pagination?.totalProducts || 0;
+const current = data?.pagination?.current || page;
+
+/* -------------------------------
+   PAGINATION HANDLERS
+-------------------------------- */
+const handleNext = () => {
+  if (page < totalPages) setPage((prev) => prev + 1);
+};
+
+const handlePrev = () => {
+  if (page > 1) setPage((prev) => prev - 1);
 };

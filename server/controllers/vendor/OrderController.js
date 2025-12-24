@@ -208,7 +208,7 @@ export const statusProductWiseController = async (req, res) => {
     const { orderId, id } = req.params;
     const { status } = req.body;
     // console.log(orderId, id);
-    console.log("status📖📖📖📖" + status);
+
     const order = await Order.findById(orderId);
     if (!order) {
       return res.status(400).json({ message: "Order not found" });

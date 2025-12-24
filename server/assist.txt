@@ -1,199 +1,149 @@
-import Offer from "../../../models/offer/offer.js";
-import Product from "../../../models/products/Product.js";
-import Variant from "../../../models/products/Variant.js";
-
-export const getProducts = async (req, res) => {
+export const cancelProductOrder = async (req, res) => {
   try {
-    const URL = process.env.BASE_URL;
-    const { category, brands, minPrice, maxPrice, rating, sortValue } =
-      req.query;
+    const userId = req.user._id;
+    const { orderId, item_id } = req.params;
+    const { reason } = req.body;
 
-    // Base queries
-    const productQuery = { isDeleted: false, isActive: true };
-    const variantQuery = { isListed: true };
+    const order = await Order.findOne({ _id: orderId, userID: userId });
+    if (!order) return res.status(404).json({ message: "Order not found" });
 
-    if (minPrice || maxPrice) {
-      variantQuery["size.salePrice"] = {};
-      if (minPrice) variantQuery["size.salePrice"].$gte = Number(minPrice);
-      if (maxPrice) variantQuery["size.salePrice"].$lte = Number(maxPrice);
+    const item = order.orderedItems.find(
+      (it) => it._id.toString() === item_id.toString()
+    );
+    if (!item) return res.status(404).json({ message: "Item not found" });
+
+    const cancellable = ["Pending", "Confirmed", "Processing"];
+    if (!cancellable.includes(item.status)) {
+      return res.status(400).json({
+        message: `Item cannot be cancelled once it is ${item.status}`,
+      });
     }
 
-    const variants = await Variant.find(variantQuery).lean();
-
-    if (category) {
-      const catArray = Array.isArray(category) ? category : category.split(",");
-      productQuery.catgid = { $in: catArray };
-    }
-    if (brands) {
-      const brandArray = Array.isArray(brands) ? brands : brands.split(",");
-      productQuery.brandID = { $in: brandArray };
-    }
-    if (rating) {
-      const ratingArray = Array.isArray(rating) ? rating : rating.split(",");
-      productQuery.Avgrating = { $in: ratingArray };
+    // ------------------------------------------------------------
+    // 1) RESTORE STOCK
+    // ------------------------------------------------------------
+    if (!item.StockRestored) {
+      const variant = await Variant.findById(item.variantID);
+      const sizeObj = variant.size.find((s) => s.label === item.sizeLabel);
+      if (sizeObj) sizeObj.stock += item.quantity;
+      await variant.save();
+      item.StockRestored = true;
     }
 
-    const products = await Product.find(productQuery)
-      .populate("catgid", "catgName")
-      .populate("brandID", "brand_name")
-      .lean();
+    // ------------------------------------------------------------
+    // 2) MARK ITEM CANCELLED FIRST
+    // ------------------------------------------------------------
+    item.status = "Cancelled";
+    item.cancelReason = reason;
 
-    // Active category offers
-    const today = new Date();
-    const activeOffers = await Offer.find({
-      isActive: true,
-      scope: "Category",
-      startDate: { $lte: today },
-      endDate: { $gte: today },
-    }).lean();
+    // ------------------------------------------------------------
+    // 3) REVALIDATE COUPON (BEFORE REFUND)
+    // ------------------------------------------------------------
+    if (order.couponApplied) {
+      let remainingSubtotal = 0;
 
-    // Active product offers
-    const activeProductOffers = await Offer.find({
-      isActive: true,
-      scope: "Product",
-      startDate: { $lte: today },
-      endDate: { $gte: today },
-    }).lean();
-
-    const result = products
-      .map((product) => {
-        // 🔥 OPTION 1 IMPLEMENTED HERE 🔥
-        const relatedVariants = variants
-          .filter(
-            (v) => v.productId.toString() === product._id.toString()
-          )
-          .map((v) => {
-            const filteredSizes = v.size?.filter((s) => {
-              if (minPrice && maxPrice) {
-                return (
-                  Number(s.salePrice) >= Number(minPrice) &&
-                  Number(s.salePrice) <= Number(maxPrice)
-                );
-              }
-              if (minPrice) return Number(s.salePrice) >= Number(minPrice);
-              if (maxPrice) return Number(s.salePrice) <= Number(maxPrice);
-              return true;
-            });
-
-            if (!filteredSizes || filteredSizes.length === 0) return null;
-
-            return {
-              ...v,
-              images: (v.images || []).map((img) => `${URL}${img}`),
-              sizes: filteredSizes.map((s) => ({
-                ...s,
-                salePrice: Number(s.salePrice),
-                oldPrice: Number(s.oldPrice),
-                discount: Math.floor(
-                  ((s.oldPrice - s.salePrice) / s.oldPrice) * 100
-                ),
-              })),
-            };
-          })
-          .filter(Boolean);
-
-        const defaultVariant = relatedVariants[0];
-        if (!defaultVariant) return null;
-
-        const defaultSize = defaultVariant.sizes?.[0];
-        if (!defaultSize) return null;
-
-        return {
-          ...product,
-          relatedVariants,
-          brand: product.brandID?.brand_name,
-          category: product.catgid?.catgName,
-          prevImage: defaultVariant.images?.[0],
-          discount: defaultSize.discount || 0,
-          variants: defaultVariant,
-          size: defaultSize,
-        };
-      })
-      .filter(Boolean);
-
-    // ---------------- OFFER APPLICATION ----------------
-    result.forEach((product) => {
-      const salePrice = product?.size?.salePrice;
-      if (!salePrice) return;
-
-      const catOffer = activeOffers.find(
-        (off) =>
-          off.categoryId?.toString() === product.catgid._id.toString()
-      );
-
-      const prodOffer = activeProductOffers.find((off) =>
-        off.productIds.some(
-          (id) => id.toString() === product._id.toString()
-        )
-      );
-
-      const computeDiscount = (offer) => {
-        if (!offer) return 0;
-        return offer.discountType === "percent"
-          ? Math.floor((salePrice * offer.value) / 100)
-          : offer.value;
-      };
-
-      const catDiscount = computeDiscount(catOffer);
-      const prodDiscount = computeDiscount(prodOffer);
-
-      let bestOffer = null;
-      let bestDiscount = 0;
-
-      if (catDiscount > prodDiscount) {
-        bestOffer = catOffer;
-        bestDiscount = catDiscount;
-      } else if (prodDiscount > 0) {
-        bestOffer = prodOffer;
-        bestDiscount = prodDiscount;
+      for (const it of order.orderedItems) {
+        if (it.status !== "Cancelled") {
+          remainingSubtotal += it.price * it.quantity;
+        }
       }
 
-      if (!bestOffer) return;
+      // Coupon no longer valid → revoke it
+      if (remainingSubtotal < order.minPurchaseforCoupon) {
+        let extraPayable = 0;
 
-      const finalPrice = Math.max(salePrice - bestDiscount, 1);
+        for (const it of order.orderedItems) {
+          if (it.status !== "Cancelled" && it.discountPerItem > 0) {
+            extraPayable += it.discountPerItem;
+            it.discountPerItem = 0;
+          }
+        }
 
-      product.size.offerApplied = true;
-      product.size.offerType = bestOffer.discountType;
-      product.size.offerValue = bestOffer.value;
-      product.size.offerPrice = bestDiscount;
-      product.size.finalPrice = finalPrice;
-    });
-
-    // ---------------- SORTING ----------------
-    switch (sortValue) {
-      case "sortAZ":
-        result.sort((a, b) => a.name.localeCompare(b.name));
-        break;
-
-      case "sortZA":
-        result.sort((a, b) => b.name.localeCompare(a.name));
-        break;
-
-      case "sort01":
-        result.sort(
-          (a, b) =>
-            (a.size?.salePrice || 0) - (b.size?.salePrice || 0)
-        );
-        break;
-
-      case "sort10":
-        result.sort(
-          (a, b) =>
-            (b.size?.salePrice || 0) - (a.size?.salePrice || 0)
-        );
-        break;
-
-      default:
-        result.sort(
-          (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
-        );
+        order.finalAmount += extraPayable;
+        order.discount = 0;
+        order.couponApplied = false;
+        order.couponCode = null;
+      }
     }
 
-    res.status(200).json({ success: true, result });
-  } catch (error) {
-    console.error("getProducts error:", error);
-    res
-      .status(500)
-      .json({ success: false, message: "Internal server error" });
+    // ------------------------------------------------------------
+    // 4) REVERSE VENDOR CREDIT (NET AMOUNT)
+    // ------------------------------------------------------------
+    if (order.paymentMethod === "Razorpay" && order.paymentStatus === "Paid") {
+      const netAmount =
+        item.price * item.quantity - (item.discountPerItem || 0);
+
+      await reversalForOrder({
+        vendorId: item.vendorID,
+        orderId: order._id,
+        amount: Math.max(netAmount, 0),
+        commissionPercent: 10,
+      });
+
+      item.vendorCreditStatus = "Reversed";
+    } else {
+      item.vendorCreditStatus = "Not Applicable";
+    }
+
+    // ------------------------------------------------------------
+    // 5) CALCULATE REFUND (AFTER COUPON DECISION)
+    // ------------------------------------------------------------
+    let refundAmt = 0;
+
+    if (
+      (order.paymentMethod === "Razorpay" ||
+        order.paymentMethod === "Wallet") &&
+      order.paymentStatus === "Paid"
+    ) {
+      const itemTotal = item.price * item.quantity;
+      refundAmt = Math.max(itemTotal - (item.discountPerItem || 0), 0);
+
+      const wallet = await Wallet.findOne({ userId });
+      wallet.balance += refundAmt;
+      await wallet.save();
+
+      await WalletLedger.create({
+        walletId: wallet._id,
+        userId,
+        amount: refundAmt,
+        type: "ADD",
+        referenceId:
+          order.paymentMethod === "Razorpay"
+            ? order.paymentId || "RAZORPAY_REFUND"
+            : "WALLET_REFUND",
+        note: "Refund for item cancellation",
+      });
+
+      item.refundAmount = refundAmt;
+      item.refundStatus = "Completed";
+    } else {
+      item.refundAmount = 0;
+      item.refundStatus = "Not Applicable";
+    }
+
+    // ------------------------------------------------------------
+    // 6) UPDATE ORDER TOTAL
+    // ------------------------------------------------------------
+    order.finalAmount -= refundAmt;
+    if (order.finalAmount < 0) order.finalAmount = 0;
+
+    // If all items cancelled → cancel whole order
+    const allCancelled = order.orderedItems.every(
+      (it) => it.status === "Cancelled"
+    );
+    if (allCancelled) order.orderStatus = "Cancelled";
+
+    await order.save();
+
+    return res.json({
+      success: true,
+      message:
+        refundAmt > 0
+          ? "Item cancelled & refunded to wallet"
+          : "Item cancelled successfully",
+    });
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({ message: "Internal Server Error" });
   }
 };

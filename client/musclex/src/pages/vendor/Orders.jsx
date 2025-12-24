@@ -294,6 +294,17 @@ export default function VendorOrders() {
       printWindow.print();
     }, 300);
   };
+  useEffect(() => {
+    if (showProductDetailsModal) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [showProductDetailsModal]);
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8">
@@ -632,7 +643,7 @@ export default function VendorOrders() {
 
       {/* Update Status Modal (Overall Order Status) - If used */}
       {showStatusModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 backdrop-blur-md bg-white/10 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-md w-full animate-in fade-in zoom-in duration-300">
             <div className="flex items-center justify-between p-5 border-b">
               <h2 className="text-lg font-bold text-gray-900">
@@ -712,7 +723,7 @@ export default function VendorOrders() {
 
       {/* Individual Product Status Handling Modal */}
       {showProductDetailsModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 backdrop-blur-md bg-white/10 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-md w-full animate-in fade-in zoom-in duration-300">
             <div className="flex items-center justify-between p-5 border-b">
               <h2 className="text-lg font-bold text-gray-900">
@@ -958,7 +969,7 @@ export default function VendorOrders() {
                             {item?.productID?.name}
                           </td>
                           <td className="px-4 py-3 text-sm text-gray-600">
-                            {item?.flavour}
+                            {item?.flavour || "NIL"}
                           </td>
                           <td className="px-4 py-3 text-sm text-gray-900 text-center">
                             {item?.quantity}

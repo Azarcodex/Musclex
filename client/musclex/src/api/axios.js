@@ -85,9 +85,9 @@ api.interceptors.response.use(
     //   window.location.href = "/user/login";
     // }
 
-    if (status === 400 || status === 404) {
-      toast.error(message);
-    }
+    // if (status === 400) {
+    //   toast.error(message);
+    // }
 
     // Internal server errors
     if (status >= 500) {

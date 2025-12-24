@@ -1,17 +1,26 @@
 import Offer from "../../../models/offer/offer.js";
 import Product from "../../../models/products/Product.js";
 import Variant from "../../../models/products/Variant.js";
+import Category from "../../../models/products/category.js";
 
 export const getProducts = async (req, res) => {
   try {
     const URL = process.env.BASE_URL;
-    const { page, category, brands, minPrice, maxPrice, rating, sortValue } =
-      req.query;
+
+    const {
+      page = 1,
+      category,
+      brands,
+      minPrice,
+      maxPrice,
+      rating,
+      sortValue,
+    } = req.query;
 
     const limit = 4;
-
     const skip = (page - 1) * limit;
-    // Base queries
+
+    // ---------------- BASE QUERIES ----------------
     const productQuery = { isDeleted: false, isActive: true };
     const variantQuery = { isListed: true };
 
@@ -21,30 +30,27 @@ export const getProducts = async (req, res) => {
       if (maxPrice) variantQuery["size.salePrice"].$lte = Number(maxPrice);
     }
 
-    const variants = await Variant.find(variantQuery).lean();
-
     if (category) {
-      const catArray = Array.isArray(category) ? category : category.split(",");
-      productQuery.catgid = { $in: catArray };
-    }
-    if (brands) {
-      const brandArray = Array.isArray(brands) ? brands : brands.split(",");
-      productQuery.brandID = { $in: brandArray };
-    }
-    if (rating) {
-      const ratingArray = Array.isArray(rating) ? rating : rating.split(",");
-      productQuery.Avgrating = { $in: ratingArray };
+      productQuery.catgid = { $in: category.split(",") };
     }
 
-    const products = await Product.find(productQuery)
-      .populate("catgid", "catgName")
-      .populate("brandID", "brand_name")
-      .skip(skip)
-      .limit(limit)
-      .lean();
-    //totalProduct
-    const totalProducts = await Product.countDocuments(productQuery);
-    const totalPages = Math.ceil(totalProducts / limit);
+    if (brands) {
+      productQuery.brandID = { $in: brands.split(",") };
+    }
+
+    if (rating) {
+      productQuery.Avgrating = { $in: rating.split(",") };
+    }
+
+    // ---------------- FETCH DATA (NO PAGINATION HERE) ----------------
+    const [products, variants] = await Promise.all([
+      Product.find(productQuery)
+        .populate("catgid", "catgName")
+        .populate("brandID", "brand_name")
+        .lean(),
+
+      Variant.find(variantQuery).lean(),
+    ]);
 
     // Active category offers
     const today = new Date();
@@ -63,45 +69,35 @@ export const getProducts = async (req, res) => {
       endDate: { $gte: today },
     }).lean();
 
-    const result = products
+    // ---------------- FILTER PRODUCTS BY VARIANTS ----------------
+    let result = products
       .map((product) => {
-        // 🔥 OPTION 1 IMPLEMENTED HERE 🔥
         const relatedVariants = variants
           .filter((v) => v.productId.toString() === product._id.toString())
           .map((v) => {
             const filteredSizes = v.size?.filter((s) => {
               if (minPrice && maxPrice) {
-                return (
-                  Number(s.salePrice) >= Number(minPrice) &&
-                  Number(s.salePrice) <= Number(maxPrice)
-                );
+                return s.salePrice >= minPrice && s.salePrice <= maxPrice;
               }
-              if (minPrice) return Number(s.salePrice) >= Number(minPrice);
-              if (maxPrice) return Number(s.salePrice) <= Number(maxPrice);
+              if (minPrice) return s.salePrice >= minPrice;
+              if (maxPrice) return s.salePrice <= maxPrice;
               return true;
             });
 
-            if (!filteredSizes || filteredSizes.length === 0) return null;
+            if (!filteredSizes?.length) return null;
 
             return {
               ...v,
               images: (v.images || []).map((img) => `${URL}${img}`),
-              sizes: filteredSizes.map((s) => ({
-                ...s,
-                salePrice: Number(s.salePrice),
-                oldPrice: Number(s.oldPrice),
-                discount: Math.floor(
-                  ((s.oldPrice - s.salePrice) / s.oldPrice) * 100
-                ),
-              })),
+              sizes: filteredSizes,
             };
           })
           .filter(Boolean);
 
-        const defaultVariant = relatedVariants[0];
-        if (!defaultVariant) return null;
+        if (!relatedVariants.length) return null;
 
-        const defaultSize = defaultVariant.sizes?.[0];
+        const defaultVariant = relatedVariants[0];
+        const defaultSize = defaultVariant.sizes[0];
         if (!defaultSize) return null;
 
         return {
@@ -110,7 +106,6 @@ export const getProducts = async (req, res) => {
           brand: product.brandID?.brand_name,
           category: product.catgid?.catgName,
           prevImage: defaultVariant.images?.[0],
-          discount: defaultSize.discount || 0,
           variants: defaultVariant,
           size: defaultSize,
         };
@@ -172,33 +167,41 @@ export const getProducts = async (req, res) => {
         result.sort((a, b) => b.name.localeCompare(a.name));
         break;
 
-      case "sort01": // Low → High
-        result.sort((a, b) => {
-          const aPrice = a.size?.finalPrice ?? a.size?.salePrice ?? 0;
-          const bPrice = b.size?.finalPrice ?? b.size?.salePrice ?? 0;
-          return aPrice - bPrice;
-        });
+      case "sort01":
+        result.sort((a, b) => a.size.salePrice - b.size.salePrice);
         break;
 
-      case "sort10": // High → Low
-        result.sort((a, b) => {
-          const aPrice = a.size?.finalPrice ?? a.size?.salePrice ?? 0;
-          const bPrice = b.size?.finalPrice ?? b.size?.salePrice ?? 0;
-          return bPrice - aPrice;
-        });
+      case "sort10":
+        result.sort((a, b) => b.size.salePrice - a.size.salePrice);
         break;
 
       default:
         result.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     }
 
+    // ---------------- PAGINATION (FINAL STEP) ----------------
+    const totalProducts = result.length;
+    const totalPages = Math.ceil(totalProducts / limit);
+
+    const paginatedResult = result.slice(skip, skip + limit);
+
+    // ---------------- ACTIVE CATEGORIES ----------------
+    const activeCategories = await Category.find(
+      { isActive: true },
+      { _id: 1, name: 1 }
+    );
+
     res.status(200).json({
       success: true,
-      result,
+      result: paginatedResult,
+      activeCategories: activeCategories.map((c) => ({
+        id: c._id,
+        name: c.name,
+      })),
       pagination: {
-        totalPages,
         totalProducts,
-        currentPage: page,
+        totalPages,
+        currentPage: Number(page),
       },
     });
   } catch (error) {

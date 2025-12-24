@@ -1,11 +1,19 @@
 import React, { useState } from "react";
-import { Package, TrendingUp, DollarSign, ShoppingCart, TrendingDown } from "lucide-react";
-// Assuming this hook fetches the data structure you provided based on page and filter
+import {
+  Package,
+  TrendingUp,
+  DollarSign,
+  ShoppingCart,
+  TrendingDown,
+} from "lucide-react";
+
 import { useGetSalesReport } from "../../hooks/vendor/useGetSalesReport";
 import api from "../../api/axios";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 export default function SalesReport() {
+  const navigate = useNavigate();
   // --- Pagination Setup ---
   const [page, setPage] = useState(1);
 
@@ -131,22 +139,26 @@ export default function SalesReport() {
   };
   //pdf download
 
-  const downloadPdf = async () => {
-    const res = await api.post(
-      "/api/vendor/sales-report/pdf",
-      { filter: filter },
-      { responseType: "blob" }
-    );
+  // const downloadPdf = async () => {
+  //   const res = await api.post(
+  //     "/api/vendor/sales-report/pdf",
+  //     { filter: filter },
+  //     { responseType: "blob" }
+  //   );
 
-    const url = window.URL.createObjectURL(new Blob([res.data]));
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute("download", "sales-report.pdf");
-    document.body.appendChild(link);
-    link.click();
+  //   const url = window.URL.createObjectURL(new Blob([res.data]));
+  //   const link = document.createElement("a");
+  //   link.href = url;
+  //   link.setAttribute("download", "sales-report.pdf");
+  //   document.body.appendChild(link);
+  //   link.click();
+  // };
+
+  const handlePrintPage = () => {
+    navigate("/vendor/sales-report/print", {
+      state: data, // pass full response
+    });
   };
-
-  // --- Render Component ---
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
@@ -164,7 +176,7 @@ export default function SalesReport() {
               Download Excel
             </button>
             <button
-              onClick={downloadPdf}
+              onClick={handlePrintPage}
               className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg shadow-md transition-colors duration-200 text-sm"
             >
               Download pdf
@@ -244,9 +256,7 @@ export default function SalesReport() {
                 <TrendingDown className="w-6 h-6 text-orange-600" />
               </div>
             </div>
-            <p className="text-slate-600 text-sm mb-1 font-medium">
-              Discount
-            </p>
+            <p className="text-slate-600 text-sm mb-1 font-medium">Discount</p>
             <p className="text-3xl font-extrabold text-slate-800">
               {formatCurrency(totalDiscount)}
             </p>
@@ -338,6 +348,9 @@ export default function SalesReport() {
                     Discount
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                    Commission Amount
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">
                     Vendor Earning (Final)
                   </th>
                 </tr>
@@ -355,6 +368,8 @@ export default function SalesReport() {
                     const totalFinal = totalOriginalRevenue - couponDiscount;
                     // Use vendorEarning from the order object as the final earning
                     const finalVendorEarning = order.vendorEarning || 0;
+
+                    const commissionAmount = order.commissionAmount || 0;
 
                     return (
                       <tr
@@ -395,6 +410,9 @@ export default function SalesReport() {
                         {/* Discount */}
                         <td className="px-6 py-4 text-sm text-red-600 font-medium text-right">
                           - {formatCurrency(couponDiscount)}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-red-600 font-medium text-right">
+                          - {formatCurrency(commissionAmount)}
                         </td>
                         {/* Vendor Earning (Final) */}
                         <td className="px-6 py-4 text-sm font-semibold text-green-700 text-right bg-green-50">

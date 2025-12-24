@@ -6,7 +6,7 @@ export const productListings = async (req, res) => {
   try {
     const { productId } = req.params;
 
-    const product = await Product.findById(productId)
+    const product = await Product.findOne({ _id: productId, isActive: true })
       .populate("catgid", "catgName")
       .populate("brandID", "brand_name")
       .lean();

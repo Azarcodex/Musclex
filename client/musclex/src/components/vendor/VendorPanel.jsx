@@ -75,16 +75,16 @@ function VendorPanel() {
       icon: <Tag size={20} />,
       path: "/vendor/dashboard/sales/report",
     },
-    {
-      label: "Wallet",
-      icon: <Wallet size={20} />,
-      path: "/vendor/dashboard/wallet",
-    },
-    {
-      label: "Logout",
-      icon: <LogOut size={20} />,
-      path: "/logout",
-    },
+    // {
+    //   label: "Wallet",
+    //   icon: <Wallet size={20} />,
+    //   path: "/vendor/dashboard/wallet",
+    // },
+    // {
+    //   label: "Logout",
+    //   icon: <LogOut size={20} />,
+    //   path: "/logout",
+    // },
   ];
 
   return (

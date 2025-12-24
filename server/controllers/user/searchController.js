@@ -13,7 +13,7 @@ export const SearchData = async (req, res) => {
     const regex = new RegExp(query, "i");
 
     const products = await Product.aggregate([
-      { $match: { isDeleted: false } },
+      { $match: { isDeleted: false, isActive: true } },
       {
         $lookup: {
           from: "brands",

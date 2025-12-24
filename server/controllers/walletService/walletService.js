@@ -94,16 +94,13 @@ export async function createHold(userId, orderId, amount, referenceId = null) {
     wallet.holdBalance = (wallet.holdBalance || 0) + amount;
     wallet.lastTransactionAt = new Date();
     await wallet.save({ session });
-    console.log("💚💗💗💗" + wallet._id);
-    console.log("💚💗💗💗" + userId);
-    console.log("💚💗💗💗" + orderId);
-    console.log("💚💗💗💗" + amount);
+
     // create hold record
     const [hold] = await WalletHold.create(
       [{ userId, walletId: wallet._id, orderId, amount, status: "HELD" }],
       { session }
     );
-    console.log("✅✅✅✅✅✅✅" + hold.status);
+    // console.log("✅✅✅✅✅✅✅" + hold.status);
 
     // ledger: record HOLD as negative to reflect reserved money in history
     await createLedgerEntry({

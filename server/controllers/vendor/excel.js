@@ -94,7 +94,16 @@ export const salesReportExcel = async (req, res) => {
           orderDate: "$createdAt",
           customerName: "$customer.name",
           productName: "$product.name",
-          flavour: "$variant.flavour",
+          // flavour: "$variant.flavour",
+          flavour: {
+            $cond: {
+              if: {
+                $eq: [{ $trim: { input: "$variant.flavour" } }, ""],
+              },
+              then: "no flavour",
+              else: "$variant.flavour",
+            },
+          },
           sizeLabel: "$orderedItems.sizeLabel",
           quantity: "$orderedItems.quantity",
           price: { $toDouble: "$orderedItems.price" },

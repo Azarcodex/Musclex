@@ -87,6 +87,7 @@ router.get("/orderList", VendorProtection, getOrdersData);
 router.patch("/updatestatus/:id", updateOrderStatus);
 //sales report
 router.post("/sales/report", VendorProtection, salesReport);
+router.post("/sales/report/pdf", VendorProtection, salesReportPdf);
 router.post("/sales-report/excel", VendorProtection, salesReportExcel);
 //category
 router.get("/category", getCategoryVendor);

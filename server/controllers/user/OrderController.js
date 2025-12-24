@@ -104,9 +104,9 @@ export const OrderController = async (req, res) => {
     // STEP 3: COUPON DISCOUNT CALCULATION
     // -----------------------------------------
     let discount = 0;
-
+    let coupon;
     if (couponCode) {
-      const coupon = await Coupon.findOne({ code: couponCode });
+      coupon = await Coupon.findOne({ code: couponCode });
       if (!coupon) return res.status(400).json({ message: "Invalid coupon" });
 
       const now = new Date();
@@ -147,41 +147,35 @@ export const OrderController = async (req, res) => {
       } else {
         discount = coupon.discountValue;
       }
-
-      // Update coupon usage
-      // coupon.usageCount += 1;
-      // await coupon.save();
-
-      // if (usage) {
-      //   usage.count += 1;
-      //   await usage.save();
-      // } else {
-      //   await couponUsuage.create({
-      //     couponId: coupon._id,
-      //     userId,
-      //     count: 1,
-      //   });
-      // }
     }
 
     // -----------------------------------------
     // STEP 4: SPLIT DISCOUNT PER ITEM
     // -----------------------------------------
-    const totalQty = tempItems.reduce((acc, item) => acc + item.quantity, 0);
+    let remainingDiscount = discount;
 
-    let discountPerItem = 0;
-    if (discount > 0 && totalQty > 0) {
-      discountPerItem = discount / totalQty;
-    }
+    const orderedItems = tempItems.map((item, index) => {
+      const itemTotal = item.price * item.quantity;
+      let itemDiscount = 0;
 
-    // -----------------------------------------
-    // STEP 5: BUILD FINAL orderedItems WITH COMMISSION & DISCOUNT SPLIT
-    // -----------------------------------------
-    const orderedItems = tempItems.map((item) => ({
-      ...item,
-      discountPerItem: discountPerItem,
-      commissionPercent: 10, // FIXED COMMISSION
-    }));
+      if (discount > 0 && subtotal > 0) {
+        itemDiscount = Math.floor((itemTotal / subtotal) * discount);
+        itemDiscount = Math.min(itemDiscount, itemTotal);
+      }
+
+      // Assign rounding remainder to last item
+      if (index === tempItems.length - 1) {
+        itemDiscount = Math.min(remainingDiscount, itemTotal);
+      }
+
+      remainingDiscount -= itemDiscount;
+
+      return {
+        ...item,
+        discountPerItem: itemDiscount,
+        commissionPercent: 10, // FIXED COMMISSION
+      };
+    });
 
     // -----------------------------------------
     // FINAL AMOUNT
@@ -231,7 +225,9 @@ export const OrderController = async (req, res) => {
       totalPrice: subtotal,
       discount,
       finalAmount,
+      paidAmount: finalAmount,
       couponCode: couponCode || null,
+      minPurchaseforCoupon: coupon.minPurchase,
       couponApplied: Boolean(couponCode),
       paymentMethod,
       paymentStatus: paymentMethod === "COD" ? "Pending" : "Paid",
@@ -531,6 +527,7 @@ export const cancelProductOrder = async (req, res) => {
     const userId = req.user._id;
     const { orderId, item_id } = req.params;
     const { reason } = req.body;
+
     const order = await Order.findOne({ _id: orderId, userID: userId });
     if (!order) return res.status(404).json({ message: "Order not found" });
 
@@ -558,13 +555,53 @@ export const cancelProductOrder = async (req, res) => {
     }
 
     // ------------------------------------------------------------
-    // 2) REVERSE VENDOR CREDIT
+    // 2) MARK ITEM CANCELLED FIRST
+    // ------------------------------------------------------------
+    item.status = "Cancelled";
+    item.cancelReason = reason;
+
+    // ------------------------------------------------------------
+    // 3) REVALIDATE COUPON (BEFORE REFUND)
+    // ------------------------------------------------------------
+    if (order.couponApplied) {
+      let remainingSubtotal = 0;
+
+      for (const it of order.orderedItems) {
+        if (it.status !== "Cancelled") {
+          remainingSubtotal += it.price * it.quantity;
+        }
+      }
+
+      // Coupon no longer valid → revoke it
+      if (remainingSubtotal < order.minPurchaseforCoupon) {
+        for (const it of order.orderedItems) {
+          if (it.status !== "Cancelled") {
+            it.discountPerItem = 0;
+          }
+        }
+
+        order.discount = 0;
+        order.couponApplied = false;
+        order.couponCode = null;
+      }
+    }
+
+    order.finalAmount = order.orderedItems.reduce((sum, it) => {
+      if (it.status === "Cancelled") return sum;
+      return sum + (it.price * it.quantity - (it.discountPerItem || 0));
+    }, 0);
+
+    // ------------------------------------------------------------
+    // 4) REVERSE VENDOR CREDIT (NET AMOUNT)
     // ------------------------------------------------------------
     if (order.paymentMethod === "Razorpay" && order.paymentStatus === "Paid") {
+      const netAmount =
+        item.price * item.quantity - (item.discountPerItem || 0);
+
       await reversalForOrder({
         vendorId: item.vendorID,
         orderId: order._id,
-        amount: item.price * item.quantity,
+        amount: Math.max(netAmount, 0),
         commissionPercent: 10,
       });
 
@@ -574,8 +611,7 @@ export const cancelProductOrder = async (req, res) => {
     }
 
     // ------------------------------------------------------------
-    // 3) REFUND CALCULATION
-    //
+    // 5) CALCULATE REFUND (AFTER COUPON DECISION)
     // ------------------------------------------------------------
     let refundAmt = 0;
 
@@ -584,31 +620,12 @@ export const cancelProductOrder = async (req, res) => {
         order.paymentMethod === "Wallet") &&
       order.paymentStatus === "Paid"
     ) {
-      refundAmt = item.price * item.quantity;
+      const itemTotal = item.price * item.quantity;
+      const itemNet = Math.max(itemTotal - (item.discountPerItem || 0), 0);
 
-      // --- COUPON SHARE ADJUSTMENT ---
-      if (order.couponApplied && order.discount > 0) {
-        const itemTotal = item.price * item.quantity;
-        const totalOrderItemsAmount = order.orderedItems.reduce(
-          (sum, it) => sum + it.price * it.quantity,
-          0
-        );
+      // NEVER refund more than what is still payable
+      refundAmt = Math.min(itemNet, order.paidAmount);
 
-        if (totalOrderItemsAmount > 0) {
-          let itemDiscountShare =
-            (itemTotal / totalOrderItemsAmount) * order.discount;
-
-          //   discount cannot exceed item total
-          itemDiscountShare = Math.min(itemDiscountShare, itemTotal);
-
-          refundAmt = itemTotal - itemDiscountShare;
-        } else {
-          refundAmt = 0;
-        }
-        refundAmt = Math.floor(refundAmt);
-      }
-
-      // Deposit refund into wallet
       const wallet = await Wallet.findOne({ userId });
       wallet.balance += refundAmt;
       await wallet.save();
@@ -628,22 +645,15 @@ export const cancelProductOrder = async (req, res) => {
       item.refundAmount = refundAmt;
       item.refundStatus = "Completed";
     } else {
-      // COD or unpaid → no refund
       item.refundAmount = 0;
       item.refundStatus = "Not Applicable";
     }
 
     // ------------------------------------------------------------
-    // 4) UPDATE ORDER TOTAL
+    // 6) UPDATE ORDER TOTAL
     // ------------------------------------------------------------
-    order.finalAmount -= refundAmt;
-    //additionally added having a doubt
-    order.totalPrice -= refundAmt;
-    if (order.finalAmount < 0) order.finalAmount = 0;
-
-    // Mark item cancelled
-    item.status = "Cancelled";
-    item.cancelReason = reason;
+    order.paidAmount -= refundAmt;
+    if (order.paidAmount < 0) order.paidAmount = 0;
 
     // If all items cancelled → cancel whole order
     const allCancelled = order.orderedItems.every(
@@ -672,7 +682,7 @@ export const returnOrderItem = async (req, res) => {
     const userId = req.user._id;
     const { orderId, itemId } = req.params;
     const { reason } = req.body;
-    console.log("✅✅✅✅🏡" + reason);
+    // console.log("✅✅✅✅🏡" + reason);
     const order = await Order.findById(orderId);
     if (!order) {
       return res

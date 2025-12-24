@@ -38,14 +38,14 @@ export default function ProductCard({ product }) {
     }
   }, [data, product]);
 
-  const HandleWishList = (productId, variantId,sizeLabel) => {
+  const HandleWishList = (productId, variantId, sizeLabel) => {
     if (!token) {
       toast.message("Please Login to continue");
       return;
     }
     if (!existItem) {
       addWishList(
-        { productId: productId, variantId: variantId,sizeLabel:sizeLabel },
+        { productId: productId, variantId: variantId, sizeLabel: sizeLabel },
         {
           onSuccess: () => {
             setLike(true);
@@ -256,15 +256,13 @@ export default function ProductCard({ product }) {
 
         {/* Add to Cart Button - Always at bottom */}
         <div className="mt-auto">
-          <button className="w-full border-2 border-red-500 text-red-500 py-2 rounded-md flex items-center justify-center gap-2 hover:bg-red-50 transition-colors">
+          <button
+            onClick={() => HandleCart(product)}
+            className="w-full border-2 border-red-500 text-red-500 py-2 rounded-md flex items-center justify-center gap-2 hover:bg-red-50 transition-colors"
+          >
             <ShoppingCart className="w-4 h-4" />
             {!existCart ? (
-              <span
-                className="font-semibold text-sm"
-                onClick={() => HandleCart(product)}
-              >
-                ADD TO CART
-              </span>
+              <span className="font-semibold text-sm">ADD TO CART</span>
             ) : (
               <span
                 className="font-semibold text-sm text-green-600"

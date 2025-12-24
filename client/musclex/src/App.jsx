@@ -58,6 +58,7 @@ import DashboardAnalytics from "./pages/admin/adminAnalytics";
 import BannerDashboard from "./pages/admin/Banner";
 import VendorDashboardAnalysis from "./pages/vendor/DashboardAnalysis";
 import NotFound from "./pages/user/404";
+import SalesReportPrintPage from "./pages/vendor/SalesReportPrintPage";
 const App = () => {
   return (
     <>
@@ -163,6 +164,10 @@ const App = () => {
           }
         />
         <Route path="/vendor/login" element={<LoginVendor />} />
+        <Route
+          path="/vendor/sales-report/print"
+          element={<SalesReportPrintPage />}
+        />
         <Route
           path="/vendor/dashboard"
           element={

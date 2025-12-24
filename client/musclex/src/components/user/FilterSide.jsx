@@ -6,6 +6,7 @@ import { Range } from "react-range";
 import PriceRangeSlider from "./Slider";
 import { useGetVendorCategory } from "../../hooks/vendor/useGetCategory";
 export default function FilterSidebar({
+  setPage,
   selectedCategory,
   setSelectedCategory,
   selectedBrands,
@@ -20,6 +21,7 @@ export default function FilterSidebar({
   const { data: Brands, isPending: isLoading } = useGetBrands();
   // console.log(selectedRatings)
   const toggleCategory = (id) => {
+    setPage(1);
     setSelectedCategory((prev) =>
       prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]
     );

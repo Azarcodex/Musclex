@@ -14,7 +14,7 @@ export const salesReport = async (req, res) => {
 
     const { filter } = req.body || {};
     const vendorObjectId = new mongoose.Types.ObjectId(vendorId);
-
+    // console.log(vendorObjectId, vendorId);
     // -------------------------
     // DATE FILTER
 
@@ -122,7 +122,15 @@ export const salesReport = async (req, res) => {
           orderDate: "$createdAt",
           customerName: "$customer.name",
           productName: "$product.name",
-          flavour: "$variant.flavour",
+          flavour: {
+            $cond: {
+              if: {
+                $eq: [{ $trim: { input: "$variant.flavour" } }, ""],
+              },
+              then: "no flavour",
+              else: "$variant.flavour",
+            },
+          },
           sizeLabel: "$orderedItems.sizeLabel",
           quantity: "$orderedItems.quantity",
 
@@ -274,6 +282,16 @@ export const salesReport = async (req, res) => {
       totalVendorEarning: 0,
     };
 
+    // return res.status(200).json({
+    //   success: true,
+    //   orders,
+    //   pagination: {
+    //     current: page,
+    //     totalPages,
+    //     totalItems,
+    //   },
+    //   summary,
+    // });
     return res.status(200).json({
       success: true,
       orders,
@@ -281,6 +299,13 @@ export const salesReport = async (req, res) => {
         current: page,
         totalPages,
         totalItems,
+      },
+      totals: {
+        totalQuantity: summary.totalQty,
+        totalOriginalRevenue: summary.totalOriginalRevenue,
+        totalDiscount: summary.totalCouponDiscount,
+        totalCommission: summary.totalCommission,
+        totalVendorEarning: summary.totalVendorEarning,
       },
       summary,
     });

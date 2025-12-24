@@ -161,6 +161,7 @@ const orderSchema = new mongoose.Schema(
     totalPrice: { type: Number, required: true },
     discount: { type: Number, default: 0 },
     finalAmount: { type: Number, required: true },
+    paidAmount: { type: Number, required: true },
     expectedDelivery: { type: Date },
     deliveredDate: { type: Date },
     //coupon
@@ -176,6 +177,10 @@ const orderSchema = new mongoose.Schema(
     couponApplied: {
       type: Boolean,
       default: false,
+    },
+    minPurchaseforCoupon: {
+      type: Number,
+      default: 0,
     },
     razorpayOrderId: {
       type: String,

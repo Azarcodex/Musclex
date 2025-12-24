@@ -568,7 +568,7 @@ export default function UserOrdersPage() {
 
                           {/* Final Price */}
                           <span className="text-green-600 font-bold">
-                            ₹{order.finalAmount}
+                            ₹{order.paidAmount}
                           </span>
 
                           {/* Discount Badge */}
@@ -578,7 +578,7 @@ export default function UserOrdersPage() {
                         </>
                       ) : (
                         <span className="text-gray-900 font-bold">
-                          ₹{order.finalAmount}
+                          ₹{order.totalPrice}
                         </span>
                       )}
                     </span>

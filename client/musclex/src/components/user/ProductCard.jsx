@@ -132,11 +132,11 @@ export default function ProductCard({ product }) {
         />
 
         {/* Discount Badge  */}
-        {!product.size.offerApplied && (
+        {/* {!product.size.offerApplied && (
           <div className="absolute top-4 left-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
             {product.discount}%
           </div>
-        )}
+        )} */}
 
         {/* Heart Icon */}
         <button
@@ -236,7 +236,7 @@ export default function ProductCard({ product }) {
                 </span>
               </div>
 
-              <div className="flex items-center gap-1 text-xs text-red-600 font-medium">
+              {/* <div className="flex items-center gap-1 text-xs text-red-600 font-medium">
                 <svg
                   className="w-3 h-3"
                   fill="currentColor"
@@ -249,7 +249,7 @@ export default function ProductCard({ product }) {
                   />
                 </svg>
                 <span>{product.discount}% Discount</span>
-              </div>
+              </div> */}
             </div>
           )}
         </div>

@@ -75,15 +75,52 @@ export const getProducts = async (req, res) => {
         const relatedVariants = variants
           .filter((v) => v.productId.toString() === product._id.toString())
           .map((v) => {
+            // const filteredSizes = v.size?.filter((s) => {
+            //   if (minPrice && maxPrice) {
+            //     return s.salePrice >= minPrice && s.salePrice <= maxPrice;
+            //   }
+            //   if (minPrice) return s.salePrice >= minPrice;
+            //   if (maxPrice) return s.salePrice <= maxPrice;
+            //   return true;
+            // });
+
             const filteredSizes = v.size?.filter((s) => {
+              let effectivePrice = s.salePrice;
+
+              // category offer
+              const catOffer = activeOffers.find(
+                (off) =>
+                  off.categoryId?.toString() === product.catgid._id.toString()
+              );
+
+              // product offer
+              const prodOffer = activeProductOffers.find((off) =>
+                off.productIds.some(
+                  (id) => id.toString() === product._id.toString()
+                )
+              );
+
+              const computeDiscount = (offer) => {
+                if (!offer) return 0;
+                return offer.discountType === "percent"
+                  ? Math.floor((effectivePrice * offer.value) / 100)
+                  : offer.value;
+              };
+
+              const catDiscount = computeDiscount(catOffer);
+              const prodDiscount = computeDiscount(prodOffer);
+              const bestDiscount = Math.max(catDiscount, prodDiscount);
+
+              effectivePrice = Math.max(effectivePrice - bestDiscount, 1);
+
               if (minPrice && maxPrice) {
-                return s.salePrice >= minPrice && s.salePrice <= maxPrice;
+                return effectivePrice >= minPrice && effectivePrice <= maxPrice;
               }
-              if (minPrice) return s.salePrice >= minPrice;
-              if (maxPrice) return s.salePrice <= maxPrice;
+              if (minPrice) return effectivePrice >= minPrice;
+              if (maxPrice) return effectivePrice <= maxPrice;
               return true;
             });
-
+            //end of offer logic
             if (!filteredSizes?.length) return null;
 
             return {

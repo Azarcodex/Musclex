@@ -185,6 +185,7 @@ export const verifyRetryPayment = async (req, res) => {
       totalPrice: subtotal,
       discount,
       finalAmount,
+      paidAmount:finalAmount,
       expectedDelivery,
       couponCode: temp.couponCode,
       couponApplied: !!temp.couponCode,

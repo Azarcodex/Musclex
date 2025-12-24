@@ -31,14 +31,16 @@ export const cancelProductOrder = async (req, res) => {
     }
 
     // ------------------------------------------------------------
-    // 2) MARK ITEM CANCELLED FIRST
+    // 2) MARK ITEM CANCELLED
     // ------------------------------------------------------------
     item.status = "Cancelled";
     item.cancelReason = reason;
 
     // ------------------------------------------------------------
-    // 3) REVALIDATE COUPON (BEFORE REFUND)
+    // 3) CHECK IF COUPON BECOMES INVALID
     // ------------------------------------------------------------
+    let couponInvalidated = false;
+
     if (order.couponApplied) {
       let remainingSubtotal = 0;
 
@@ -48,45 +50,15 @@ export const cancelProductOrder = async (req, res) => {
         }
       }
 
-      // Coupon no longer valid → revoke it
       if (remainingSubtotal < order.minPurchaseforCoupon) {
-        let extraPayable = 0;
-
-        for (const it of order.orderedItems) {
-          if (it.status !== "Cancelled" && it.discountPerItem > 0) {
-            extraPayable += it.discountPerItem;
-            it.discountPerItem = 0;
-          }
-        }
-
-        order.finalAmount += extraPayable;
-        order.discount = 0;
+        couponInvalidated = true;
         order.couponApplied = false;
         order.couponCode = null;
       }
     }
 
     // ------------------------------------------------------------
-    // 4) REVERSE VENDOR CREDIT (NET AMOUNT)
-    // ------------------------------------------------------------
-    if (order.paymentMethod === "Razorpay" && order.paymentStatus === "Paid") {
-      const netAmount =
-        item.price * item.quantity - (item.discountPerItem || 0);
-
-      await reversalForOrder({
-        vendorId: item.vendorID,
-        orderId: order._id,
-        amount: Math.max(netAmount, 0),
-        commissionPercent: 10,
-      });
-
-      item.vendorCreditStatus = "Reversed";
-    } else {
-      item.vendorCreditStatus = "Not Applicable";
-    }
-
-    // ------------------------------------------------------------
-    // 5) CALCULATE REFUND (AFTER COUPON DECISION)
+    // 4) CALCULATE REFUND (USING discountPerItem ONLY)
     // ------------------------------------------------------------
     let refundAmt = 0;
 
@@ -96,7 +68,18 @@ export const cancelProductOrder = async (req, res) => {
       order.paymentStatus === "Paid"
     ) {
       const itemTotal = item.price * item.quantity;
-      refundAmt = Math.max(itemTotal - (item.discountPerItem || 0), 0);
+
+      if (couponInvalidated && order.discount > 0) {
+        // Coupon broken → recover full coupon from THIS item
+        refundAmt = itemTotal - order.discount;
+        order.discount = 0;
+      } else {
+        // Normal case → per item refund
+        refundAmt = itemTotal - (item.discountPerItem || 0);
+      }
+
+      refundAmt = Math.max(refundAmt, 0);
+      refundAmt = Math.min(refundAmt, order.paidAmount);
 
       const wallet = await Wallet.findOne({ userId });
       wallet.balance += refundAmt;
@@ -122,12 +105,14 @@ export const cancelProductOrder = async (req, res) => {
     }
 
     // ------------------------------------------------------------
-    // 6) UPDATE ORDER TOTAL
+    // 5) UPDATE PAID AMOUNT (NO finalAmount RECOMPUTE)
     // ------------------------------------------------------------
-    order.finalAmount -= refundAmt;
-    if (order.finalAmount < 0) order.finalAmount = 0;
+    order.paidAmount -= refundAmt;
+    if (order.paidAmount < 0) order.paidAmount = 0;
 
-    // If all items cancelled → cancel whole order
+    // ------------------------------------------------------------
+    // 6) FINAL ORDER STATUS
+    // ------------------------------------------------------------
     const allCancelled = order.orderedItems.every(
       (it) => it.status === "Cancelled"
     );
@@ -143,7 +128,7 @@ export const cancelProductOrder = async (req, res) => {
           : "Item cancelled successfully",
     });
   } catch (err) {
-    console.log(err);
+    console.error(err);
     return res.status(500).json({ message: "Internal Server Error" });
   }
 };

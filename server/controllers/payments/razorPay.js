@@ -227,6 +227,7 @@ export const verifyRazorpayPayment = async (req, res) => {
       totalPrice: subtotal,
       discount,
       finalAmount,
+      paidAmount:finalAmount,
       expectedDelivery,
       couponCode: couponCode || null,
       couponApplied: !!couponCode,

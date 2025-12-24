@@ -59,6 +59,7 @@ import {
 import { walletDashboard } from "../controllers/user/wallet.js";
 import { homeBannerController } from "../controllers/banners/homebanner.controller.js";
 import { resetPasswordAfterOtp } from "../controllers/user/resetPassword.js";
+import { removeTempOrder } from "../controllers/user/tempOrderController.js";
 const router = express.Router();
 
 router.post("/register", registerUser);
@@ -147,5 +148,8 @@ router.get("/orders/:orderId", protectedUser, getSingleOrder);
 
 //getting slides
 router.get("/slides", homeBannerController);
+
+//remove tempOrder
+router.delete("/temporder/:id",protectedUser,removeTempOrder)
 
 export default router;

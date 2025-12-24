@@ -217,7 +217,7 @@ export default function OrderFailed() {
             </button>
 
             <button
-              onClick={() => navigate("/")}
+              onClick={() => navigate("/",{replace:true})}
               className="w-full bg-white hover:bg-gray-50 text-gray-700 px-6 py-4 rounded-xl font-semibold transition-all duration-200 border-2 border-gray-200 hover:border-gray-300 flex items-center justify-center"
             >
               <svg

@@ -447,12 +447,16 @@ export const cancelOrder = async (req, res) => {
     // ---------------------------------------------
     if (order.paymentMethod === "Razorpay" && order.paymentStatus === "Paid") {
       for (const item of order.orderedItems) {
+        const netAmount =
+          item.price * item.quantity - (item.discountPerItem || 0);
+
         await reversalForOrder({
           vendorId: item.vendorID,
           orderId: order._id,
-          amount: item.price * item.quantity,
+          amount: Math.max(netAmount, 0),
           commissionPercent: 10,
         });
+
         item.vendorCreditStatus = "Reversed";
       }
     } else {
@@ -464,50 +468,43 @@ export const cancelOrder = async (req, res) => {
     // ---------------------------------------------
     // 3) REFUND USER (wallet or razorpay)
     // ---------------------------------------------
-    const refundAmount = order.finalAmount;
+    const refundAmount = order.paidAmount;
 
-    const shouldRefund =
+    if (
       (order.paymentMethod === "Razorpay" ||
         order.paymentMethod === "Wallet") &&
-      order.paymentStatus === "Paid";
-
-    if (shouldRefund) {
+      order.paymentStatus === "Paid"
+    ) {
       const wallet = await Wallet.findOne({ userId });
       wallet.balance += refundAmount;
       await wallet.save();
-
-      const referenceId =
-        order.paymentMethod === "Razorpay"
-          ? `RAZORPAY_REFUND_${order._id}`
-          : `WALLET_REFUND_${order._id}`;
 
       await WalletLedger.create({
         walletId: wallet._id,
         userId,
         amount: refundAmount,
         type: "ADD",
-        referenceId,
+        referenceId: `FULL_ORDER_REFUND_${order._id}`,
         note: "Refund for full order cancellation",
       });
 
       for (const item of order.orderedItems) {
-        item.refundAmount = item.price * item.quantity;
+        item.refundAmount = 0; // avoid mismatch
         item.refundStatus = "Completed";
       }
 
       order.paymentStatus = "Refunded";
-    } else {
-      for (const item of order.orderedItems) {
-        item.refundAmount = 0;
-        item.refundStatus = "Not Applicable";
-      }
-      order.paymentStatus = "Not Applicable";
     }
 
     // ---------------------------------------------
-    // 4) UPDATE ORDER STATUS USING computeOrderStatus()
+    // 4) FINAL CLEANUP
     // ---------------------------------------------
-    order.orderStatus = computeOrderStatus(order.orderedItems);
+    order.finalAmount = 0;
+    order.discount = 0;
+    order.couponApplied = false;
+    order.couponCode = null;
+    order.paidAmount = 0;
+    order.orderStatus = "Cancelled";
 
     await order.save();
 
@@ -555,14 +552,16 @@ export const cancelProductOrder = async (req, res) => {
     }
 
     // ------------------------------------------------------------
-    // 2) MARK ITEM CANCELLED FIRST
+    // 2) MARK ITEM CANCELLED
     // ------------------------------------------------------------
     item.status = "Cancelled";
     item.cancelReason = reason;
 
     // ------------------------------------------------------------
-    // 3) REVALIDATE COUPON (BEFORE REFUND)
+    // 3) CHECK IF COUPON BECOMES INVALID
     // ------------------------------------------------------------
+    let couponInvalidated = false;
+
     if (order.couponApplied) {
       let remainingSubtotal = 0;
 
@@ -572,46 +571,15 @@ export const cancelProductOrder = async (req, res) => {
         }
       }
 
-      // Coupon no longer valid → revoke it
       if (remainingSubtotal < order.minPurchaseforCoupon) {
-        for (const it of order.orderedItems) {
-          if (it.status !== "Cancelled") {
-            it.discountPerItem = 0;
-          }
-        }
-
-        order.discount = 0;
+        couponInvalidated = true;
         order.couponApplied = false;
         order.couponCode = null;
       }
     }
 
-    order.finalAmount = order.orderedItems.reduce((sum, it) => {
-      if (it.status === "Cancelled") return sum;
-      return sum + (it.price * it.quantity - (it.discountPerItem || 0));
-    }, 0);
-
     // ------------------------------------------------------------
-    // 4) REVERSE VENDOR CREDIT (NET AMOUNT)
-    // ------------------------------------------------------------
-    if (order.paymentMethod === "Razorpay" && order.paymentStatus === "Paid") {
-      const netAmount =
-        item.price * item.quantity - (item.discountPerItem || 0);
-
-      await reversalForOrder({
-        vendorId: item.vendorID,
-        orderId: order._id,
-        amount: Math.max(netAmount, 0),
-        commissionPercent: 10,
-      });
-
-      item.vendorCreditStatus = "Reversed";
-    } else {
-      item.vendorCreditStatus = "Not Applicable";
-    }
-
-    // ------------------------------------------------------------
-    // 5) CALCULATE REFUND (AFTER COUPON DECISION)
+    // 4) CALCULATE REFUND (USING discountPerItem ONLY)
     // ------------------------------------------------------------
     let refundAmt = 0;
 
@@ -621,10 +589,20 @@ export const cancelProductOrder = async (req, res) => {
       order.paymentStatus === "Paid"
     ) {
       const itemTotal = item.price * item.quantity;
-      const itemNet = Math.max(itemTotal - (item.discountPerItem || 0), 0);
 
-      // NEVER refund more than what is still payable
-      refundAmt = Math.min(itemNet, order.paidAmount);
+      if (couponInvalidated && order.discount > 0) {
+        // Coupon broken → recover full coupon from THIS item
+        refundAmt = itemTotal - order.discount;
+        order.discount = 0;
+      } else if (order.couponApplied) {
+        // Normal case → per item refund
+        refundAmt = itemTotal - (item.discountPerItem || 0);
+      } else {
+        refundAmt = itemTotal;
+      }
+
+      refundAmt = Math.max(refundAmt, 0);
+      refundAmt = Math.min(refundAmt, order.paidAmount);
 
       const wallet = await Wallet.findOne({ userId });
       wallet.balance += refundAmt;
@@ -650,12 +628,14 @@ export const cancelProductOrder = async (req, res) => {
     }
 
     // ------------------------------------------------------------
-    // 6) UPDATE ORDER TOTAL
+    // 5) UPDATE PAID AMOUNT (NO finalAmount RECOMPUTE)
     // ------------------------------------------------------------
     order.paidAmount -= refundAmt;
     if (order.paidAmount < 0) order.paidAmount = 0;
 
-    // If all items cancelled → cancel whole order
+    // ------------------------------------------------------------
+    // 6) FINAL ORDER STATUS
+    // ------------------------------------------------------------
     const allCancelled = order.orderedItems.every(
       (it) => it.status === "Cancelled"
     );
@@ -671,7 +651,7 @@ export const cancelProductOrder = async (req, res) => {
           : "Item cancelled successfully",
     });
   } catch (err) {
-    console.log(err);
+    console.error(err);
     return res.status(500).json({ message: "Internal Server Error" });
   }
 };

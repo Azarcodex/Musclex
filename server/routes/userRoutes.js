@@ -1,7 +1,10 @@
 import express from "express";
 import { loginUser, registerUser } from "../controllers/user/authController.js";
 import { otpController } from "../controllers/user/otpController.js";
-import { resendOtp } from "../controllers/user/resendOTP.js";
+import {
+  resendOtp,
+  resendOtpForgetPassword,
+} from "../controllers/user/resendOTP.js";
 import { forgetPassword } from "../controllers/user/forgetPassword.js";
 import { forgetOtpController } from "../controllers/user/forgetOtpController.js";
 import { getProducts } from "../controllers/user/products/getProducts.js";
@@ -64,7 +67,8 @@ const router = express.Router();
 
 router.post("/register", registerUser);
 router.post("/verify", otpController); //otp
-router.post("/resend", resendOtp); //resend otp
+router.post("/resend", resendOtp);
+router.post("/resend/forget", resendOtpForgetPassword); //resend otp
 router.post("/forget", forgetPassword); //forget password
 router.post("/forgetCheck", forgetOtpController);
 //login
@@ -150,6 +154,6 @@ router.get("/orders/:orderId", protectedUser, getSingleOrder);
 router.get("/slides", homeBannerController);
 
 //remove tempOrder
-router.delete("/temporder/:id",protectedUser,removeTempOrder)
+router.delete("/temporder/:id", protectedUser, removeTempOrder);
 
 export default router;

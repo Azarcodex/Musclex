@@ -182,6 +182,10 @@ const orderSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    couponValue: {
+      type: Number,
+      default: 0,
+    },
     razorpayOrderId: {
       type: String,
     },

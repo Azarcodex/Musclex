@@ -79,32 +79,77 @@ export const updateReturnStatusVendor = async (req, res) => {
     // -----------------------------------------
     if (newStatus === "Completed") {
       const itemTotal = item.price * item.quantity;
-      const couponDiscount = (item.discountPerItem || 0) * item.quantity;
 
-      // FINAL accurate refund
-      const refundAmount = itemTotal - couponDiscount; //
+      // --------------------------------------------------
+      // 1) CHECK REMAINING SUBTOTAL (EXCLUDING THIS ITEM)
+      // --------------------------------------------------
+      let remainingSubtotal = 0;
 
-      if (refundAmount < 0) refundAmount = 0;
-      console.log(refundAmount, couponDiscount, item.discountPerItem);
-      // Vendor wallet check
+      for (const it of order.orderedItems) {
+        if (
+          it._id.toString() !== itemId.toString() &&
+          it.status !== "Returned"
+        ) {
+          remainingSubtotal += it.price * it.quantity;
+        }
+      }
+
+      // --------------------------------------------------
+      // 2) CHECK IF COUPON BECOMES INVALID (SAME AS CANCEL)
+      // --------------------------------------------------
+      let couponInvalidated = false;
+
+      if (order.couponApplied) {
+        if (remainingSubtotal < order.minPurchaseforCoupon) {
+          couponInvalidated = true;
+          order.couponApplied = false;
+          order.couponCode = null;
+        }
+      }
+
+      // --------------------------------------------------
+      // 3) CALCULATE REFUND (SAME AS CANCEL)
+      // --------------------------------------------------
+      let refundAmount = 0;
+
+      if (couponInvalidated && order.discount > 0) {
+        const couponDiscountForItem = (itemTotal * order.couponValue) / 100;
+
+        refundAmount = itemTotal - couponDiscountForItem;
+        order.discount = 0;
+      } else if (order.couponApplied) {
+        refundAmount = itemTotal - (item.discountPerItem || 0);
+      } else {
+        refundAmount = itemTotal;
+      }
+
+      refundAmount = Math.max(refundAmount, 0);
+      refundAmount = Math.min(refundAmount, order.paidAmount);
+
+      // --------------------------------------------------
+      // 4) VENDOR REVERSAL = EXACT REFUND
+      // --------------------------------------------------
+      const vendorReverseAmount = refundAmount;
+
       const vendorWallet = await VendorWallet.findOne({ vendorId });
-      if (!vendorWallet || vendorWallet.balance < refundAmount) {
+      if (!vendorWallet || vendorWallet.balance < vendorReverseAmount) {
         return res.status(400).json({
           message: "Vendor does not have enough balance for refund",
         });
       }
 
-      // Reverse vendor credit
       await reversalForOrder({
         vendorId: item.vendorID,
         orderId: order._id,
-        amount: refundAmount,
+        amount: vendorReverseAmount,
         commissionPercent: 10,
       });
 
       item.vendorCreditStatus = "Reversed";
 
-      // Refund to user wallet
+      // --------------------------------------------------
+      // 5) REFUND USER WALLET
+      // --------------------------------------------------
       let userWallet = await Wallet.findOne({ userId: order.userID });
       if (!userWallet) {
         userWallet = await Wallet.create({
@@ -122,18 +167,23 @@ export const updateReturnStatusVendor = async (req, res) => {
         amount: refundAmount,
         type: "REFUND",
         referenceId: order.orderId,
-        note: `Refund for item ${itemId}`,
+        note: `Refund for returned item ${itemId}`,
       });
 
-      // Restore stock
+      // --------------------------------------------------
+      // 6) RESTORE STOCK
+      // --------------------------------------------------
       const variant = await Variant.findById(item.variantID);
       if (variant) {
         const sizeObj = variant.size.find((s) => s.label === item.sizeLabel);
         if (sizeObj) sizeObj.stock += item.quantity;
         await variant.save();
       }
-
-      // Final updates
+      order.paidAmount -= refundAmount;
+      if (order.paidAmount < 0) order.paidAmount = 0;
+      // --------------------------------------------------
+      // 7) FINAL ITEM UPDATE
+      // --------------------------------------------------
       item.returnStatus = "Completed";
       item.refundStatus = "Completed";
       item.refundAmount = refundAmount;
@@ -145,7 +195,6 @@ export const updateReturnStatusVendor = async (req, res) => {
         success: true,
         message: "Return completed & refunded successfully",
         refundAmount,
-        order,
       });
     }
   } catch (error) {

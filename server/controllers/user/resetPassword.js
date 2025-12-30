@@ -1,5 +1,6 @@
 import bcrypt from "bcrypt";
 import User from "../../models/users/user.js";
+import STATUS_CODES from "../../constants/statuscodes.js";
 
 export const resetPasswordAfterOtp = async (req, res) => {
   try {
@@ -33,6 +34,7 @@ export const resetPasswordAfterOtp = async (req, res) => {
 
     res.status(200).json({ message: "Password reset successful" });
   } catch (error) {
+    console.log(error);
     res.status(500).json({ message: "Server error" });
   }
 };

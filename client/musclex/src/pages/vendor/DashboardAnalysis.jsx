@@ -8,24 +8,17 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import {
-  LayoutDashboard,
-  DollarSign,
-  ShoppingBag,
-  TrendingUp,
-  Percent,
-  Package,
-} from "lucide-react";
+import { ShoppingBag, TrendingUp, Package } from "lucide-react";
 import { useGetVendorDashboard } from "../../hooks/vendor/useGetDashboard";
 
-// --- Helper Components ---
+// ---------- Helper ----------
 const StatCard = ({ title, value, icon: Icon, colorClass }) => (
-  <div className="bg-white p-6 rounded-2xl shadow-sm border border-purple-100 flex items-center space-x-4 transition hover:shadow-md">
+  <div className="bg-white p-6 rounded-2xl shadow-sm border border-purple-100 flex items-center space-x-4">
     <div className={`p-3 rounded-full ${colorClass}`}>
       <Icon className="w-6 h-6 text-white" />
     </div>
     <div>
-      <p className="text-sm text-gray-500 font-medium">{title}</p>
+      <p className="text-sm text-gray-500">{title}</p>
       <h3 className="text-2xl font-bold text-gray-800">{value}</h3>
     </div>
   </div>
@@ -33,81 +26,64 @@ const StatCard = ({ title, value, icon: Icon, colorClass }) => (
 
 const VendorDashboard = () => {
   const [timeframe, setTimeframe] = useState("weekly");
-
-  // ✅ HOOK MUST BE HERE
   const { data, isLoading, isError } = useGetVendorDashboard();
 
-  if (isLoading) {
-    return <div className="p-6">Loading dashboard...</div>;
-  }
-
-  if (isError || !data) {
+  if (isLoading) return <div className="p-6">Loading dashboard...</div>;
+  if (isError || !data)
     return <div className="p-6 text-red-600">Failed to load dashboard</div>;
-  }
 
-  // ✅ SAFE DESTRUCTURING
   const summary = data.summary || {};
   const topProducts = data.topProducts || [];
   const chartData = data.chartData || {};
 
-  const rawChart =
-    timeframe === "weekly"
-      ? chartData?.weekly?.weekly ?? []
-      : timeframe === "monthly"
-      ? chartData?.monthly?.monthly ?? []
-      : chartData?.yearly?.yearly ?? [];
+  // 🔑 CORRECT CHART DATA HANDLING
+  let currentChartData = [];
 
-  const currentChartData = rawChart.map((item) => {
-    let label = "";
+  // WEEKLY (labels + data)
+  if (timeframe === "weekly") {
+    const labels = chartData?.weekly?.labels ?? [];
+    const values = chartData?.weekly?.data ?? [];
 
-    if (timeframe === "weekly") {
-      const date = new Date(item._id + "T00:00:00");
-      label = date.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-      });
-    }
-
-    if (timeframe === "monthly") {
-      label = new Date(2025, item._id - 1, 1).toLocaleString("en-US", {
-        month: "short",
-      });
-    }
-
-    if (timeframe === "yearly") {
-      label = item._id.toString();
-    }
-
-    return {
+    currentChartData = labels.map((label, index) => ({
       name: label,
-      profit: Number(item.profit ?? 0),
-    };
-  });
+      profit: Number(values[index] ?? 0),
+    }));
+  }
+
+  // MONTHLY (array of objects)
+  if (timeframe === "monthly") {
+    currentChartData =
+      chartData?.monthly?.monthly?.map((item) => ({
+        name: new Date(2025, item.month - 1, 1).toLocaleString("en-US", {
+          month: "short",
+        }),
+        profit: Number(item.netRevenue ?? 0),
+      })) ?? [];
+  }
+
+  // YEARLY (array of objects)
+  if (timeframe === "yearly") {
+    currentChartData =
+      chartData?.yearly?.yearly?.map((item) => ({
+        name: item.year.toString(),
+        profit: Number(item.netRevenue ?? 0),
+      })) ?? [];
+  }
 
   const formatCurrency = (amount = 0) => `₹${amount.toLocaleString()}`;
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6 md:p-10 font-sans">
+    <div className="min-h-screen bg-slate-50 p-6 md:p-10">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-purple-900">
-            Vendor Dashboard
-          </h1>
-          <p className="text-slate-500 mt-1">
-            Welcome back! Here is your store overview.
-          </p>
-        </div>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-purple-900">Vendor Dashboard</h1>
+        <p className="text-slate-500 mt-1">
+          Welcome back! Here is your store overview.
+        </p>
       </div>
 
-      {/* Stats Grid */}
-      {/* <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <StatCard
-          title="Total Revenue"
-          value={formatCurrency(summary.totalRevenue)}
-          icon={DollarSign}
-          colorClass="bg-purple-500"
-        />
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <StatCard
           title="Total Profit"
           value={formatCurrency(summary.totalProfit)}
@@ -115,21 +91,15 @@ const VendorDashboard = () => {
           colorClass="bg-emerald-500"
         />
         <StatCard
-          title="Total Orders"
-          value={summary.totalOrders || 0}
+          title="Total Sold"
+          value={summary.totalSold || 0}
           icon={ShoppingBag}
           colorClass="bg-blue-500"
         />
-        <StatCard
-          title="Total Commission"
-          value={formatCurrency(summary.totalCommission)}
-          icon={Percent}
-          colorClass="bg-orange-400"
-        />
-      </div> */}
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Chart Section */}
+        {/* Chart */}
         <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-purple-100">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-bold text-gray-800">
@@ -153,7 +123,7 @@ const VendorDashboard = () => {
             </div>
           </div>
 
-          <div className="h-[300px] w-full">
+          <div className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={currentChartData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
@@ -192,16 +162,13 @@ const VendorDashboard = () => {
                   </div>
                   <div>
                     <p className="font-semibold text-gray-800 capitalize">
-                      {product.productName || product.name}
+                      {product.productName}
                     </p>
                     <p className="text-xs text-gray-500">
                       {product.totalSold} sold
                     </p>
                   </div>
                 </div>
-                <span className="font-bold text-purple-700">
-                  {formatCurrency(product.revenue)}
-                </span>
               </div>
             ))
           )}

@@ -4,6 +4,14 @@ import { useNavigate } from "react-router-dom";
 export default function SalesReportPrint({ data }) {
   const navigate = useNavigate();
   const { orders, totals } = data;
+  const formatCurrency = (amount) => {
+    const value = parseFloat(amount) || 0;
+    return value.toLocaleString("en-IN", {
+      style: "currency",
+      currency: "INR",
+      maximumFractionDigits: 0,
+    });
+  };
 
   const handlePrint = () => {
     window.print();
@@ -23,7 +31,7 @@ export default function SalesReportPrint({ data }) {
           onClick={() => navigate(-1)}
           className="px-4 py-2 bg-black text-white rounded text-sm"
         >
-          back
+          Back
         </button>
       </div>
 
@@ -65,11 +73,17 @@ export default function SalesReportPrint({ data }) {
                 <td className="border p-2">{o.flavour}</td>
                 <td className="border p-2">{o.sizeLabel}</td>
                 <td className="border p-2 text-center">{o.quantity}</td>
-                <td className="border p-2 text-right">₹{o.price}</td>
-                <td className="border p-2 text-right">₹{o.couponDiscount}</td>
-                <td className="border p-2 text-right">₹{o.commissionAmount}</td>
+                <td className="border p-2 text-right">
+                  {formatCurrency(o.price)}
+                </td>
+                <td className="border p-2 text-right">
+                  {formatCurrency(o.couponDiscount)}
+                </td>
+                <td className="border p-2 text-right">
+                  {formatCurrency(o.commissionAmount)}
+                </td>
                 <td className="border p-2 text-right font-medium">
-                  ₹{o.vendorEarning}
+                  {formatCurrency(o.vendorEarning)}
                 </td>
               </tr>
             ))}
@@ -83,14 +97,16 @@ export default function SalesReportPrint({ data }) {
               </td>
               <td className="border p-2 text-center">{totals.totalQuantity}</td>
               <td className="border p-2 text-right">
-                ₹{totals.totalOriginalRevenue}
-              </td>
-              <td className="border p-2 text-right">₹{totals.totalDiscount}</td>
-              <td className="border p-2 text-right">
-                ₹{totals.totalCommission}
+                {formatCurrency(totals.totalOriginalRevenue)}
               </td>
               <td className="border p-2 text-right">
-                ₹{totals.totalVendorEarning}
+                {formatCurrency(totals.totalDiscount)}
+              </td>
+              <td className="border p-2 text-right">
+                {formatCurrency(totals.totalCommission)}
+              </td>
+              <td className="border p-2 text-right">
+                {formatCurrency(totals.totalVendorEarning)}
               </td>
             </tr>
           </tfoot>

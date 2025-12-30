@@ -179,7 +179,7 @@ const VariantForm = () => {
             >
               <div>
                 <label className="block text-sm font-semibold">
-                  Size Label
+                  *Size Label
                 </label>
                 <input
                   {...register(`sizes.${index}.label`, {
@@ -196,7 +196,7 @@ const VariantForm = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold">Old Price</label>
+                <label className="block text-sm font-semibold">*Old Price</label>
                 <input
                   {...register(`sizes.${index}.oldPrice`, {
                     required: "enter old price",
@@ -214,7 +214,7 @@ const VariantForm = () => {
 
               <div>
                 <label className="block text-sm font-semibold">
-                  Sale Price
+                  *Sale Price
                 </label>
                 <input
                   {...register(`sizes.${index}.salePrice`, {
@@ -232,7 +232,7 @@ const VariantForm = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold">Stock</label>
+                <label className="block text-sm font-semibold">*Stock</label>
                 <input
                   {...register(`sizes.${index}.stock`, {
                     required: "Enter stock",
@@ -249,7 +249,7 @@ const VariantForm = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold">SKU</label>
+                <label className="block text-sm font-semibold">*SKU</label>
                 <input
                   {...register(`sizes.${index}.sku`, {
                     required: "just enter a sku code",

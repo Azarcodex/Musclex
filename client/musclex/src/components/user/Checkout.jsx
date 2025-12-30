@@ -28,6 +28,7 @@ export default function Checkout() {
   const [passcoupon, setPassCoupon] = useState(null);
   const [discount, setDiscount] = useState(0);
   const [finalTotal, setFinalTotal] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { data: checkoutItems, isLoading } = useGetCheckout();
   // console.log(checkoutItems);
@@ -282,7 +283,9 @@ export default function Checkout() {
       toast.message("Select an address first");
       return;
     }
+    if (isSubmitting) return;
 
+    setIsSubmitting(true);
     const payload = {
       items: finalItems,
       addressID: selectedAddress,
@@ -292,10 +295,12 @@ export default function Checkout() {
 
     placeOrder(payload, {
       onSuccess: (data) => {
+        setIsSubmitting(false);
         toast.success(data.message);
         navigate(`/user/ordersuccess/${data?.order?._id}`, { replace: true });
       },
       onError: (err) => {
+        setIsSubmitting(false);
         toast.error(err?.response?.data?.message || "Order failed");
       },
     });
@@ -315,7 +320,13 @@ export default function Checkout() {
                 </h2>
                 <button
                   className="flex items-center gap-1 text-blue-500 text-sm font-medium hover:text-blue-600"
-                  onClick={() => navigate("/user/userdetails/address")}
+                  onClick={() =>
+                    navigate("/user/userdetails/address", {
+                      state: {
+                        fromCheckOut: true,
+                      },
+                    })
+                  }
                 >
                   <Plus size={16} />
                   ADD NEW ADDRESS
@@ -557,7 +568,9 @@ export default function Checkout() {
               </button>
               <button
                 onClick={() => handlePlaceOrder("Wallet")}
-                className="w-full text-[13px] bg-gray-800 hover:bg-gray-900 text-white font-medium py-2 rounded-md flex items-center justify-center gap-2 transition"
+                className={`w-full text-[13px] bg-gray-800 hover:bg-gray-900 text-white font-medium py-2 rounded-md flex items-center justify-center gap-2 transition ${
+                  isSubmitting ? "opacity-50 cursor-not-allowed" : ""
+                }`}
                 disabled={placingOrder}
               >
                 <Wallet size={14} />

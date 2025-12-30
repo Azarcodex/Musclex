@@ -11,9 +11,11 @@ export const AddCart = async (req, res) => {
     const { productId, variantId, sizeLabel, quantity } = req.body;
     console.log(productId, variantId, sizeLabel);
     const product = await Product.findById(productId);
-    // if (!product.isActive) {
-    //   return res.status(400).json({ message: "Item is being deactivated" });
-    // }
+
+    if (!product.isActive) {
+      return res.status(400).json({ message: "Item is being deactivated" });
+    }
+
     const variant = await Variant.findById(variantId);
     if (!variant) {
       return res.status(404).json({ message: MESSAGES.VARIANT_NOT_FOUND });
@@ -52,9 +54,9 @@ export const AddCartFromWishList = async (req, res) => {
     const { productId, variantId, sizeLabel, quantity } = req.body;
     // console.log(productId, variantId, sizeLabel);
     const product = await Product.findById(productId);
-    // if (!product.isActive) {
-    //   return res.status(400).json({ message: "Item is being deactivated" });
-    // }
+    if (!product.isActive) {
+      return res.status(400).json({ message: "Item is being deactivated" });
+    }
     const variant = await Variant.findById(variantId);
     if (!variant) {
       return res.status(404).json({ message: MESSAGES.VARIANT_NOT_FOUND });
@@ -245,7 +247,9 @@ export const getCart = async (req, res) => {
     });
   } catch (err) {
     console.log("getCart error:", err);
-    res.status(500).json({ success: false, message: MESSAGES.INTERNAL_SERVER_ERROR });
+    res
+      .status(500)
+      .json({ success: false, message: MESSAGES.INTERNAL_SERVER_ERROR });
   }
 };
 
@@ -258,7 +262,7 @@ export const removeFromCart = async (req, res) => {
     // Find the cart item (to check origin)
     const cartItem = await Cart.findOne({ _id: id, userId });
     if (!cartItem) {
-        return res.status(404).json({ message: MESSAGES.ITEM_NOT_FOUND });
+      return res.status(404).json({ message: MESSAGES.ITEM_NOT_FOUND });
     }
 
     const { productId, variantId, sizeLabel, fromWishList } = cartItem;
@@ -308,7 +312,7 @@ export const QuantityChange = async (req, res) => {
     const userId = req.user._id;
     const cart = await Cart.findOne({ _id: id, userId: userId });
     if (!cart) {
-        return res.status(404).json({ message: MESSAGES.ITEM_NOT_FOUND });
+      return res.status(404).json({ message: MESSAGES.ITEM_NOT_FOUND });
     }
     const variant = await Variant.findById(cart.variantId);
     const sizeArr = variant?.size?.find((s) => s.label === cart.sizeLabel);
@@ -316,9 +320,7 @@ export const QuantityChange = async (req, res) => {
     switch (action) {
       case "inc":
         if (cart.quantity + 1 > stock) {
-            return res
-              .status(400)
-              .json({ message: MESSAGES.STOCK_UNAVAILABLE });
+          return res.status(400).json({ message: MESSAGES.STOCK_UNAVAILABLE });
         }
         cart.quantity += 1;
         break;

@@ -1,5 +1,9 @@
 import { useMutation } from "@tanstack/react-query";
-import { enableOTP, resendOTP } from "../../services/userAuthService";
+import {
+  enableOTP,
+  resendOTP,
+  resendOTPForgetPassword,
+} from "../../services/userAuthService";
 
 export const useOTP = () => {
   return useMutation({
@@ -10,5 +14,11 @@ export const useOTP = () => {
 export const useResendOTP = () => {
   return useMutation({
     mutationFn: resendOTP,
+  });
+};
+
+export const useResendOTPForgetPassword = () => {
+  return useMutation({
+    mutationFn: resendOTPForgetPassword,
   });
 };

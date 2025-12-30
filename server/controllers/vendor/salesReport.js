@@ -151,11 +151,25 @@ export const salesReport = async (req, res) => {
           },
 
           commissionAmount: {
-            $multiply: [
-              "$orderedItems.quantity",
+            $round: [
               {
                 $multiply: [
-                  { $toDouble: "$orderedItems.price" },
+                  {
+                    $subtract: [
+                      {
+                        $multiply: [
+                          "$orderedItems.price",
+                          "$orderedItems.quantity",
+                        ],
+                      },
+                      {
+                        $multiply: [
+                          "$orderedItems.quantity",
+                          { $ifNull: ["$orderedItems.discountPerItem", 0] },
+                        ],
+                      },
+                    ],
+                  },
                   {
                     $divide: [
                       { $ifNull: ["$orderedItems.commissionPercent", 10] },
@@ -164,33 +178,48 @@ export const salesReport = async (req, res) => {
                   },
                 ],
               },
+              2,
             ],
           },
 
           vendorEarning: {
-            $subtract: [
+            $round: [
               {
                 $subtract: [
                   {
-                    $multiply: [
-                      "$orderedItems.quantity",
-                      { $toDouble: "$orderedItems.price" },
+                    $subtract: [
+                      {
+                        $multiply: [
+                          "$orderedItems.price",
+                          "$orderedItems.quantity",
+                        ],
+                      },
+                      {
+                        $multiply: [
+                          "$orderedItems.quantity",
+                          { $ifNull: ["$orderedItems.discountPerItem", 0] },
+                        ],
+                      },
                     ],
                   },
                   {
                     $multiply: [
-                      "$orderedItems.quantity",
-                      { $ifNull: ["$orderedItems.discountPerItem", 0] },
-                    ],
-                  },
-                ],
-              },
-              {
-                $multiply: [
-                  "$orderedItems.quantity",
-                  {
-                    $multiply: [
-                      { $toDouble: "$orderedItems.price" },
+                      {
+                        $subtract: [
+                          {
+                            $multiply: [
+                              "$orderedItems.price",
+                              "$orderedItems.quantity",
+                            ],
+                          },
+                          {
+                            $multiply: [
+                              "$orderedItems.quantity",
+                              { $ifNull: ["$orderedItems.discountPerItem", 0] },
+                            ],
+                          },
+                        ],
+                      },
                       {
                         $divide: [
                           { $ifNull: ["$orderedItems.commissionPercent", 10] },
@@ -201,6 +230,7 @@ export const salesReport = async (req, res) => {
                   },
                 ],
               },
+              2,
             ],
           },
 
@@ -214,84 +244,117 @@ export const salesReport = async (req, res) => {
     ]);
 
     // SUMMARY
-    const summary = (
+    // SUMMARY — DO NOT ROUND BEFORE GROUP
+    // SUMMARY — ROUND PER ITEM, THEN SUM (MATCH ADMIN DASHBOARD)
+    // SUMMARY
+    const defaultSummary = {
+      totalQty: 0,
+      totalVendorEarning: 0,
+      totalCommission: 0,
+      totalOriginalRevenue: 0,
+      totalCouponDiscount: 0,
+    };
+
+    const aggregationResult = (
       await Order.aggregate([
         ...basePipeline,
+
         {
           $project: {
             qty: "$orderedItems.quantity",
             price: { $toDouble: "$orderedItems.price" },
-            discountPerItem: { $ifNull: ["$orderedItems.discountPerItem", 0] },
+            discount: { $ifNull: ["$orderedItems.discountPerItem", 0] },
             commissionPercent: {
-              $ifNull: ["$orderedItems.commissionPercent", 10],
+              $divide: [
+                { $ifNull: ["$orderedItems.commissionPercent", 10] },
+                100,
+              ],
             },
           },
         },
+
+        // ✅ FIXED ROUNDING LOGIC (Round Half Up)
         {
-          $group: {
-            _id: null,
-            totalQty: { $sum: "$qty" },
-            totalOriginalRevenue: { $sum: { $multiply: ["$qty", "$price"] } },
-            totalCouponDiscount: {
-              $sum: { $multiply: ["$qty", "$discountPerItem"] },
-            },
-            totalCommission: {
-              $sum: {
-                $multiply: [
-                  "$qty",
-                  {
-                    $multiply: [
-                      "$price",
-                      { $divide: ["$commissionPercent", 100] },
-                    ],
-                  },
-                ],
-              },
-            },
-            totalVendorEarning: {
-              $sum: {
-                $subtract: [
+          $project: {
+            vendorEarning: {
+              // CHANGE: Using $floor($add: [value, 0.5]) forces 598.5 -> 599
+              $floor: {
+                $add: [
                   {
                     $subtract: [
-                      { $multiply: ["$qty", "$price"] },
-                      { $multiply: ["$qty", "$discountPerItem"] },
-                    ],
-                  },
-                  {
-                    $multiply: [
-                      "$qty",
+                      {
+                        $subtract: [
+                          { $multiply: ["$qty", "$price"] },
+                          { $multiply: ["$qty", "$discount"] },
+                        ],
+                      },
                       {
                         $multiply: [
-                          "$price",
-                          { $divide: ["$commissionPercent", 100] },
+                          {
+                            $subtract: [
+                              { $multiply: ["$qty", "$price"] },
+                              { $multiply: ["$qty", "$discount"] },
+                            ],
+                          },
+                          "$commissionPercent",
                         ],
                       },
                     ],
                   },
+                  0.5, // Adding 0.5 before flooring ensures .5 rounds UP
                 ],
               },
             },
+
+            commission: {
+              $round: [
+                {
+                  $multiply: [
+                    {
+                      $subtract: [
+                        { $multiply: ["$qty", "$price"] },
+                        { $multiply: ["$qty", "$discount"] },
+                      ],
+                    },
+                    "$commissionPercent",
+                  ],
+                },
+                0,
+              ],
+            },
+
+            couponDiscount: { $multiply: ["$qty", "$discount"] },
+            qty: 1,
+          },
+        },
+
+        // ✅ SUM ALREADY-ROUNDED VALUES
+        {
+          $group: {
+            _id: null,
+            totalQty: { $sum: "$qty" },
+            totalVendorEarning: { $sum: "$vendorEarning" },
+            totalCommission: { $sum: "$commission" },
+            totalCouponDiscount: { $sum: "$couponDiscount" },
+          },
+        },
+
+        {
+          $project: {
+            _id: 0,
+            totalQty: 1,
+            totalVendorEarning: 1,
+            totalCommission: 1,
+            totalOriginalRevenue: {
+              $add: ["$totalVendorEarning", "$totalCommission"],
+            },
+            totalCouponDiscount: 1,
           },
         },
       ])
-    )?.[0] || {
-      totalQty: 0,
-      totalOriginalRevenue: 0,
-      totalCouponDiscount: 0,
-      totalCommission: 0,
-      totalVendorEarning: 0,
-    };
+    )?.[0];
+    const summary = aggregationResult || defaultSummary;
 
-    // return res.status(200).json({
-    //   success: true,
-    //   orders,
-    //   pagination: {
-    //     current: page,
-    //     totalPages,
-    //     totalItems,
-    //   },
-    //   summary,
-    // });
     return res.status(200).json({
       success: true,
       orders,
@@ -301,11 +364,11 @@ export const salesReport = async (req, res) => {
         totalItems,
       },
       totals: {
-        totalQuantity: summary.totalQty,
-        totalOriginalRevenue: summary.totalOriginalRevenue,
-        totalDiscount: summary.totalCouponDiscount,
+        totalQuantity: summary.totalQty || 0,
+        totalOriginalRevenue: summary.totalOriginalRevenue || 0,
+        totalDiscount: summary.totalCouponDiscount || 0,
         totalCommission: summary.totalCommission,
-        totalVendorEarning: summary.totalVendorEarning,
+        totalVendorEarning: summary.totalVendorEarning || 0,
       },
       summary,
     });

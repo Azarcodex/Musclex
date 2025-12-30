@@ -101,11 +101,11 @@ function Panel() {
       icon: <TicketPercent size={20} />,
       path: "/admin/dashboard/coupon",
     },
-    {
-      label: "Logout",
-      icon: <LogOut size={20} />,
-      path: "/logout",
-    },
+    // {
+    //   label: "Logout",
+    //   icon: <LogOut size={20} />,
+    //   path: "/logout",
+    // },
   ];
 
   return (

@@ -14,8 +14,10 @@ const Forget = () => {
         console.log(values);
         if (values.success) {
           toast.success(`${values.message}`);
-          localStorage.setItem("email", values.email);
-          localStorage.setItem("userId", values.userId);
+          sessionStorage.setItem("userId", String(values.userId));
+          sessionStorage.setItem("email", String(values.email));
+          sessionStorage.setItem("forgetOtpAllowed", "true");
+
           navigate("/user/verifyForget");
         } else {
           toast.error(`${values.message}`);

@@ -58,6 +58,7 @@ const Products = () => {
 -------------------------------- */
   const data = productData;
   const isLoading = isSearchLoading;
+  console.log(data);
 
   /* -------------------------------
    PAGINATION DATA

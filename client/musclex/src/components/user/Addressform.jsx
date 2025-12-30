@@ -2,7 +2,7 @@
 import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
 
-const AddressForm = ({ initialData = null, onSubmit,onClose }) => {
+const AddressForm = ({ initialData = null, onSubmit, onClose }) => {
   const {
     register,
     handleSubmit,
@@ -41,7 +41,7 @@ const AddressForm = ({ initialData = null, onSubmit,onClose }) => {
         >
           {/* Full Name */}
           <div>
-            <label className="block mb-1 font-medium">Full Name</label>
+            <label className="block mb-1 font-medium">*Full Name</label>
             <input
               {...register("fullName", { required: "Full name is required" })}
               placeholder="Enter your name"
@@ -57,7 +57,7 @@ const AddressForm = ({ initialData = null, onSubmit,onClose }) => {
           {/* Phone + Pincode */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block mb-1 font-medium">Phone</label>
+              <label className="block mb-1 font-medium">*Phone</label>
               <input
                 {...register("phone", { required: "Phone number is required" })}
                 placeholder="Enter phone number"
@@ -71,7 +71,7 @@ const AddressForm = ({ initialData = null, onSubmit,onClose }) => {
             </div>
 
             <div>
-              <label className="block mb-1 font-medium">Pincode</label>
+              <label className="block mb-1 font-medium">*Pincode</label>
               <input
                 {...register("pincode", { required: "Pincode is required" })}
                 placeholder="Enter pincode"
@@ -88,27 +88,37 @@ const AddressForm = ({ initialData = null, onSubmit,onClose }) => {
           {/* State + City */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block mb-1 font-medium">State</label>
+              <label className="block mb-1 font-medium">*State</label>
               <input
-                {...register("state")}
+                {...register("state", { required: "Enter state" })}
                 placeholder="Enter state"
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-purple-500 outline-none"
               />
+              {errors.state && (
+                <p className="text-red-500 text-xs mt-1">
+                  {errors.state.message}
+                </p>
+              )}
             </div>
 
             <div>
-              <label className="block mb-1 font-medium">City</label>
+              <label className="block mb-1 font-medium">*City</label>
               <input
-                {...register("city")}
+                {...register("city", { required: "enter city" })}
                 placeholder="Enter city"
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-purple-500 outline-none"
               />
+              {errors.city && (
+                <p className="text-red-500 text-xs mt-1">
+                  {errors.city.message}
+                </p>
+              )}
             </div>
           </div>
 
           {/* Address */}
           <div>
-            <label className="block mb-1 font-medium">Full Address</label>
+            <label className="block mb-1 font-medium">*Full Address</label>
             <textarea
               {...register("addressLine", { required: "Address is required" })}
               placeholder="Enter your address"

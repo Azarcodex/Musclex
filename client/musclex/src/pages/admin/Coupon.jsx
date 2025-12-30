@@ -173,7 +173,7 @@ export default function CouponManagement() {
                 >
                   <option value="">Select</option>
                   <option value="percent">Percent (%)</option>
-                  <option value="flat">Flat (₹)</option>
+                  {/* <option value="flat">Flat (₹)</option> */}
                 </select>
                 {errors.discountType && (
                   <p className="text-red-500 text-sm mt-1">

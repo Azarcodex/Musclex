@@ -11,7 +11,7 @@ import {
 import AddressForm from "../../../components/user/Addressform";
 import { Pencil, Trash, VerifiedIcon } from "lucide-react";
 import { confirm } from "../../../components/utils/Confirmation";
-
+import { useLocation, useNavigate } from "react-router-dom";
 const AddressesPage = () => {
   const { data: addresses = [], isLoading } = useAddresses();
   const { mutate: addAddress, isPending } = useAddAddress();
@@ -21,6 +21,8 @@ const AddressesPage = () => {
   const [showForm, setShowForm] = useState(false);
   const [editmode, setEditmode] = useState(false);
   const [currentEdit, setCurrentEdit] = useState("");
+  const location = useLocation();
+  const navigate = useNavigate();
   if (isLoading)
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
@@ -34,7 +36,12 @@ const AddressesPage = () => {
     addAddress(data, {
       onSuccess: () => {
         toast.success("Address added successfully!");
-        setShowForm(false);
+        if (location.state?.fromCheckOut) {
+          navigate("/user/checkout", { replace: true });
+          setShowForm(false);
+        } else {
+          setShowForm(false);
+        }
       },
       onError: (err) => {
         toast.error(err.response?.data?.message || "Failed to add address.");

@@ -109,8 +109,9 @@ export const verifyRetryPayment = async (req, res) => {
     // ---------------------------------------------
     // 5) COUPON VALIDATION & USAGE UPDATE
     // ---------------------------------------------
+    let coupon;
     if (temp.couponCode) {
-      const coupon = await Coupon.findOne({ code: temp.couponCode });
+      coupon = await Coupon.findOne({ code: temp.couponCode });
       if (!coupon)
         return res.status(400).json({
           success: false,
@@ -174,26 +175,38 @@ export const verifyRetryPayment = async (req, res) => {
     // ---------------------------------------------
     const expectedDelivery = new Date();
     expectedDelivery.setDate(expectedDelivery.getDate() + 5);
-
-    const newOrder = await Order.create({
-      userID: temp.userID,
-      addressID: temp.addressID,
-      orderedItems,
+    const orderData = {
+      userID,
+      addressID: address._id,
+      orderedItems: orderedItems,
       shippingAddress: address,
+
       paymentMethod: "Razorpay",
       paymentStatus: "Paid",
+
       totalPrice: subtotal,
-      discount,
+      discount: temp.couponCode ? discount : 0,
       finalAmount,
-      paidAmount:finalAmount,
+      paidAmount: finalAmount,
+
+      couponCode: temp.couponCode || null,
+      couponApplied: Boolean(temp.couponCode),
+
       expectedDelivery,
-      couponCode: temp.couponCode,
-      couponApplied: !!temp.couponCode,
       orderStatus: "Pending",
+
       razorpayOrderId: razorpay_order_id,
       razorpayPaymentId: razorpay_payment_id,
       razorpaySignature: razorpay_signature,
-    });
+    };
+
+    //  store minPurchase ONLY if coupon is actually applied
+    if (temp.couponCode) {
+      orderData.minPurchaseforCoupon = coupon.minPurchase;
+      orderData.couponValue = coupon.discountValue;
+    }
+
+    const newOrder = await Order.create(orderData);
 
     //-----------delete the tempOrder--------
     await TempOrder.findOneAndDelete({

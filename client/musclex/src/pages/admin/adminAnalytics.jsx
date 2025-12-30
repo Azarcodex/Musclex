@@ -26,12 +26,23 @@ const DashboardAnalytics = () => {
 
   /* ---------------- CHART DATA ---------------- */
   const chartSource = data.chartData[timeframe];
+  const formatCurrency = (amount) => {
+    const value = Number(amount) || 0;
+
+    const rounded = Number.isInteger(value) ? value : Math.floor(value) + 1;
+
+    return rounded.toLocaleString("en-IN", {
+      style: "currency",
+      currency: "INR",
+      maximumFractionDigits: 0,
+    });
+  };
 
   const revenueChartData =
     timeframe === "yearly"
       ? chartSource.map((y) => ({
           name: y._id.toString(),
-          revenue: y.grossRevenue,
+          revenue: y.netRevenue,
         }))
       : chartSource.labels.map((label, i) => ({
           name: label,
@@ -48,17 +59,17 @@ const DashboardAnalytics = () => {
   const summaryCards = [
     {
       title: "Platform Revenue",
-      value: `₹${data.summary.grossAmount}`,
+      value: formatCurrency(data.summary.grossAmount),
       icon: DollarSign,
     },
     {
       title: "Admin Earnings",
-      value: `₹${data.summary.adminAmount}`,
+      value: formatCurrency(data.summary.adminAmount),
       icon: TrendingUp,
     },
     {
       title: "Vendor Payout",
-      value: `₹${data.summary.vendorAmount}`,
+      value: formatCurrency(data.summary.vendorAmount),
       icon: Package,
     },
     {
@@ -189,14 +200,13 @@ const DashboardAnalytics = () => {
                   <span className="font-semibold text-gray-800">
                     {b.shopName || "Unknown Vendor"}
                   </span>
-                  <span className="font-semibold text-purple-600">
+                  {/* <span className="font-semibold text-purple-600">
                     ₹{b.grossRevenue}
-                  </span>
+                  </span> */}
                 </div>
 
                 <div className="text-gray-500 mt-1 flex justify-between">
                   <span>Sold: {b.qtySold}</span>
-                  <span>Admin: ₹{b.adminAmount}</span>
                 </div>
               </div>
             ))}

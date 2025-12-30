@@ -6,6 +6,7 @@ import TempOrder from "../../models/payment/payment.js";
 export const removeTempOrder = async (req, res) => {
   try {
     const { id } = req.params;
+    console.log(id)
     const userId = req.user._id;
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(STATUS_CODES.BAD_REQUEST).json({
@@ -15,7 +16,7 @@ export const removeTempOrder = async (req, res) => {
 
     const tempOrder = await TempOrder.findOneAndDelete({
       _id: id,
-      userId: userId,
+      userID: userId,
     });
 
     if (!tempOrder) {

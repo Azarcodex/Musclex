@@ -148,9 +148,9 @@ export const verifyRazorpayPayment = async (req, res) => {
     // --------------------------------------------------
     // APPLY COUPON + VALIDATE COUPON VALIDITY
     // --------------------------------------------------
-
+    let coupon;
     if (couponCode) {
-      const coupon = await Coupon.findOne({ code: couponCode });
+      coupon = await Coupon.findOne({ code: couponCode });
       if (!coupon)
         return res.status(400).json({ message: "Invalid coupon code" });
 
@@ -217,25 +217,38 @@ export const verifyRazorpayPayment = async (req, res) => {
     // 8️ CREATE FINAL ORDER IN MAIN ORDER COLLECTION
     // ---------------------------------------------
 
-    const newOrder = await Order.create({
+    const orderData = {
       userID,
       addressID,
       orderedItems: orderedItem,
       shippingAddress: address,
+
       paymentMethod: "Razorpay",
       paymentStatus: "Paid",
+
       totalPrice: subtotal,
-      discount,
+      discount: couponCode ? discount : 0,
       finalAmount,
-      paidAmount:finalAmount,
-      expectedDelivery,
+      paidAmount: finalAmount,
+
       couponCode: couponCode || null,
-      couponApplied: !!couponCode,
+      couponApplied: Boolean(couponCode),
+
+      expectedDelivery,
       orderStatus: "Pending",
+
       razorpayOrderId: razorpay_order_id,
       razorpayPaymentId: razorpay_payment_id,
       razorpaySignature: razorpay_signature,
-    });
+    };
+
+    // ✅ store minPurchase ONLY if coupon is actually applied
+    if (couponCode) {
+      orderData.minPurchaseforCoupon = coupon.minPurchase;
+      orderData.couponValue = coupon.discountValue;
+    }
+
+    const newOrder = await Order.create(orderData);
 
     //delete the tempOrder
 

@@ -46,3 +46,9 @@ export const returnOrder = async ({ reason, orderId, itemId }) => {
   );
   return response.data;
 };
+
+//deleting a order
+export const deleteTempOrder = async (id) => {
+  const response = await api.delete(`/api/user/temporder/${id}`);
+  return response.data;
+};

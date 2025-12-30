@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   cancelOrder,
   cancelProductOrder,
+  deleteTempOrder,
   fetchOrderTracking,
   getOrderList,
   orderSummary,
@@ -75,5 +76,11 @@ export const useReturnOrder = () => {
     onSuccess: () => {
       queryClient.invalidateQueries(["userOrders"]);
     },
+  });
+};
+
+export const useDeleteTempOrder = () => {
+  return useMutation({
+    mutationFn: deleteTempOrder,
   });
 };

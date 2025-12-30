@@ -6,12 +6,14 @@ import {
   useRetryPayment,
   useVerifyRetryPayment,
 } from "../../hooks/payment/razorpayHook.js";
+import { useDeleteTempOrder } from "../../hooks/users/useOrder.js";
 
 export default function OrderFailed() {
   const { tempOrderId } = useParams();
   const navigate = useNavigate();
 
   const { data, isLoading } = useGetTempOrder(tempOrderId);
+  const { mutate: deleteTempOrder } = useDeleteTempOrder();
   console.log(data);
   const { mutate: retryPayment } = useRetryPayment();
   const { mutate: verifyRetry } = useVerifyRetryPayment();
@@ -107,6 +109,16 @@ export default function OrderFailed() {
     });
   };
 
+  const HandleReturnHome = () => {
+    deleteTempOrder(tempOrderId, {
+      onSuccess: () => {
+        navigate("/", { replace: true });
+      },
+      onError: (err) => {
+        toast.error("error occurred");
+      },
+    });
+  };
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 p-4">
       <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full overflow-hidden border border-gray-100">
@@ -217,7 +229,7 @@ export default function OrderFailed() {
             </button>
 
             <button
-              onClick={() => navigate("/",{replace:true})}
+              onClick={HandleReturnHome}
               className="w-full bg-white hover:bg-gray-50 text-gray-700 px-6 py-4 rounded-xl font-semibold transition-all duration-200 border-2 border-gray-200 hover:border-gray-300 flex items-center justify-center"
             >
               <svg

@@ -20,6 +20,11 @@ export const resendOTP = async (data) => {
   return response.data;
 };
 
+export const resendOTPForgetPassword = async (data) => {
+  const response = await api.post("/api/user/resend/forget", data);
+  return response.data;
+};
+
 //googleLogin
 export const googleLogin = async (token) => {
   const response = await api.post("/api/auth/google", { token });

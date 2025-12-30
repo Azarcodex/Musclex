@@ -33,17 +33,62 @@ export const getDashboard = async (req, res) => {
 const getPlatformSummary = async () => {
   const result = await Order.aggregate([
     { $unwind: "$orderedItems" },
-
     { $match: { "orderedItems.status": "Delivered" } },
+
+    {
+      $project: {
+        qty: "$orderedItems.quantity",
+        price: { $toDouble: "$orderedItems.price" },
+        discount: { $ifNull: ["$orderedItems.discountPerItem", 0] },
+        commissionPercent: {
+          $divide: [{ $ifNull: ["$orderedItems.commissionPercent", 10] }, 100],
+        },
+      },
+    },
+
+    {
+      $project: {
+        net: {
+          $subtract: [
+            { $multiply: ["$qty", "$price"] },
+            { $multiply: ["$qty", "$discount"] },
+          ],
+        },
+        // commission: {
+        //   $round: [
+        //     {
+        //       $multiply: [
+        //         {
+        //           $subtract: [
+        //             { $multiply: ["$qty", "$price"] },
+        //             { $multiply: ["$qty", "$discount"] },
+        //           ],
+        //         },
+        //         "$commissionPercent",
+        //       ],
+        //     },
+        //     0, // 👈 SAME rounding as sales report
+        //   ],
+        // },
+        commission: {
+          $multiply: [
+            {
+              $subtract: [
+                { $multiply: ["$qty", "$price"] },
+                { $multiply: ["$qty", "$discount"] },
+              ],
+            },
+            "$commissionPercent",
+          ],
+        },
+      },
+    },
 
     {
       $group: {
         _id: null,
-        grossAmount: {
-          $sum: {
-            $multiply: ["$orderedItems.price", "$orderedItems.quantity"],
-          },
-        },
+        grossAmount: { $sum: "$net" },
+        adminAmount: { $sum: "$commission" },
       },
     },
 
@@ -51,11 +96,9 @@ const getPlatformSummary = async () => {
       $project: {
         _id: 0,
         grossAmount: 1,
-        adminAmount: {
-          $multiply: ["$grossAmount", ADMIN_COMMISSION_RATE],
-        },
+        adminAmount: 1,
         vendorAmount: {
-          $multiply: ["$grossAmount", 1 - ADMIN_COMMISSION_RATE],
+          $subtract: ["$grossAmount", "$adminAmount"],
         },
       },
     },
@@ -112,6 +155,7 @@ const getTopCategories = async () => {
   try {
     return await Order.aggregate([
       { $unwind: "$orderedItems" },
+
       { $match: { "orderedItems.status": "Delivered" } },
 
       {
@@ -138,9 +182,23 @@ const getTopCategories = async () => {
         $group: {
           _id: "$category._id",
           categoryName: { $first: "$category.catgName" },
+
           grossRevenue: {
             $sum: {
-              $multiply: ["$orderedItems.price", "$orderedItems.quantity"],
+              $subtract: [
+                {
+                  $multiply: [
+                    "$orderedItems.quantity",
+                    { $toDouble: "$orderedItems.price" },
+                  ],
+                },
+                {
+                  $multiply: [
+                    "$orderedItems.quantity",
+                    { $ifNull: ["$orderedItems.discountPerItem", 0] },
+                  ],
+                },
+              ],
             },
           },
         },
@@ -164,7 +222,7 @@ const getTopVendors = async () => {
 
       { $match: { "orderedItems.status": "Delivered" } },
 
-      // Join product to get vendorID (authoritative)
+      // Join product to get vendorID
       {
         $lookup: {
           from: "products",
@@ -179,23 +237,38 @@ const getTopVendors = async () => {
       {
         $group: {
           _id: "$product.vendorID",
-          grossRevenue: {
+
+          netRevenue: {
             $sum: {
-              $multiply: ["$orderedItems.price", "$orderedItems.quantity"],
+              $subtract: [
+                {
+                  $multiply: [
+                    "$orderedItems.quantity",
+                    { $toDouble: "$orderedItems.price" },
+                  ],
+                },
+                {
+                  $multiply: [
+                    "$orderedItems.quantity",
+                    { $ifNull: ["$orderedItems.discountPerItem", 0] },
+                  ],
+                },
+              ],
             },
           },
+
           qtySold: { $sum: "$orderedItems.quantity" },
         },
       },
 
-      { $sort: { grossRevenue: -1 } },
+      { $sort: { netRevenue: -1 } },
       { $limit: 10 },
 
-      // 🔑 Join vendor collection to get shopName
+      // Join vendor collection
       {
         $lookup: {
-          from: "vendors", // 👈 collection name
-          localField: "_id", // vendorID
+          from: "vendors",
+          localField: "_id",
           foreignField: "_id",
           as: "vendor",
         },
@@ -207,14 +280,29 @@ const getTopVendors = async () => {
         $project: {
           _id: 0,
           vendorID: "$_id",
-          shopName: "$vendor.shopName", // 👈 THIS is what you asked for
-          grossRevenue: 1,
-          adminAmount: {
-            $multiply: ["$grossRevenue", ADMIN_COMMISSION_RATE],
-          },
+          shopName: "$vendor.shopName",
+
+          grossRevenue: { $round: ["$netRevenue", 2] },
+
+          // adminAmount: {
+          //   $round: [
+          //     { $multiply: ["$netRevenue", ADMIN_COMMISSION_RATE] },
+          //     2,
+          //   ],
+          // },
+
           vendorAmount: {
-            $multiply: ["$grossRevenue", 1 - ADMIN_COMMISSION_RATE],
+            $round: [
+              {
+                $subtract: [
+                  "$netRevenue",
+                  { $multiply: ["$netRevenue", ADMIN_COMMISSION_RATE] },
+                ],
+              },
+              2,
+            ],
           },
+
           qtySold: 1,
         },
       },
@@ -246,12 +334,14 @@ const getWeeklyRevenue = async () => {
 
   const data = await Order.aggregate([
     { $unwind: "$orderedItems" },
+
     {
       $match: {
         "orderedItems.status": "Delivered",
         createdAt: { $gte: fromDate },
       },
     },
+
     {
       $group: {
         _id: {
@@ -261,11 +351,32 @@ const getWeeklyRevenue = async () => {
             timezone: "UTC",
           },
         },
-        grossRevenue: {
+
+        netRevenue: {
           $sum: {
-            $multiply: ["$orderedItems.price", "$orderedItems.quantity"],
+            $subtract: [
+              {
+                $multiply: [
+                  "$orderedItems.quantity",
+                  { $toDouble: "$orderedItems.price" },
+                ],
+              },
+              {
+                $multiply: [
+                  "$orderedItems.quantity",
+                  { $ifNull: ["$orderedItems.discountPerItem", 0] },
+                ],
+              },
+            ],
           },
         },
+      },
+    },
+
+    {
+      $project: {
+        _id: 1,
+        netRevenue: { $round: ["$netRevenue", 2] },
       },
     },
   ]);
@@ -280,7 +391,7 @@ const getWeeklyRevenue = async () => {
     const key = d.toISOString().split("T")[0];
 
     labels.push(days[d.getUTCDay()]);
-    values.push(data.find((x) => x._id === key)?.grossRevenue || 0);
+    values.push(data.find((x) => x._id === key)?.netRevenue || 0);
   }
 
   return { labels, data: values };
@@ -294,10 +405,10 @@ const getMonthlyRevenue = async () => {
 
   const data = await Order.aggregate([
     { $unwind: "$orderedItems" },
-    { $match: { "orderedItems.status": "Delivered" } },
 
     {
       $match: {
+        "orderedItems.status": "Delivered",
         createdAt: {
           $gte: new Date(`${year}-01-01T00:00:00.000Z`),
           $lte: new Date(`${year}-12-31T23:59:59.999Z`),
@@ -308,13 +419,35 @@ const getMonthlyRevenue = async () => {
     {
       $group: {
         _id: { $month: "$createdAt" },
-        grossRevenue: {
+
+        netRevenue: {
           $sum: {
-            $multiply: ["$orderedItems.price", "$orderedItems.quantity"],
+            $subtract: [
+              {
+                $multiply: [
+                  "$orderedItems.quantity",
+                  { $toDouble: "$orderedItems.price" },
+                ],
+              },
+              {
+                $multiply: [
+                  "$orderedItems.quantity",
+                  { $ifNull: ["$orderedItems.discountPerItem", 0] },
+                ],
+              },
+            ],
           },
         },
       },
     },
+
+    {
+      $project: {
+        _id: 1,
+        netRevenue: { $round: ["$netRevenue", 2] },
+      },
+    },
+
     { $sort: { _id: 1 } },
   ]);
 
@@ -332,9 +465,11 @@ const getMonthlyRevenue = async () => {
     "Nov",
     "Dec",
   ];
-  const values = Array(12).fill(0);
 
-  data.forEach((d) => (values[d._id - 1] = d.grossRevenue));
+  const values = Array(12).fill(0);
+  data.forEach((d) => {
+    values[d._id - 1] = d.netRevenue;
+  });
 
   return { labels, data: values };
 };
@@ -345,18 +480,41 @@ const getMonthlyRevenue = async () => {
 const getYearlyRevenue = async () => {
   return await Order.aggregate([
     { $unwind: "$orderedItems" },
+
     { $match: { "orderedItems.status": "Delivered" } },
 
     {
       $group: {
         _id: { $year: "$createdAt" },
-        grossRevenue: {
+
+        netRevenue: {
           $sum: {
-            $multiply: ["$orderedItems.price", "$orderedItems.quantity"],
+            $subtract: [
+              {
+                $multiply: [
+                  "$orderedItems.quantity",
+                  { $toDouble: "$orderedItems.price" },
+                ],
+              },
+              {
+                $multiply: [
+                  "$orderedItems.quantity",
+                  { $ifNull: ["$orderedItems.discountPerItem", 0] },
+                ],
+              },
+            ],
           },
         },
       },
     },
+
+    {
+      $project: {
+        _id: 1,
+        netRevenue: { $round: ["$netRevenue", 2] },
+      },
+    },
+
     { $sort: { _id: 1 } },
   ]);
 };

@@ -127,11 +127,25 @@ export const salesReportExcel = async (req, res) => {
           },
 
           commissionAmount: {
-            $multiply: [
-              "$orderedItems.quantity",
+            $round: [
               {
                 $multiply: [
-                  { $toDouble: "$orderedItems.price" },
+                  {
+                    $subtract: [
+                      {
+                        $multiply: [
+                          "$orderedItems.price",
+                          "$orderedItems.quantity",
+                        ],
+                      },
+                      {
+                        $multiply: [
+                          "$orderedItems.quantity",
+                          { $ifNull: ["$orderedItems.discountPerItem", 0] },
+                        ],
+                      },
+                    ],
+                  },
                   {
                     $divide: [
                       { $ifNull: ["$orderedItems.commissionPercent", 10] },
@@ -140,33 +154,48 @@ export const salesReportExcel = async (req, res) => {
                   },
                 ],
               },
+              2,
             ],
           },
 
           vendorEarning: {
-            $subtract: [
+            $round: [
               {
                 $subtract: [
                   {
-                    $multiply: [
-                      "$orderedItems.quantity",
-                      { $toDouble: "$orderedItems.price" },
+                    $subtract: [
+                      {
+                        $multiply: [
+                          "$orderedItems.price",
+                          "$orderedItems.quantity",
+                        ],
+                      },
+                      {
+                        $multiply: [
+                          "$orderedItems.quantity",
+                          { $ifNull: ["$orderedItems.discountPerItem", 0] },
+                        ],
+                      },
                     ],
                   },
                   {
                     $multiply: [
-                      "$orderedItems.quantity",
-                      { $ifNull: ["$orderedItems.discountPerItem", 0] },
-                    ],
-                  },
-                ],
-              },
-              {
-                $multiply: [
-                  "$orderedItems.quantity",
-                  {
-                    $multiply: [
-                      { $toDouble: "$orderedItems.price" },
+                      {
+                        $subtract: [
+                          {
+                            $multiply: [
+                              "$orderedItems.price",
+                              "$orderedItems.quantity",
+                            ],
+                          },
+                          {
+                            $multiply: [
+                              "$orderedItems.quantity",
+                              { $ifNull: ["$orderedItems.discountPerItem", 0] },
+                            ],
+                          },
+                        ],
+                      },
                       {
                         $divide: [
                           { $ifNull: ["$orderedItems.commissionPercent", 10] },
@@ -177,6 +206,7 @@ export const salesReportExcel = async (req, res) => {
                   },
                 ],
               },
+              2,
             ],
           },
 
@@ -189,6 +219,15 @@ export const salesReportExcel = async (req, res) => {
     // -------------------------
     // EXCEL DATA FORMAT
     // -------------------------
+    const roundMoney = (amount) => {
+      const value = parseFloat(amount) || 0;
+      return value.toLocaleString("en-IN", {
+        style: "currency",
+        currency: "INR",
+        maximumFractionDigits: 0,
+      });
+    };
+
     const excelData = orders.map((o) => ({
       "Order ID": o.orderId.toString(),
       "Order Date": new Date(o.orderDate).toLocaleString("en-IN"),
@@ -197,12 +236,15 @@ export const salesReportExcel = async (req, res) => {
       Flavour: o.flavour,
       Size: o.sizeLabel,
       Qty: o.quantity,
-      "Unit Price (₹)": o.price,
-      "Original Total (₹)": o.originalTotal,
-      "Coupon Discount (₹)": o.couponDiscount,
+
+      "Unit Price (₹)": roundMoney(o.price),
+      "Original Total (₹)": roundMoney(o.originalTotal),
+      "Coupon Discount (₹)": roundMoney(o.couponDiscount),
       "Commission (%)": o.commissionPercent,
-      "Commission Amount (₹)": o.commissionAmount,
-      "Vendor Earning (₹)": o.vendorEarning,
+
+      "Commission Amount (₹)": roundMoney(o.commissionAmount),
+      "Vendor Earning (₹)": roundMoney(o.vendorEarning),
+
       Payment: o.paymentMethod,
     }));
 

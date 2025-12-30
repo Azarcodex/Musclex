@@ -40,6 +40,7 @@ export default function ResetPassword() {
           toast.success(res.message || "Password reset successful");
           reset();
           localStorage.removeItem("email");
+          sessionStorage.clear();
           navigate("/user/login", { replace: true });
         },
         onError: (err) => {

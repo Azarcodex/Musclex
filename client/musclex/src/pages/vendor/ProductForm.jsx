@@ -33,7 +33,7 @@ const ProductForm = () => {
         {/* Product Name */}
         <div>
           <label className="block text-gray-700 font-medium mb-1">
-            Product Name
+            *Product Name
           </label>
           <input
             {...register("name", { required: "enter product name" })}
@@ -48,7 +48,7 @@ const ProductForm = () => {
         {/* Description */}
         <div>
           <label className="block text-gray-700 font-medium mb-1">
-            Description
+            *Description
           </label>
           <textarea
             {...register("description", { required: "enter description" })}
@@ -66,7 +66,7 @@ const ProductForm = () => {
         {/* Category Dropdown */}
         <div>
           <label className="block text-gray-700 font-medium mb-1">
-            Category
+            *Category
           </label>
           <select
             {...register("catgid", { required: "select category" })}
@@ -86,7 +86,7 @@ const ProductForm = () => {
 
         {/* Brand Dropdown */}
         <div>
-          <label className="block text-gray-700 font-medium mb-1">Brand</label>
+          <label className="block text-gray-700 font-medium mb-1">*Brand</label>
           <select
             {...register("brandID", { required: "select brand" })}
             className="border border-purple-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-300 outline-none p-3 w-full rounded-xl transition-all bg-white"

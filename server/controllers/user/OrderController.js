@@ -216,24 +216,31 @@ export const OrderController = async (req, res) => {
     // -----------------------------------------
     // CREATE ORDER
     // -----------------------------------------
-    const order = await Order.create({
+    const orderData = {
       _id: orderObjectId,
       userID: userId,
-      addressID: addressID,
+      addressID,
       orderedItems,
       shippingAddress: address,
       totalPrice: subtotal,
-      discount,
+      discount: couponCode ? discount : 0,
       finalAmount,
       paidAmount: finalAmount,
       couponCode: couponCode || null,
-      minPurchaseforCoupon: coupon.minPurchase,
       couponApplied: Boolean(couponCode),
       paymentMethod,
       paymentStatus: paymentMethod === "COD" ? "Pending" : "Paid",
       orderStatus: "Pending",
       expectedDelivery,
-    });
+    };
+
+    // only attach coupon rule if coupon actually used
+    if (couponCode) {
+      orderData.minPurchaseforCoupon = coupon.minPurchase;
+      orderData.couponValue = coupon.discountValue;
+    }
+
+    const order = await Order.create(orderData);
 
     //coupon user mnagement
 
@@ -592,7 +599,9 @@ export const cancelProductOrder = async (req, res) => {
 
       if (couponInvalidated && order.discount > 0) {
         // Coupon broken → recover full coupon from THIS item
-        refundAmt = itemTotal - order.discount;
+        const couponDiscountForItem = (itemTotal * order.couponValue) / 100;
+
+        refundAmt = itemTotal - couponDiscountForItem;
         order.discount = 0;
       } else if (order.couponApplied) {
         // Normal case → per item refund

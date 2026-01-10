@@ -12,6 +12,12 @@ import {
   Package,
   UserCircle,
   UserPlus,
+  Boxes,
+  Layers,
+  TicketPercent,
+  LogIn,
+  Home,
+  Wallet,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
@@ -30,12 +36,12 @@ function Panel() {
     {
       label: "Dashboard",
       icon: <LayoutDashboard size={20} />,
-      path: "/dashboard",
+      path: "/admin/dashboard/analytics",
     },
     {
       label: "Home Slides",
       icon: <Image size={20} />,
-      path: "/dashboard/home-slides",
+      path: "/admin/dashboard/banner",
     },
     {
       label: "Vendors",
@@ -48,8 +54,8 @@ function Panel() {
         },
         {
           label: "Vendor Products",
-          icon: <Package size={18} />,
-          path: "/admin/dashboard/vendors/products",
+          icon: <Boxes size={18} />,
+          path: "/admin/dashboard/vendors/list/products",
         },
       ],
     },
@@ -64,7 +70,7 @@ function Panel() {
         },
         {
           label: "Coupon",
-          icon: <Tag size={18} />,
+          icon: <TicketPercent size={18} />,
           path: "/dashboard/users/coupon",
         },
         {
@@ -75,20 +81,31 @@ function Panel() {
       ],
     },
     {
-      label: "Banners",
+      label: "Category",
+      icon: <Layers size={20} />,
+      children: [
+        {
+          label: "Category List",
+          icon: <FileText size={18} />,
+          path: "/admin/dashboard/category",
+        },
+      ],
+    },
+    {
+      label: "Offers",
       icon: <LayoutTemplate size={20} />,
-      path: "/dashboard/banners",
+      path: "/admin/dashboard/addOffer",
     },
     {
       label: "Coupon",
-      icon: <Tag size={20} />,
-      path: "/dashboard/coupon",
+      icon: <TicketPercent size={20} />,
+      path: "/admin/dashboard/coupon",
     },
-    {
-      label: "Logout",
-      icon: <LogOut size={20} />,
-      path: "/logout",
-    },
+    // {
+    //   label: "Logout",
+    //   icon: <LogOut size={20} />,
+    //   path: "/logout",
+    // },
   ];
 
   return (

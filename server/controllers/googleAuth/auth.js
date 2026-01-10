@@ -9,7 +9,9 @@ export const googleAuth = async (req, res) => {
       idToken: token,
       audience: process.env.CLIENT_ID,
     });
-    const { email, name } = ticket.getPayload;
+    const payload=ticket.getPayload()
+    const { email, name } = payload;
+    console.log(ticket.getPayload);
     const user = await User.findOne({ email });
     if (!user) {
       user = await User.create({ name, email, password: "google-auth" });
@@ -19,6 +21,7 @@ export const googleAuth = async (req, res) => {
     });
     res.json({ success: true, token: Jwttoken, user });
   } catch (error) {
+    console.log(error);
     res.status(400).json({ message: "Google Login Failed" });
   }
 };

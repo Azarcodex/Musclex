@@ -6,14 +6,25 @@ import { useRegister } from "../../hooks/users/userRegister";
 import { Link, useNavigate } from "react-router-dom";
 import { Toaster, toast } from "sonner";
 import { useVendorRegister } from "../../hooks/vendor/useVendorRegister";
+import PhoneInput, { isValidPhoneNumber } from "react-phone-number-input";
+
+import "react-phone-number-input/style.css";
 const Register = () => {
   const navigate = useNavigate();
+
   const {
     register,
     handleSubmit,
     reset,
+    setValue,
+    watch,
     formState: { errors },
-  } = useForm();
+  } = useForm({
+    defaultValues: {
+      phone: "",
+    },
+  });
+
   const { mutate, isPending, error, isError } = useVendorRegister();
   const submit = (data) => {
     mutate(data, {
@@ -86,7 +97,7 @@ const Register = () => {
               />
             </div>
             {/* Number Field */}
-            <div>
+            {/* <div>
               <TextField
                 label="phone"
                 type="number"
@@ -97,7 +108,37 @@ const Register = () => {
                 error={!!errors.phone}
                 helperText={errors.phone?.message}
               />
+            </div> */}
+            <div>
+              <PhoneInput
+                defaultCountry="IN"
+                placeholder="Enter phone number"
+                value={watch("phone")}
+                onChange={(value) =>
+                  setValue("phone", value, {
+                    shouldValidate: true,
+                    shouldTouch: true,
+                  })
+                }
+                className="border-2 p-2 rounded w-full outline-0"
+              />
+
+              <input
+                type="hidden"
+                {...register("phone", {
+                  required: "Phone number is required",
+                  validate: (value) =>
+                    isValidPhoneNumber(value) || "Invalid phone number",
+                })}
+              />
+
+              {errors.phone && (
+                <p className="text-red-500 text-sm mt-1">
+                  {errors.phone.message}
+                </p>
+              )}
             </div>
+
             {/*Address */}
             {/*shopName*/}
             <div>

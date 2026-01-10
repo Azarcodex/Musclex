@@ -1,7 +1,10 @@
 import dotenv from "dotenv";
+dotenv.config();
 import dataBaseImplementation from "./config/connect.js";
 import app from "./app.js";
-dotenv.config();
+//CRON
+import "./config/CRONE.js";
+
 const PORT = process.env.PORT_NUMBER;
 //DATABASE
 dataBaseImplementation();

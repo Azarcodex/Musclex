@@ -7,5 +7,6 @@ export const vendorRegistration = async (data) => {
 //login setUp
 export const vendorLogin = async (data) => {
   const response = await api.post("/api/vendor/login", data);
+  console.log(response.data);
   return response.data;
 };

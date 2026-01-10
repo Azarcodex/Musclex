@@ -1,126 +1,142 @@
 import { useForm } from "react-hook-form";
 import otpImg from "../../assets/otp.jpg";
-import { useOTP, useResendOTP } from "../../hooks/users/useOTP";
+import { useResendOTPForgetPassword } from "../../hooks/users/useOTP";
 import { useNavigate } from "react-router-dom";
-import { Toaster, toast } from "sonner";
-import { useEffect, useEffectEvent, useState } from "react";
+import { toast } from "sonner";
+import { useEffect, useState } from "react";
 import { useforgetPasswordCheck } from "../../hooks/users/useForgetPasswordcheck";
+
 export default function ForgetPassword() {
   const navigate = useNavigate();
-  const [timer, setTimer] = useState(0);
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm();
+  const [time, setTime] = useState(0);
+
+  const { register, handleSubmit } = useForm();
   const { mutate, isPending, error, isError } = useforgetPasswordCheck();
-  const { mutate: resend, isPending: isLoading, data } = useResendOTP();
-  const email = localStorage.getItem("email");
-  const userId = localStorage.getItem("userId");
+  const { mutate: resend, isPending: isLoading } = useResendOTPForgetPassword();
+
+  const userId = sessionStorage.getItem("userId");
+  const email = sessionStorage.getItem("email");
+
   const handleOTP = (data) => {
     mutate(
       { ...data, userId },
       {
         onSuccess: (data) => {
-          if (data.success) {
-            toast.success(`${data.message}`);
-            navigate("/user/reset");
-          } else {
-            toast.error(`${data.message}`);
-          }
+          toast.success(data.message);
+          sessionStorage.clear();
+          navigate("/user/reset");
         },
       }
     );
   };
-  //setting timer
+
+  // session guard
   useEffect(() => {
-    let interval;
-    if (timer > 0) {
-      interval = setInterval(() => {
-        setTimer((prev) => prev - 1);
-      }, 1000);
-      return () => clearInterval(interval);
+    const allowed = sessionStorage.getItem("forgetOtpAllowed");
+
+    if (!allowed) {
+      navigate("/user/login", { replace: true });
     }
-  }, [timer]);
+  }, [navigate]);
+
+  // restore timer
+  useEffect(() => {
+    const expiry = sessionStorage.getItem("otpResendExpiry");
+    if (!expiry) return;
+
+    const remaining = Math.ceil((Number(expiry) - Date.now()) / 1000);
+    if (remaining > 0) setTime(remaining);
+    else sessionStorage.removeItem("otpResendExpiry");
+  }, []);
+
+  // countdown
+  useEffect(() => {
+    if (time <= 0) return;
+
+    const interval = setInterval(() => {
+      setTime((prev) => {
+        if (prev <= 1) {
+          sessionStorage.removeItem("otpResendExpiry");
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [time]);
+
   const HandleResend = () => {
+    if (!userId) {
+      toast.error("Session expired. Please login again.");
+      sessionStorage.clear();
+      navigate("/user/login", { replace: true });
+      return;
+    }
+
     resend(
-      { email, userId },
+      { userId },
       {
         onSuccess: (data) => {
-          if (data.success) {
-            toast.success(`${data.message}`);
-            navigate("/user/navigate");
-          } else {
-            toast.error(`${data.message}`);
-          }
+          toast.info(data.message);
+          const expiryTime = Date.now() + 30 * 1000;
+          sessionStorage.setItem("otpResendExpiry", expiryTime.toString());
+          setTime(30);
         },
       }
     );
   };
+
   return (
     <div className="min-h-screen flex">
-      {/* Left Side - Form */}
-      <div className="w-full md:w-1/2 bg-white flex items-center justify-center p-6 sm:p-8 md:p-12">
+      <div className="w-full md:w-1/2 bg-white flex items-center justify-center p-6">
         <div className="w-full max-w-sm">
-          {/* Icon */}
-          <div className="flex justify-center mb-6">
-            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
-              <svg
-                className="w-8 h-8 text-blue-600"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </div>
-          </div>
-
-          {/* Header */}
           <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">
-              Verify OTP
-            </h1>
+            <h1 className="text-2xl font-bold">Verify OTP</h1>
             <p className="text-sm text-gray-600">OTP sent to</p>
             <p className="text-sm text-red-500 font-medium">{email}</p>
           </div>
 
-          {/* Form */}
-          <form className="space-y-5" onSubmit={handleSubmit(handleOTP)}>
-            {timer > 0 && <h1 className="text-right">{timer}</h1>}
+          <form onSubmit={handleSubmit(handleOTP)} className="space-y-5">
+            {time > 0 && (
+              <p className="text-right text-sm text-gray-500">
+                Resend in {time}s
+              </p>
+            )}
 
-            {/* OTP Input */}
-            <div>
-              <input
-                type="text"
-                {...register("otp", { required: "OTP is required" })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-md text-center text-lg tracking-widest focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="enter otp"
-                maxLength="6"
-              />
-              {isError && (
-                <p className="text-red-600 text-xs mt-1 text-center">
-                  {error.response?.data?.message}
-                </p>
-              )}
-            </div>
+            <input
+              type="text"
+              {...register("otp", { required: true })}
+              className="w-full px-4 py-3 border rounded-md text-center text-lg"
+              placeholder="enter otp"
+              maxLength="6"
+            />
 
-            {/* Verify Button */}
+            {isError && (
+              <p className="text-red-600 text-xs text-center">
+                {error.response?.data?.message}
+              </p>
+            )}
+
             <button
               type="submit"
-              className="w-full bg-blue-900 hover:bg-blue-800 text-white font-semibold py-3 px-4 rounded-md transition duration-200 text-sm uppercase tracking-wide"
+              className="w-full bg-blue-900 text-white py-3 rounded-md"
             >
-              {isPending ? "verifying" : "verify"}
+              {isPending ? "VERIFYING" : "VERIFY"}
             </button>
 
-            {/* Resend Button */}
+            {/* ✅ DISABLED RESEND BUTTON */}
             <button
               type="button"
-              className="w-full bg-blue-900 hover:bg-blue-800 text-white font-semibold py-3 px-4 rounded-md transition duration-200 text-sm uppercase tracking-wide"
               onClick={HandleResend}
+              disabled={time > 0}
+              className={`w-full py-3 rounded-md text-white
+                ${
+                  time > 0
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-blue-900 hover:bg-blue-800"
+                }`}
             >
               {isLoading ? "RESENDING" : "RESEND OTP"}
             </button>
@@ -128,9 +144,8 @@ export default function ForgetPassword() {
         </div>
       </div>
 
-      {/* Right Side - Image Placeholder */}
-      <div className="hidden md:block md:w-1/2 min-h-screen">
-        <img src={otpImg} className="h-full" />
+      <div className="hidden md:block md:w-1/2">
+        <img src={otpImg} className="h-full w-full object-cover" />
       </div>
     </div>
   );

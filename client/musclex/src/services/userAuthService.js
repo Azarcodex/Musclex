@@ -20,6 +20,11 @@ export const resendOTP = async (data) => {
   return response.data;
 };
 
+export const resendOTPForgetPassword = async (data) => {
+  const response = await api.post("/api/user/resend/forget", data);
+  return response.data;
+};
+
 //googleLogin
 export const googleLogin = async (token) => {
   const response = await api.post("/api/auth/google", { token });
@@ -31,8 +36,12 @@ export const forgetPassword = async (data) => {
   return response.data;
 };
 //forget password check
-export const forgetPasswordCheck=async(data)=>
-{
-  const response=await api.post("/api/user/forgetCheck",data)
-  return response.data
-}
+export const forgetPasswordCheck = async (data) => {
+  const response = await api.post("/api/user/forgetCheck", data);
+  return response.data;
+};
+
+export const resetPasswordService = async (payload) => {
+  const response = await api.post("/api/user/reset", payload);
+  return response.data;
+};

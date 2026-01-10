@@ -1,275 +1,248 @@
 import React, { useState, useEffect } from "react";
-import { CheckCircle, XCircle, ChevronDown } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Search,
+  Filter,
+} from "lucide-react";
 import { useGetVendors } from "../../hooks/admin/useGetVendors";
 import { useProductPermission } from "../../hooks/admin/useProductPermission";
 import { useStatusVendor } from "../../hooks/admin/useStatusVendor";
 import { toast } from "sonner";
+import { confirm } from "../../components/utils/Confirmation";
 
-// Helper: format date
+// ---------------- HELPERS ----------------
 const formatDate = (dateStr) => {
   if (!dateStr) return "-";
-  const date = new Date(dateStr);
-  if (isNaN(date.getTime())) return "-";
-  return date.toLocaleDateString("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
+  const d = new Date(dateStr);
+  return isNaN(d) ? "-" : d.toLocaleDateString("en-GB");
 };
 
-// Helper: status badge
 const getStatusBadge = (status) => {
-  const colors = {
+  const map = {
     pending: "bg-yellow-100 text-yellow-800",
     approved: "bg-green-100 text-green-800",
     rejected: "bg-red-100 text-red-800",
   };
   return (
     <span
-      className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${colors[status]}`}
+      className={`px-3 py-1 rounded-full text-xs font-semibold ${map[status]}`}
     >
-      {status || "-"}
+      {status}
     </span>
   );
 };
 
+// ---------------- COMPONENT ----------------
 export default function Vendors() {
-  const [page, setpage] = useState(1);
-  const handlePrev = () => {
-    if (page > 1) setpage((prev) => prev - 1);
-  };
-  const handleNext = () => {
-    console.log("clicked");
-    if (page < data?.pagination?.totalPages) {
-      setpage((prev) => prev + 1);
-    }
-  };
-  const { data, isPending } = useGetVendors(page);
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+  const [openDropdown, setOpenDropdown] = useState(null);
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 500);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  const { data, isPending } = useGetVendors(
+    page,
+    debouncedSearch,
+    statusFilter
+  );
+
+  const vendors = data?.vendors || [];
+  const pagination = data?.pagination || {};
+
   const { mutate: updateStatus } = useStatusVendor();
   const { mutate: productPermission } = useProductPermission();
 
-  const [vendors, setVendors] = useState([]);
-  const [openDropdown, setOpenDropdown] = useState(null);
-
-  // Initialize vendors state
-  useEffect(() => {
-    if (data?.vendors) {
-      setVendors(
-        data.vendors.map((v, i) => ({
-          ...v,
-          id: v.id ?? v._id ?? `vendor-${i}`,
-        }))
-      );
-    }
-  }, [data]);
-  // useEffect(() => {
-  //   if (data?.vendors) {
-  //     const mapping = data.vendors.map((v, i) => ({
-  //       ...v,
-  //       id: v.id ?? v._id ?? `vendor-${i}`,
-  //     }));
-  //     console.log(mapping);
-  //   }
-  // }, [data]);
-
-  // Handle status change
+  // ---------------- ACTIONS ----------------
   const handleStatusChange = (vendorId, newStatus) => {
-    console.log(newStatus);
-    // find vendor before modifying state (avoid stale reads)
-    const vendor = vendors.find((v) => v.id === vendorId);
-    if (!vendor) return;
-
-    const backendId = vendor._id ?? vendor.id;
-
-    // Optimistic UI update
-    setVendors((prev) =>
-      prev.map((v) => (v.id === vendorId ? { ...v, status: newStatus } : v))
-    );
     setOpenDropdown(null);
 
     updateStatus(
-      { vendorId: backendId, id: backendId, status: newStatus },
+      { vendorId, status: newStatus },
       {
-        onSuccess: () => toast.success(`Status updated to ${newStatus}`),
-        onError: () => {
-          toast.error("Failed to update status");
-          // rollback on error
-          setVendors((prev) =>
-            prev.map((v) =>
-              v.id === vendorId ? { ...v, status: vendor.status } : v
-            )
-          );
-        },
+        onSuccess: () => toast.success("Status updated"),
+        onError: () => toast.error("Failed to update status"),
       }
     );
   };
 
-  // Toggle Can Add Product
-  const toggleCanAddProduct = (vendorId) => {
-    const vendor = vendors.find((v) => v.id === vendorId);
+  const toggleCanAddProduct = async (vendorId) => {
+    const vendor = vendors.find((v) => v._id === vendorId);
     if (!vendor) return;
 
-    const backendId = vendor._id ?? vendor.id;
-    const prevValue = !!vendor.canAddProduct;
-    const newValue = !prevValue;
+    const ok = await confirm({
+      message: vendor.canAddProduct
+        ? "Deny product permission?"
+        : "Allow product permission?",
+    });
 
-    // Optimistic UI
-    setVendors((prev) =>
-      prev.map((v) =>
-        v.id === vendorId ? { ...v, canAddProduct: newValue } : v
-      )
-    );
+    if (!ok) return;
 
     productPermission(
-      { vendorId: backendId, id: backendId, canAddProduct: newValue },
+      { vendorId, canAddProduct: !vendor.canAddProduct },
       {
-        onSuccess: () => toast.success("Product permission updated"),
-        onError: () => {
-          toast.error("Failed to update permission");
-          // rollback
-          setVendors((prev) =>
-            prev.map((v) =>
-              v.id === vendorId ? { ...v, canAddProduct: prevValue } : v
-            )
-          );
-        },
+        onSuccess: () => toast.success("Permission updated"),
+        onError: () => toast.error("Failed to update permission"),
       }
     );
   };
-  const current = data?.pagination.currentPage;
-  const limit = data?.pagination?.limit;
-  if (isPending) return <p className="p-6 text-gray-500">Loading vendors...</p>;
 
+  if (isPending) {
+    return (
+      <div className="flex justify-center py-20">
+        <div className="animate-spin h-10 w-10 border-b-2 border-purple-600" />
+      </div>
+    );
+  }
+
+  // ---------------- RENDER ----------------
   return (
-    <div className="w-full">
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto max-h-[80vh] overflow-y-auto">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
-                {[
-                  "#",
-                  "Shop Name",
-                  "Email",
-                  "Phone",
-                  "Place",
-                  "Status",
-                  "Can Add Product",
-                  "Created At",
-                ].map((head) => (
-                  <th
-                    key={head}
-                    className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"
-                  >
-                    {head}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {vendors.map((vendor, index) => (
-                <tr
-                  key={vendor.id}
-                  className="hover:bg-gray-50 transition-colors"
+    <div className="space-y-6">
+      {/* HEADER */}
+      <div className="bg-purple-600 text-white p-6 rounded-xl">
+        <h1 className="text-3xl font-bold">Vendor Management</h1>
+      </div>
+
+      {/* SEARCH + FILTER */}
+      <div className="bg-white p-4 rounded-xl shadow flex gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-3 text-gray-400" size={18} />
+          <input
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
+            placeholder="Search vendor..."
+            className="w-full pl-10 pr-4 py-2 border rounded-lg"
+          />
+        </div>
+
+        <div className="relative">
+          <button
+            onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+            className="px-4 py-2 border rounded-lg flex items-center gap-2"
+          >
+            <Filter size={16} />
+            {statusFilter}
+            <ChevronDown size={14} />
+          </button>
+
+          {showFilterDropdown && (
+            <div className="absolute right-0 mt-2 bg-white border rounded shadow w-40 z-10">
+              {["all", "pending", "approved", "rejected"].map((s) => (
+                <button
+                  key={s}
+                  onClick={() => {
+                    setStatusFilter(s);
+                    setPage(1);
+                    setShowFilterDropdown(false);
+                  }}
+                  className="block w-full text-left px-4 py-2 hover:bg-gray-100 capitalize"
                 >
-                  <td className="px-6 py-4 text-sm text-gray-700">
-                    {(current-1)*limit+index+1}
-                  </td>
-                  <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                    {vendor.shopName}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
-                    {vendor.email}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
-                    {vendor.phone}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
-                    {vendor.place}
-                  </td>
-
-                  {/* Status dropdown */}
-                  <td className="px-6 py-4 relative">
-                    <div
-                      className="flex items-center gap-2 cursor-pointer"
-                      onClick={() =>
-                        setOpenDropdown(
-                          openDropdown === vendor.id ? null : vendor.id
-                        )
-                      }
-                    >
-                      {getStatusBadge(vendor.status)}
-                      <ChevronDown size={16} className="text-gray-500" />
-                    </div>
-                    {openDropdown === vendor.id && (
-                      <div
-                        className="absolute left-0 top-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg w-36 z-20"
-                        onMouseLeave={() => setOpenDropdown(null)}
-                      >
-                        {["pending", "approved", "rejected"].map((status) => (
-                          <div
-                            key={status}
-                            className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-lg last:rounded-b-lg"
-                            onClick={() =>
-                              handleStatusChange(vendor.id, status)
-                            }
-                          >
-                            {status}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </td>
-
-                  {/* Can Add Product */}
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <button
-                      onClick={() => toggleCanAddProduct(vendor.id)}
-                      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition ${
-                        vendor.canAddProduct
-                          ? "bg-green-100 text-green-800 hover:bg-green-200"
-                          : "bg-gray-100 text-gray-800 hover:bg-gray-200"
-                      }`}
-                    >
-                      {vendor.canAddProduct ? (
-                        <>
-                          <CheckCircle size={14} /> Yes
-                        </>
-                      ) : (
-                        <>
-                          <XCircle size={14} /> No
-                        </>
-                      )}
-                    </button>
-                  </td>
-
-                  <td className="px-6 py-4 text-sm text-gray-600">
-                    {formatDate(vendor.createdAt)}
-                  </td>
-                </tr>
+                  {s}
+                </button>
               ))}
-            </tbody>
-          </table>
+            </div>
+          )}
         </div>
       </div>
-      {/*Pagination controls */}
-      <div className="flex justify-center items-center gap-3 mt-4">
-        <button
-          className="px-4 py-2 bg-gray-200 rounded-md disabled:opacity-50"
-          onClick={handlePrev}
-          disabled={page === 1}
-        >
-          previous
+
+      {/* TABLE */}
+      <div className="bg-white rounded-xl shadow overflow-x-auto">
+        <table className="w-full">
+          <thead className="bg-gray-100">
+            <tr>
+              {[
+                "#",
+                "Shop",
+                "Email",
+                "Phone",
+                "Status",
+                "Can Add Product",
+                "Created",
+              ].map((h) => (
+                <th key={h} className="p-3 text-left text-xs font-bold">
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+
+          <tbody>
+            {vendors.map((v, i) => (
+              <tr key={v._id} className="border-t hover:bg-gray-50">
+                <td className="p-3">
+                  {(pagination.currentPage - 1) * pagination.limit + i + 1}
+                </td>
+                <td className="p-3 font-semibold">{v.shopName}</td>
+                <td className="p-3">{v.email}</td>
+                <td className="p-3">{v.phone}</td>
+
+                {/* STATUS DROPDOWN */}
+                <td className="p-3 relative">
+                  <div
+                    onClick={() =>
+                      setOpenDropdown(openDropdown === v._id ? null : v._id)
+                    }
+                    className="flex items-center gap-2 cursor-pointer"
+                  >
+                    {getStatusBadge(v.status)}
+                    <ChevronDown size={14} />
+                  </div>
+
+                  {openDropdown === v._id && (
+                    <div className="absolute z-20 mt-2 bg-white border rounded shadow w-32">
+                      {["pending", "approved", "rejected"].map((s) => (
+                        <div
+                          key={s}
+                          onClick={() => handleStatusChange(v._id, s)}
+                          className="px-4 py-2 text-sm hover:bg-gray-100 capitalize cursor-pointer"
+                        >
+                          {s}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </td>
+
+                {/* PRODUCT PERMISSION */}
+                <td className="p-3">
+                  <button
+                    onClick={() => toggleCanAddProduct(v._id)}
+                    className="text-sm font-semibold text-purple-600"
+                  >
+                    {v.canAddProduct ? "Yes" : "No"}
+                  </button>
+                </td>
+
+                <td className="p-3">{formatDate(v.createdAt)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* PAGINATION */}
+      <div className="flex justify-center gap-4">
+        <button onClick={() => setPage((p) => p - 1)} disabled={page === 1}>
+          <ChevronLeft />
         </button>
-        <span className="text-sm text-gray-700">
-          Page {data?.pagination?.currentPage} of {data?.pagination?.totalPages}
+        <span>
+          Page {pagination.currentPage} of {pagination.totalPages}
         </span>
         <button
-          onClick={handleNext}
-          disabled={page === data?.pagination?.totalPages}
-          className="px-4 py-2 bg-gray-200 rounded-md disabled:opacity-50"
+          onClick={() => setPage((p) => p + 1)}
+          disabled={page === pagination.totalPages}
         >
-          next
+          <ChevronRight />
         </button>
       </div>
     </div>

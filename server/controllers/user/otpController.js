@@ -1,26 +1,121 @@
 import OTP from "../../models/users/otp.js";
 import User from "../../models/users/user.js";
-
+import Wallet from "../../models/wallet/walletschema.js";
+import ReferralReward from "../../models/referral/referral.js";
+import WalletLedger from "../../models/wallet/wallerLedger.js";
+import MESSAGES from "../../constants/messages.js";
 export const otpController = async (req, res) => {
   try {
-    const { userId, otp } = req.body;
-    const user = await User.findById( userId );
-    if (!user) {
-      return res.status(404).json({ message: "User not Found" });
+    const { email, otp } = req.body;
+    console.log(email, otp);
+    if (!email || !otp) {
+      return res.status(400).json({ message: MESSAGES.NO_EMAIL_AND_TOKEN });
     }
-    const otpData = await OTP.findOne({ userId, otp });
-    if (!otpData) {
-      return res.status(400).json({ message: "Otp is invalid" });
+    const pending = await OTP.findOne({ "pendingData.email": email });
+    if (!pending) {
+      return res.status(400).json({ message: MESSAGES.NO_PENDING_REGISTRATION });
     }
-    if (otpData.expiresAt < Date.now()) {
-      return res.status(400).json({ message: "Otp is expired" });
+    if (pending.otp !== otp) {
+      return res.status(400).json({ message: MESSAGES.INCORRECT_OTP });
     }
-    user.isVerified = true;
-    await user.save();
-    await otpData.deleteOne();
-    res.json({ success: true, message: "OTP is correct,Account is activated" });
+    // 3️Expiry check
+    if (pending.expiresAt < new Date()) {
+      await OTP.deleteOne({ _id: pending._id });
+      return res.status(410).json({ message: MESSAGES.OTP_EXPIRED });
+    }
+    // const verify = await OTP.findOne({ otp: otp });
+    // if (!verify) {
+    //   return res.status(400).json({ message: "Invalid otp detected" });
+    // }
+    const { name, password, referralCode } = pending.pendingData;
+
+    const exist = await User.findOne({ email: email });
+    if (exist) {
+      await OTP.deleteOne({ _id: pending._id });
+      return res.status(400).json({ message: MESSAGES.USER_ALREADY_EXISTS });
+    }
+    const newUser = await User.create({
+      name,
+      email,
+      password,
+      isVerified: true,
+      referredBy: referralCode ? referralCode : null,
+    });
+    //wallet creation for the user
+    const userWallet = await Wallet.create({
+      userId: newUser._id,
+      balance: 0,
+      totalAdded: 0,
+      totalSpent: 0,
+      lastTransactionAt: null,
+    });
+    //referral logic
+    // -----------------------------------------------
+    // 🔥 TWO-SIDED REFERRAL LOGIC
+    // -----------------------------------------------
+    if (referralCode) {
+      const referrer = await User.findOne({ referralCode });
+
+      if (referrer) {
+        const REFERRER_REWARD = 50;
+        const NEW_USER_REWARD = 20;
+
+        userWallet.balance += NEW_USER_REWARD;
+        await userWallet.save();
+
+        await WalletLedger.create({
+          walletId: userWallet._id,
+          userId: newUser._id,
+          amount: NEW_USER_REWARD,
+          type: "REFERRAL",
+          referenceId: newUser._id,
+          note: "Referral signup reward (new user)",
+        });
+
+        // Record referral history for new user
+        await ReferralReward.create({
+          referrerUserId: referrer._id,
+          referredUserId: newUser._id,
+          rewardAmount: NEW_USER_REWARD,
+          rewardType: "SIGNUP_NEW_USER",
+        });
+
+        //Credit for refferral
+
+        const referrerWallet = await Wallet.findOne({ userId: referrer._id });
+
+        referrerWallet.balance += REFERRER_REWARD;
+        await referrerWallet.save();
+
+        await WalletLedger.create({
+          walletId: referrerWallet._id,
+          userId: referrer._id,
+          amount: REFERRER_REWARD,
+          type: "REFERRAL",
+          referenceId: newUser._id,
+          note: "Referral reward for inviting a user",
+        });
+
+        // Record referral history for referrer
+        await ReferralReward.create({
+          referrerUserId: referrer._id,
+          referredUserId: newUser._id,
+          rewardAmount: REFERRER_REWARD,
+          rewardType: "SIGNUP_REFERRER",
+        });
+
+        newUser.hasReferralReward = true;
+        await newUser.save();
+      }
+    }
+
+    await OTP.deleteOne({ _id: pending._id });
+    return res.status(201).json({
+      message: MESSAGES.REGISTRATION_COMPLETE,
+      user: newUser,
+    });
   } catch (error) {
-    console.log(error)
-    res.status(500).json({ message: error.error });
+    console.log(error);
+    res.status(500).json({ message: MESSAGES.INTERNAL_SERVER_ERROR });
   }
 };

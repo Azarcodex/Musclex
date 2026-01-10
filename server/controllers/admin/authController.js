@@ -16,7 +16,7 @@ export const registerAdmin = async (req, res) => {
 export const LoginAdmin = async (req, res) => {
   try {
    const {email,password}=req.body||{}
-    console.log("Incoming", email, password);
+    // console.log("Incoming", email, password);
     if (!email || !password) {
       console.log("No data");
       return res

@@ -1,48 +1,104 @@
-import React, { useState } from "react";
-import { useGetUsers } from "../../hooks/admin/useGetUsers";
+const [selectedCategory, setSelectedCategory] = useState([]);
+const [selectedBrands, setSelectedBrands] = useState([]);
+const [priceRange, setPriceRange] = useState([0, 60000]);
+const [selectedRatings, setSelectedRatings] = useState([]);
+const [sortValue, setSortValue] = useState("");
 
-const Users = () => {
-  const [page, setPage] = useState(1);
-  const { data, isPending } = useGetUsers(page);
+// pagination
+const [page, setPage] = useState(1);
 
-  const handleNext = () => {
-    if (page < data?.pagination?.totalPages) {
-      setPage((prev) => prev + 1);
-    }
-  };
+// redux search
+const { query } = useSelector((state) => state.search);
+const [debounce, setDebounce] = useState(query);
 
-  const handlePrev = () => {
-    if (page > 1) setPage((prev) => prev - 1);
-  };
+/* -------------------------------
+   DEBOUNCE SEARCH
+-------------------------------- */
+useEffect(() => {
+  const timeout = setTimeout(() => {
+    setDebounce(query);
+  }, 500);
 
+  return () => clearTimeout(timeout);
+}, [query]);
+
+/* -------------------------------
+   RESET PAGE WHEN FILTERS CHANGE
+-------------------------------- */
+useEffect(() => {
+  setPage(1);
+}, [
+  selectedCategory,
+  selectedBrands,
+  priceRange,
+  selectedRatings,
+  sortValue,
+  debounce,
+]);
+
+/* -------------------------------
+   FETCH PRODUCTS (NORMAL)
+-------------------------------- */
+const {
+  data: productData,
+  isPending: isProductLoading,
+} = useProductFetch(
+  page,
+  selectedCategory,
+  selectedBrands,
+  priceRange,
+  selectedRatings,
+  sortValue,
+  debounce // optional if backend supports search
+);
+
+/* -------------------------------
+   FETCH SEARCH RESULTS
+-------------------------------- */
+const {
+  data: searchData,
+  isPending: isSearchLoading,
+} = useSearch(debounce, {
+  enabled: !!debounce, // 🔥 IMPORTANT
+});
+
+/* -------------------------------
+   DECIDE DATA SOURCE
+-------------------------------- */
+const data = debounce ? searchData : productData;
+const isLoading = debounce ? isSearchLoading : isProductLoading;
+
+/* -------------------------------
+   LOADING UI
+-------------------------------- */
+if (isLoading) {
   return (
-    <div>
-      {/* Existing Table Code Here */}
-      {/* ... */}
-
-      {/* Pagination Controls */}
-      <div className="flex justify-center items-center gap-3 mt-4">
-        <button
-          onClick={handlePrev}
-          disabled={page === 1}
-          className="px-4 py-2 bg-gray-200 rounded-md disabled:opacity-50"
-        >
-          Previous
-        </button>
-
-        <span className="text-sm text-gray-700">
-          Page {data?.pagination?.currentPage} of{" "}
-          {data?.pagination?.totalPages}
-        </span>
-
-        <button
-          onClick={handleNext}
-          disabled={page === data?.pagination?.totalPages}
-          className="px-4 py-2 bg-gray-200 rounded-md disabled:opacity-50"
-        >
-          Next
-        </button>
+    <div className="min-h-screen flex flex-col">
+      <div className="flex-1 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-14 w-14 rounded-full border-4 border-purple-200 border-t-purple-600 animate-spin"></div>
+          <p className="text-gray-500 text-sm">Loading products...</p>
+        </div>
       </div>
+      <Footer />
     </div>
   );
+}
+
+/* -------------------------------
+   PAGINATION DATA (SAFE)
+-------------------------------- */
+const totalPages = data?.pagination?.totalPages || 1;
+const totalProducts = data?.pagination?.totalProducts || 0;
+const current = data?.pagination?.current || page;
+
+/* -------------------------------
+   PAGINATION HANDLERS
+-------------------------------- */
+const handleNext = () => {
+  if (page < totalPages) setPage((prev) => prev + 1);
+};
+
+const handlePrev = () => {
+  if (page > 1) setPage((prev) => prev - 1);
 };

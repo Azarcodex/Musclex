@@ -3,20 +3,25 @@ import { setAuthtoken } from "../../api/axios.js";
 import { loginAdmin } from "../../services/admin/authService.js";
 import { replace, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { useDispatch } from "react-redux";
+import { setAdminToken } from "../../store/features/adminSlice.js";
 // import loginAdmin from '../services/authService.js'
 export const useAdminLogin = () => {
+  const dispatch = useDispatch();
   const navigate = useNavigate();
   return useMutation({
     mutationFn: loginAdmin,
     onSuccess: (data) => {
-      console.log(data);
+      // console.log(data);
       if (data?.token) {
         setAuthtoken(data.token);
-        navigate("/admin/dashboard", { replace: true });
+        dispatch(setAdminToken(data?.token));
+        navigate("/admin/dashboard/analytics", { replace: true });
       }
     },
-    onError: () => {
-      console.log("error");
+    onError: (err) => {
+      console.log(err);
+      toast.error(err.response.data.message);
     },
   });
 };

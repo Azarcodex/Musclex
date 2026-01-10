@@ -3,10 +3,15 @@ import adminRoute from "./routes/adminRoutes.js";
 import userRoute from "./routes/userRoutes.js";
 import googleAuth from "./routes/authRoutes.js";
 import vendorRoute from "./routes/vendorRoutes.js";
+import paymentRoute from "./routes/paymentRoutes.js";
+import vendorWalletRoutes from "./routes/vendorWalletRoutes.js";
+import path from "path";
 import cors from "cors";
+import { errorHandler } from "./middlewares/globalError/errorHandle.js";
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 app.use(express.urlencoded({ extended: true }));
 //setting Up admin Prefix route
 app.use("/api/admin", adminRoute);
@@ -16,5 +21,11 @@ app.use("/api/user", userRoute);
 app.use("/api/vendor", vendorRoute);
 //google auth
 app.use("/api/auth", googleAuth);
+//payment
+app.use("/api/payments", paymentRoute);
+//vendor wallet
+app.use("/api/vendor/wallet", vendorWalletRoutes);
 
+//global error
+app.use(errorHandler);
 export default app;

@@ -4,7 +4,7 @@ export const getUsers = async (req, res) => {
   try {
     const page = parseInt(req.query.page || 1);
     const limit = parseInt(req.query.limit || 10);
-    const {search} = req.query;
+    const { search } = req.query;
     const query = search
       ? {
           $or: [
@@ -51,13 +51,11 @@ export const verifyUsers = async (req, res) => {
       console.log("error");
       return res.json({ success: false, message: "User not found" });
     }
-    user.isVerified = !user.isVerified;
+    user.isBlocked = !user.isBlocked;
     await user.save();
     res.status(200).json({
       success: true,
-      message: `User ${
-        user.isVerified ? "verified" : "unverified"
-      } successfully`,
+      message: `User ${user.isBlocked ? "blocked" : "unBlocked"} successfully`,
       user,
     });
   } catch (error) {

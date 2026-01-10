@@ -5,8 +5,14 @@ import { GoogleLogin } from "@react-oauth/google";
 import { Link, useNavigate } from "react-router-dom";
 import { useVendorLogin } from "../../hooks/vendor/useVendorLogin";
 import { toast } from "sonner";
+import { useEffect } from "react";
+import { setAuthtoken } from "../../api/axios";
+import { useDispatch, useSelector } from "react-redux";
+import { setVendorToken } from "../../store/features/vendorSlice";
 export default function LoginVendor() {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const { token } = useSelector((state) => state.vendorAuth);
   const {
     register,
     handleSubmit,
@@ -14,8 +20,29 @@ export default function LoginVendor() {
   } = useForm();
   const { mutate, isError, error, isPending } = useVendorLogin();
   const submitLogin = (data) => {
-    mutate(data);
+    mutate(data, {
+      onSuccess: (data) => {
+        // console.log(data);
+        if (data?.token) {
+          setAuthtoken(data.token);
+          dispatch(setVendorToken(data?.token));
+          toast.success(`${data.message}`);
+          queueMicrotask(() =>
+            navigate("/vendor/dashboard", { replace: true })
+          );
+        }
+      },
+      onError: (err) => {
+        console.log(err.message);
+        toast.error(`${err.response.data.message}`);
+      },
+    });
   };
+  useEffect(() => {
+    if (token) {
+      navigate("/vendor/dashboard", { replace: true });
+    }
+  }, [token]);
   return (
     <div className="min-h-screen flex">
       {/* Left Side - Image Placeholder */}

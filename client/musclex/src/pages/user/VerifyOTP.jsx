@@ -11,55 +11,111 @@ export default function VerifyOTP() {
     handleSubmit,
     formState: { errors },
   } = useForm();
-  const { mutate, isPending, error, isError} = useOTP();
-  const { mutate: resend, isPending: isLoading ,data} = useResendOTP();
-  const userId = localStorage.getItem("userId");
-  const email = localStorage.getItem("email");
+  const { mutate, isPending, error, isError } = useOTP();
+  const { mutate: resend, isPending: isLoading, data } = useResendOTP();
+  const userId = sessionStorage.getItem("userId");
+  const email = sessionStorage.getItem("email");
+
   const [time, setTime] = useState(0);
+
+  //session manage
+  useEffect(() => {
+    const allowed = sessionStorage.getItem("otpAllowed");
+    const email = sessionStorage.getItem("email");
+
+    if (!allowed || !email) {
+      navigate("/user/register", { replace: true });
+    }
+  }, [navigate]);
+
+  useEffect(() => {
+    const expiry = sessionStorage.getItem("otpResendExpiry");
+
+    if (expiry) {
+      const remaining = Math.ceil((Number(expiry) - Date.now()) / 1000);
+
+      if (remaining > 0) {
+        setTime(remaining);
+      } else {
+        sessionStorage.removeItem("otpResendExpiry");
+      }
+    }
+  }, []);
+
   //timer
   useEffect(() => {
-    let interval;
-    if (time > 0) {
-      interval = setInterval(() => {
-        setTime((prev) => prev - 1);
-      }, 1000);
-    }
+    if (time <= 0) return;
+
+    const interval = setInterval(() => {
+      setTime((prev) => {
+        if (prev <= 1) {
+          sessionStorage.removeItem("otpResendExpiry");
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
     return () => clearInterval(interval);
   }, [time]);
+
   //---
   const onSubmit = (data) => {
     mutate(
-      { ...data, userId },
+      { ...data, email },
       {
         onSuccess: () => {
           toast.success("otp has been Verified");
-          localStorage.removeItem("userId");
-          localStorage.removeItem("email");
+          sessionStorage.clear();
           navigate("/user/login", { replace: true });
         },
       }
     );
   };
-  useEffect(() => {
-    const userid = localStorage.getItem("userId");
-    if (!userId) {
-      navigate("/user/register");
-    }
-  }, []);
+  // useEffect(() => {
+  //   const userid = localStorage.getItem("userId");
+  //   if (!userId) {
+  //     navigate("/user/register");
+  //   }
+  // }, []);
   //resend otp
   const HandleResend = () => {
-    // console.log("clicked");
+    if (!email || !userId) {
+      toast.error("Session expired. Please register again.");
+      sessionStorage.clear();
+      navigate("/user/register", { replace: true });
+      return;
+    }
     resend(
       { email, userId },
       {
         onSuccess: (data) => {
-          console.log(data)
+          console.log(data);
           toast.info(`${data.message}`);
+          const expiryTime = Date.now() + 30 * 1000; // 30 seconds
+          sessionStorage.setItem("otpResendExpiry", expiryTime.toString());
+
           setTime(30);
         },
       }
     );
   };
+
+  // useEffect(() => {
+  //   window.history.pushState(null, "", window.location.href);
+
+  //   const blockBack = () => {
+  //     window.history.pushState(null, "", window.location.href);
+  //   };
+
+  //   window.addEventListener("popstate", blockBack);
+
+  //   return () => {
+  //     window.removeEventListener("popstate", blockBack);
+  //   };
+  // }, []);
+
   return (
     <div className="min-h-screen flex">
       {/* Left Side - Form */}
@@ -104,9 +160,9 @@ export default function VerifyOTP() {
                 placeholder="enter otp"
                 maxLength="6"
               />
-              {isError && (
-                <p className="text-red-600 text-xs mt-1 text-center">
-                  {error.response?.data?.message}
+              {errors.otp && (
+                <p className="mt-1 text-sm text-red-600">
+                  {errors.otp.message}
                 </p>
               )}
             </div>
@@ -122,8 +178,9 @@ export default function VerifyOTP() {
             {/* Resend Button */}
             <button
               type="button"
-              className="w-full bg-blue-900 hover:bg-blue-800 text-white font-semibold py-3 px-4 rounded-md transition duration-200 text-sm uppercase tracking-wide"
+              className="disabled:bg-gray-400  disabled:cursor-not-allowed w-full bg-blue-900 hover:bg-blue-800 text-white font-semibold py-3 px-4 rounded-md transition duration-200 text-sm uppercase tracking-wide"
               onClick={HandleResend}
+              disabled={time > 0}
             >
               {isLoading ? "RESENDING" : "RESEND OTP"}
             </button>

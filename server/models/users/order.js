@@ -1,0 +1,213 @@
+import mongoose from "mongoose";
+import crypto from "crypto";
+
+const orderedItemSchema = new mongoose.Schema({
+  productID: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Product",
+    required: true,
+  },
+  variantID: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Variant",
+    required: true,
+  },
+  categoryID: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Category",
+    required: true,
+  },
+  brandID: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Brand",
+    required: true,
+  },
+
+  vendorID: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Vendor",
+    required: true,
+  },
+  quantity: { type: Number, required: true, min: 1 },
+  price: { type: Number, required: true },
+  //additional
+  discountPerItem: {
+    type: Number,
+  },
+  commissionPercent: {
+    type: Number,
+  },
+  //for sales report
+  sizeLabel: { type: String, required: true },
+  status: {
+    type: String,
+    required: true,
+    enum: [
+      "Pending",
+      "Confirmed",
+      "Processing",
+      "Shipped",
+      "Out for Delivery",
+      "Delivered",
+      "Cancelled",
+      "Returned",
+    ],
+    default: "Pending",
+  },
+  deliveredDate: {
+    type: Date,
+    default: null,
+  },
+  //return fields
+  returnReason: {
+    type: String,
+    default: null,
+  },
+  vendorReason: {
+    type: String,
+    default: null,
+  },
+  returnDate: {
+    type: Date,
+    default: null,
+  },
+  refundAmount: {
+    type: Number,
+    default: 0,
+  },
+  returnStatus: {
+    type: String,
+    enum: ["Requested", "Approved", "Rejected", "Completed"],
+    default: "Requested",
+  },
+  refundStatus: {
+    type: String,
+    enum: ["Not Initiated", "Pending", "Completed", "Not Applicable"],
+    default: "Not Initiated",
+  },
+  vendorCreditStatus: {
+    type: String,
+    enum: ["NotCredited", "Credited", "Reversed", "Not Applicable"],
+    default: "NotCredited",
+  },
+  StockRestored: {
+    type: Boolean,
+    default: false,
+  },
+  cancelReason: {
+    type: String,
+    default: null,
+  },
+});
+
+const shippingAddressSchema = new mongoose.Schema({
+  fullName: { type: String, required: true },
+  phone: { type: String, required: true },
+  pincode: { type: String, required: true },
+  state: { type: String, required: true },
+  city: { type: String, required: true },
+  addressLine: { type: String, required: true },
+  landmark: { type: String },
+});
+
+const orderSchema = new mongoose.Schema(
+  {
+    // Human readable unique order ID
+    orderId: { type: String, unique: true },
+
+    userID: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    addressID: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Address",
+      required: true,
+    },
+
+    // ORDER LEVEL STATUS
+    orderStatus: {
+      type: String,
+      enum: [
+        "Pending",
+        "Confirmed",
+        "Processing",
+        "Shipped",
+        "Out for Delivery",
+        "Delivered",
+        "Cancelled",
+        "Returned",
+      ],
+      default: "Pending",
+    },
+
+    orderedItems: [orderedItemSchema],
+
+    shippingAddress: shippingAddressSchema,
+
+    paymentMethod: {
+      type: String,
+      enum: ["Razorpay", "COD", "Wallet"],
+      required: true,
+    },
+
+    paymentStatus: {
+      type: String,
+      enum: ["Pending", "Paid", "Failed", "Refunded", "Not Applicable"],
+      default: "Pending",
+    },
+
+    totalPrice: { type: Number, required: true },
+    discount: { type: Number, default: 0 },
+    finalAmount: { type: Number, required: true },
+    paidAmount: { type: Number, required: true },
+    expectedDelivery: { type: Date },
+    deliveredDate: { type: Date },
+    //coupon
+    couponCode: {
+      type: String,
+      default: null,
+    },
+
+    discount: {
+      type: Number,
+      default: 0,
+    },
+    couponApplied: {
+      type: Boolean,
+      default: false,
+    },
+    minPurchaseforCoupon: {
+      type: Number,
+      default: 0,
+    },
+    couponValue: {
+      type: Number,
+      default: 0,
+    },
+    razorpayOrderId: {
+      type: String,
+    },
+    razorpayPaymentId: {
+      type: String,
+    },
+    razorpaySignature: {
+      type: String,
+    },
+  },
+  { timestamps: true }
+);
+
+// Generate unique human readable orderId
+orderSchema.pre("save", function (next) {
+  if (!this.orderId) {
+    const randomSuffix = crypto.randomBytes(3).toString("hex").toUpperCase();
+    const datePart = new Date().toISOString().split("T")[0].replace(/-/g, "");
+    this.orderId = `ORD-${datePart}-${randomSuffix}`;
+  }
+  next();
+});
+
+const Order = mongoose.model("Order", orderSchema);
+export default Order;

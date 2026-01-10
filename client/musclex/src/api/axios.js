@@ -1,8 +1,10 @@
 import axios from "axios";
 import { toast } from "sonner";
+import { store } from "../store/store";
+import { clearServerDown, setServerDown } from "../store/features/apistatusslice";
 
 const api_key = import.meta.env.VITE_API_URL;
-
+// const dispatch = useDispatch();
 const api = axios.create({
   baseURL: api_key,
 });
@@ -37,61 +39,39 @@ api.interceptors.request.use((config) => {
 
 //
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // ✅ Backend is reachable → clear server-down state
+    store.dispatch(clearServerDown());
+    return response;
+  },
   (error) => {
-    const status = error?.response?.status;
-
-    // IF ADMIN BLOCKED USER
-    if (status === 403) {
-      localStorage.removeItem("user");
-
-      window.location.href = "/user/login";
-
-      toast.error("Your account has been blocked.");
+    // 🔴 SERVER DOWN (backend off / network error)
+    if (!error.response) {
+      store.dispatch(setServerDown());
+      error.code = "SERVER_DOWN";
+      return Promise.reject(error);
     }
 
-    return Promise.reject(error);
-  }
-);
+    const status = error.response.status;
 
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
     const message =
-      error?.response?.data?.message ||
-      error?.response?.data?.error ||
+      error.response.data?.message ||
+      error.response.data?.error ||
       "Something went wrong";
 
-    const status = error?.response?.status;
-
-    // Normalize error object
     error.message = message;
 
-    // BLOCKED USER HANDLING (already done by you)
+    // 🔐 BLOCKED USER
     if (status === 403) {
       localStorage.removeItem("user");
       window.location.href = "/user/login";
       toast.error("Your account has been blocked.");
     }
 
-    // Unauthorized token expired
-    // if (status === 401) {
-    //   localStorage.removeItem("user");
-    //   localStorage.removeItem("vendor");
-    //   localStorage.removeItem("admin");
-
-    //   toast.error("Session expired. Please login again.");
-
-    //   window.location.href = "/user/login";
-    // }
-
-    // if (status === 400) {
-    //   toast.error(message);
-    // }
-
-    // Internal server errors
+    // 🔥 SERVER ERROR (500+)
     if (status >= 500) {
-      toast.error("Error occurred");
+      store.dispatch(setServerDown());
+      error.code = "SERVER_ERROR";
     }
 
     return Promise.reject(error);

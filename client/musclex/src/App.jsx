@@ -59,7 +59,14 @@ import BannerDashboard from "./pages/admin/Banner";
 import VendorDashboardAnalysis from "./pages/vendor/DashboardAnalysis";
 import NotFound from "./pages/user/404";
 import SalesReportPrintPage from "./pages/vendor/SalesReportPrintPage";
+import { useSelector } from "react-redux";
+import ServerDown from "./components/common/Serverdown";
 const App = () => {
+  const serverDown = useSelector((state) => state.apiStatus.serverDown);
+
+  if (serverDown) {
+    return <ServerDown />;
+  }
   return (
     <>
       <Routes>

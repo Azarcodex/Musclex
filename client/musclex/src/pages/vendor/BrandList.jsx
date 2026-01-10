@@ -127,7 +127,7 @@ const BrandList = () => {
               className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
               onClick={() => setEditItem(null)}
             >
-              <X className="w-5 h-5" />
+              {/* <X className="w-5 h-5" /> */}
             </button>
 
             <h2 className="text-2xl font-semibold text-purple-600 mb-4">

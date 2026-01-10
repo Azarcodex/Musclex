@@ -91,7 +91,7 @@ api.interceptors.response.use(
 
     // Internal server errors
     if (status >= 500) {
-      toast.error("Server Error. Try again later.");
+      toast.error("Error occurred");
     }
 
     return Promise.reject(error);

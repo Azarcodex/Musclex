@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 export default function SalesReportPrint({ data }) {
   const navigate = useNavigate();
-  const { orders, totals } = data;
+  const { orders, totals, statusBoxes } = data;
   const formatCurrency = (amount) => {
     const value = parseFloat(amount) || 0;
     return value.toLocaleString("en-IN", {
@@ -59,12 +59,22 @@ export default function SalesReportPrint({ data }) {
               <th className="border p-2 text-right">Discount</th>
               <th className="border p-2 text-right">Commission</th>
               <th className="border p-2 text-right">Vendor Earn</th>
+              <th className="border p-2 text-right">order Status</th>
             </tr>
           </thead>
 
           <tbody>
             {orders.map((o) => (
-              <tr key={o.rowKey}>
+              <tr
+                key={o.rowKey}
+                className={
+                  o.status === "Cancelled"
+                    ? "bg-red-100"
+                    : o.status === "Returned"
+                    ? "bg-yellow-100"
+                    : "bg-white"
+                }
+              >
                 <td className="border p-2">
                   {new Date(o.orderDate).toLocaleDateString()}
                 </td>
@@ -85,15 +95,18 @@ export default function SalesReportPrint({ data }) {
                 <td className="border p-2 text-right font-medium">
                   {formatCurrency(o.vendorEarning)}
                 </td>
+                <td className="border p-2 text-right font-medium">
+                  {o.status}
+                </td>
               </tr>
             ))}
           </tbody>
 
           {/* Totals */}
-          <tfoot className="bg-gray-50 font-semibold">
+          {/* <tfoot className="bg-gray-50 font-semibold">
             <tr>
               <td colSpan="5" className="border p-2 text-right">
-                TOTAL
+                TOTAL EARNINGS
               </td>
               <td className="border p-2 text-center">{totals.totalQuantity}</td>
               <td className="border p-2 text-right">
@@ -107,6 +120,47 @@ export default function SalesReportPrint({ data }) {
               </td>
               <td className="border p-2 text-right">
                 {formatCurrency(totals.totalVendorEarning)}
+              </td>
+            </tr>
+          </tfoot> */}
+          <tfoot className="font-semibold">
+            {/* GRAND TOTAL */}
+            <tr className="bg-gray-50">
+              <td colSpan="5" className="border p-2 text-right">
+                GRAND TOTAL
+              </td>
+              <td className="border p-2 text-center">{totals.totalQuantity}</td>
+              <td className="border p-2 text-right">
+                {formatCurrency(totals.totalOriginalRevenue)}
+              </td>
+              <td className="border p-2 text-right">
+                {formatCurrency(totals.totalDiscount)}
+              </td>
+              <td className="border p-2 text-right">
+                {formatCurrency(totals.totalCommission)}
+              </td>
+              <td className="border p-2 text-right">
+                {formatCurrency(totals.totalVendorEarning)}
+              </td>
+            </tr>
+
+            {/* CANCELLED TOTAL */}
+            <tr className="bg-red-100">
+              <td colSpan="9" className="border p-2 text-right">
+                TOTAL CANCELLED AMOUNT
+              </td>
+              <td colSpan="2" className="border p-2 text-right">
+                {formatCurrency(statusBoxes.cancelledTotal)}
+              </td>
+            </tr>
+
+            {/* RETURNED TOTAL */}
+            <tr className="bg-yellow-100">
+              <td colSpan="9" className="border p-2 text-right">
+                TOTAL RETURNED AMOUNT
+              </td>
+              <td colSpan="2" className="border p-2 text-right">
+                {formatCurrency(statusBoxes.returnedTotal)}
               </td>
             </tr>
           </tfoot>

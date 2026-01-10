@@ -200,14 +200,12 @@ const DashboardAnalytics = () => {
                   <span className="font-semibold text-gray-800">
                     {b.shopName || "Unknown Vendor"}
                   </span>
-                  {/* <span className="font-semibold text-purple-600">
-                    ₹{b.grossRevenue}
-                  </span> */}
-                </div>
-
-                <div className="text-gray-500 mt-1 flex justify-between">
                   <span>Sold: {b.qtySold}</span>
                 </div>
+
+                {/* <div className="text-gray-500 mt-1 flex justify-between">
+                  <span>Sold: {b.qtySold}</span>
+                </div> */}
               </div>
             ))}
           </div>

@@ -35,8 +35,8 @@ const AddBrandForm = () => {
         {/* Header */}
         <div className="mb-6">
           <button className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 transition-colors">
-            <ArrowLeft className="w-5 h-5" />
-            <span>Back to Brands</span>
+            {/* <ArrowLeft className="w-5 h-5" /> */}
+            {/* <span>Back to Brands</span> */}
           </button>
           <h1 className="text-3xl font-bold text-gray-900">Add New Brand</h1>
           <p className="text-gray-600 mt-1">Create a new product brand</p>
@@ -75,9 +75,9 @@ const AddBrandForm = () => {
                   errors.name ? "border-red-500" : "border-gray-300"
                 }`}
               />
-              {errors.name && (
+              {errors.brand_name && (
                 <p className="text-red-500 text-sm mt-2">
-                  {errors.name.message}
+                  {errors.brand_name.message}
                 </p>
               )}
               <p className="text-sm text-gray-500 mt-2">

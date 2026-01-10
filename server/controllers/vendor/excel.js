@@ -60,7 +60,13 @@ export const salesReportExcel = async (req, res) => {
 
       { $match: { "product.vendorID": vendorObjectId } },
 
-      { $match: { "orderedItems.status": "Delivered" } },
+      {
+        $match: {
+          "orderedItems.status": {
+            $in: ["Delivered", "Cancelled", "Returned"],
+          },
+        },
+      },
 
       {
         $lookup: {
@@ -125,7 +131,7 @@ export const salesReportExcel = async (req, res) => {
               { $ifNull: ["$orderedItems.discountPerItem", 0] },
             ],
           },
-
+          orderStatus: "$orderedItems.status",
           commissionAmount: {
             $round: [
               {
@@ -246,6 +252,7 @@ export const salesReportExcel = async (req, res) => {
       "Vendor Earning (₹)": roundMoney(o.vendorEarning),
 
       Payment: o.paymentMethod,
+      status: o.orderStatus,
     }));
 
     // -------------------------
@@ -275,6 +282,6 @@ export const salesReportExcel = async (req, res) => {
     return res.send(buffer);
   } catch (error) {
     console.error("Excel error:", error);
-    return res.status(500).json({ message: "Failed to export Excel" });
+    return res.status(400).json({ message: "Failed to export Excel" });
   }
 };

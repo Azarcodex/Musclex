@@ -74,9 +74,17 @@ export const salesReport = async (req, res) => {
       },
 
       // NOW filter ONLY delivered vendor items
+      // {
+      //   $match: {
+      //     "orderedItems.status": "Delivered",
+      //   },
+      // },
+      // Allow Delivered + Cancelled + Returned
       {
         $match: {
-          "orderedItems.status": "Delivered",
+          "orderedItems.status": {
+            $in: ["Delivered", "Cancelled", "Returned"],
+          },
         },
       },
 
@@ -113,6 +121,13 @@ export const salesReport = async (req, res) => {
     // LIST
     const orders = await Order.aggregate([
       ...basePipeline,
+      {
+        $match: {
+          "orderedItems.status": {
+            $in: ["Delivered", "Cancelled", "Returned"],
+          },
+        },
+      },
 
       {
         $project: {
@@ -235,6 +250,7 @@ export const salesReport = async (req, res) => {
           },
 
           paymentMethod: "$paymentMethod",
+          status: "$orderedItems.status",
         },
       },
 
@@ -258,7 +274,11 @@ export const salesReport = async (req, res) => {
     const aggregationResult = (
       await Order.aggregate([
         ...basePipeline,
-
+        {
+          $match: {
+            "orderedItems.status": "Delivered",
+          },
+        },
         {
           $project: {
             qty: "$orderedItems.quantity",
@@ -355,6 +375,57 @@ export const salesReport = async (req, res) => {
     )?.[0];
     const summary = aggregationResult || defaultSummary;
 
+    //for cancelled and returned track
+    const cancelledReturnedTotals = await Order.aggregate([
+      ...basePipeline,
+
+      {
+        $match: {
+          "orderedItems.status": { $in: ["Cancelled", "Returned"] },
+        },
+      },
+
+      {
+        $project: {
+          status: "$orderedItems.status",
+          amount: {
+            $subtract: [
+              {
+                $multiply: [
+                  "$orderedItems.quantity",
+                  { $toDouble: "$orderedItems.price" },
+                ],
+              },
+              {
+                $multiply: [
+                  "$orderedItems.quantity",
+                  { $ifNull: ["$orderedItems.discountPerItem", 0] },
+                ],
+              },
+            ],
+          },
+        },
+      },
+
+      {
+        $group: {
+          _id: "$status",
+          totalAmount: { $sum: "$amount" },
+        },
+      },
+    ]);
+
+    const statusBoxes = {
+      cancelledTotal: 0,
+      returnedTotal: 0,
+    };
+
+    cancelledReturnedTotals.forEach((item) => {
+      if (item._id === "Cancelled")
+        statusBoxes.cancelledTotal = item.totalAmount;
+      if (item._id === "Returned") statusBoxes.returnedTotal = item.totalAmount;
+    });
+
     return res.status(200).json({
       success: true,
       orders,
@@ -371,6 +442,7 @@ export const salesReport = async (req, res) => {
         totalVendorEarning: summary.totalVendorEarning || 0,
       },
       summary,
+      statusBoxes,
     });
   } catch (error) {
     console.error("Sales Report Error:", error);

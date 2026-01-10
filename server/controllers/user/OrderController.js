@@ -506,7 +506,7 @@ export const cancelOrder = async (req, res) => {
     // ---------------------------------------------
     // 4) FINAL CLEANUP
     // ---------------------------------------------
-    order.finalAmount = 0;
+    // order.finalAmount = 0;
     order.discount = 0;
     order.couponApplied = false;
     order.couponCode = null;
@@ -568,9 +568,9 @@ export const cancelProductOrder = async (req, res) => {
     // 3) CHECK IF COUPON BECOMES INVALID
     // ------------------------------------------------------------
     let couponInvalidated = false;
-
+    let remainingSubtotal;
     if (order.couponApplied) {
-      let remainingSubtotal = 0;
+      remainingSubtotal = 0;
 
       for (const it of order.orderedItems) {
         if (it.status !== "Cancelled") {
@@ -596,12 +596,8 @@ export const cancelProductOrder = async (req, res) => {
       order.paymentStatus === "Paid"
     ) {
       const itemTotal = item.price * item.quantity;
-
       if (couponInvalidated && order.discount > 0) {
-        // Coupon broken → recover full coupon from THIS item
-        const couponDiscountForItem = (itemTotal * order.couponValue) / 100;
-
-        refundAmt = itemTotal - couponDiscountForItem;
+        refundAmt = order.paidAmount - remainingSubtotal;
         order.discount = 0;
       } else if (order.couponApplied) {
         // Normal case → per item refund

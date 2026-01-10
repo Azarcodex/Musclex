@@ -5,6 +5,8 @@ import {
   DollarSign,
   ShoppingCart,
   TrendingDown,
+  RotateCcw,
+  XCircle,
 } from "lucide-react";
 
 import { useGetSalesReport } from "../../hooks/vendor/useGetSalesReport";
@@ -74,7 +76,8 @@ export default function SalesReport() {
   // Total orders is the number of items in the current page's array
   const totalOrders = data?.pagination?.totalItems || 0;
   const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
-
+  const totalCancelled = data?.statusBoxes?.cancelledTotal;
+  const totalReturned = data?.statusBoxes?.returnedTotal;
   // --- Pagination Handlers (Adjusted property names) ---
 
   const HandleNext = () => {
@@ -134,25 +137,9 @@ export default function SalesReport() {
       link.remove();
     } catch (error) {
       console.log("Excel download error:", error);
-      toast.error("Failed to download sales report.");
+      toast.error("Excel data is empty.");
     }
   };
-  //pdf download
-
-  // const downloadPdf = async () => {
-  //   const res = await api.post(
-  //     "/api/vendor/sales-report/pdf",
-  //     { filter: filter },
-  //     { responseType: "blob" }
-  //   );
-
-  //   const url = window.URL.createObjectURL(new Blob([res.data]));
-  //   const link = document.createElement("a");
-  //   link.href = url;
-  //   link.setAttribute("download", "sales-report.pdf");
-  //   document.body.appendChild(link);
-  //   link.click();
-  // };
 
   const handlePrintPage = () => {
     navigate("/vendor/sales-report/print", {
@@ -256,9 +243,44 @@ export default function SalesReport() {
                 <TrendingDown className="w-6 h-6 text-orange-600" />
               </div>
             </div>
-            <p className="text-slate-600 text-sm mb-1 font-medium">Discount</p>
+            <p className="text-slate-600 text-sm mb-1 font-medium">
+              Discount (only delivered)
+            </p>
             <p className="text-3xl font-extrabold text-slate-800">
               {formatCurrency(totalDiscount)}
+            </p>
+          </div>
+
+          {/*total cancelled amount */}
+          {/* Total Cancelled Amount */}
+          <div className="bg-white rounded-xl shadow-lg p-6 border border-slate-200 hover:shadow-xl transition-shadow duration-300">
+            <div className="flex items-start justify-between mb-4">
+              {/* Changed to Red for Cancellation */}
+              <div className="p-3 bg-red-100 rounded-lg">
+                <XCircle className="w-6 h-6 text-red-600" />
+              </div>
+            </div>
+            <p className="text-slate-600 text-sm mb-1 font-medium">
+              Total Cancelled Amount
+            </p>
+            <p className="text-3xl font-extrabold text-slate-800">
+              {formatCurrency(totalCancelled)}
+            </p>
+          </div>
+
+          {/* Total Returned Amount */}
+          <div className="bg-white rounded-xl shadow-lg p-6 border border-slate-200 hover:shadow-xl transition-shadow duration-300">
+            <div className="flex items-start justify-between mb-4">
+              {/* Changed to Orange/Amber for Returns */}
+              <div className="p-3 bg-orange-100 rounded-lg">
+                <RotateCcw className="w-6 h-6 text-orange-600" />
+              </div>
+            </div>
+            <p className="text-slate-600 text-sm mb-1 font-medium">
+              Total Returned Amount
+            </p>
+            <p className="text-3xl font-extrabold text-slate-800">
+              {formatCurrency(totalReturned)}
             </p>
           </div>
         </div>
@@ -270,6 +292,7 @@ export default function SalesReport() {
             <h2 className="text-xl font-semibold text-slate-800">
               Recent Orders
             </h2>
+          
             <div className="flex items-center gap-3">
               {/* Quick Filters Dropdown */}
               <select
@@ -353,6 +376,9 @@ export default function SalesReport() {
                   <th className="px-6 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">
                     Vendor Earning (Final)
                   </th>
+                  <th className="px-6 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                    status
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -399,6 +425,7 @@ export default function SalesReport() {
                         <td className="px-6 py-4 text-sm text-slate-600 font-bold text-center">
                           {order.paymentMethod}
                         </td>
+
                         {/* Original Price/Unit */}
                         <td className="px-6 py-4 text-sm text-slate-600 text-right">
                           {formatCurrency(originalPricePerUnit)}
@@ -417,6 +444,19 @@ export default function SalesReport() {
                         {/* Vendor Earning (Final) */}
                         <td className="px-6 py-4 text-sm font-semibold text-green-700 text-right bg-green-50">
                           {formatCurrency(finalVendorEarning)}
+                        </td>
+                        <td
+                          className={`px-6 py-4 text-sm font-semibold text-right ${
+                            order.status === "Delivered"
+                              ? "text-green-700 bg-green-50"
+                              : order.status === "Cancelled"
+                              ? "text-red-700 bg-red-50"
+                              : order.status === "Returned"
+                              ? "text-yellow-700 bg-yellow-50"
+                              : "text-gray-700 bg-gray-50"
+                          }`}
+                        >
+                          {order.status}
                         </td>
                       </tr>
                     );

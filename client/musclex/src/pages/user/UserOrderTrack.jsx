@@ -54,9 +54,6 @@ export default function UserOrderTrack() {
     "Shipped",
     "Out for Delivery",
     "Delivered",
-    "Cancelled",
-    "Returned",
-    ,
   ];
 
   const statusIndex = (orderStatus) => statusSteps.indexOf(orderStatus);

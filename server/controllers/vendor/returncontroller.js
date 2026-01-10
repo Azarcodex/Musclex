@@ -113,9 +113,7 @@ export const updateReturnStatusVendor = async (req, res) => {
       let refundAmount = 0;
 
       if (couponInvalidated && order.discount > 0) {
-        const couponDiscountForItem = (itemTotal * order.couponValue) / 100;
-
-        refundAmount = itemTotal - couponDiscountForItem;
+        refundAmount = order.paidAmount - remainingSubtotal;
         order.discount = 0;
       } else if (order.couponApplied) {
         refundAmount = itemTotal - (item.discountPerItem || 0);

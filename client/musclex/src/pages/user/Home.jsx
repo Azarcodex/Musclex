@@ -9,6 +9,7 @@ import Footer from "../../components/user/Footer";
 import { useSelector } from "react-redux";
 
 const Home = () => {
+  
   return (
     <div>
       <Navbar />

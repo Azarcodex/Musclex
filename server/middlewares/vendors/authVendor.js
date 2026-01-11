@@ -10,6 +10,10 @@ export const VendorProtection = async (req, res, next) => {
       return res.status(401).json({ message: MESSAGES.NO_TOKEN });
     }
     const split = headers.split(" ")[1];
+
+    console.log("JWT_SECRET in container:", process.env.JWT_SECRET);
+    console.log("TOKEN RECEIVED:", split);
+
     let verify;
     try {
       verify = jwt.verify(split, process.env.JWT_SECRET);

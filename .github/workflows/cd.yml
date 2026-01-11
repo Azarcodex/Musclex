@@ -17,12 +17,12 @@ jobs:
         run: sudo docker rm -f cicd-pipeline-container || true
 
       - name: Run new container
-        run: |
-          sudo docker run -d \
-            -p 3000:3000 \
-            -e PORT=3000 \
-            -e MONGO_URI=${{ secrets.MONGO_URI }} \
-            -e RAZORPAY_KEY_ID=${{ secrets.RAZORPAY_KEY_ID }} \
-            -e RAZORPAY_KEY_SECRET=${{ secrets.RAZORPAY_KEY_SECRET }} \
-            --name cicd-pipeline-container \
-            azarin21/musclex:latest
+        run: >
+          sudo docker run -d
+          -p 3000:3000
+          -e PORT=3000
+          -e MONGO_URI=${{ secrets.MONGO_URI }}
+          -e RAZORPAY_KEY_ID=${{ secrets.RAZORPAY_KEY_ID }}
+          -e RAZORPAY_KEY_SECRET=${{ secrets.RAZORPAY_KEY_SECRET }}
+          --name cicd-pipeline-container
+          azarin21/musclex:latest

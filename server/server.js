@@ -8,6 +8,6 @@ import "./config/CRONE.js";
 const PORT = process.env.PORT_NUMBER;
 //DATABASE
 dataBaseImplementation();
-app.listen(PORT, () => {
-  console.log(`connected to the port ${PORT}`);
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server running on port ${PORT}`);
 });

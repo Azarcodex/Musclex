@@ -14,6 +14,10 @@ app.use(express.json());
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 app.use(express.urlencoded({ extended: true }));
 //setting Up admin Prefix route
+
+app.get("/", (req, res) => {
+  res.status(200).json({ message: "API running" });
+});
 app.use("/api/admin", adminRoute);
 //setting Up user Prefix route
 app.use("/api/user", userRoute);

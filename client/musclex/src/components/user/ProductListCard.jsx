@@ -111,23 +111,23 @@ export default function ProductListCard({ data }) {
       },
     });
   };
-  // buynow
-  const handleBuyNow = () => {
-    if (currentSize?.stock === 0) {
-      toast.message("Stock Unavailable");
-      return;
-    }
-    navigate("/user/checkout", {
-      state: {
-        buyNow: true,
-        productID: data?.product,
-        variantID: currentVariant,
-        quantity: 1,
-        price: finalPrice,
-        sizeLabel: currentSize?.label,
-      },
-    });
-  };
+  // // buynow
+  // const handleBuyNow = () => {
+  //   if (currentSize?.stock === 0) {
+  //     toast.message("Stock Unavailable");
+  //     return;
+  //   }
+  //   navigate("/user/checkout", {
+  //     state: {
+  //       buyNow: true,
+  //       productID: data?.product,
+  //       variantID: currentVariant,
+  //       quantity: 1,
+  //       price: finalPrice,
+  //       sizeLabel: currentSize?.label,
+  //     },
+  //   });
+  // };
 
   const HandleWishList = (productId, variantId, sizeLabel) => {
     if (!token) {
@@ -181,7 +181,7 @@ export default function ProductListCard({ data }) {
             {currentVariant?.images?.map((img, i) => (
               <div
                 key={i}
-                onClick={() => setImage(`${PORT}${img}`)}
+                onClick={() => setImage(`/uploads/${img}`)}
                 className={`relative cursor-pointer transition-all duration-300 ${
                   image === `${PORT}${img}`
                     ? "scale-110"

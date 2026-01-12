@@ -14,7 +14,7 @@ export const getUserDetails = async (req, res) => {
 export const UpdateName = async (req, res) => {
   try {
     const { id, name } = req.body;
-    console.log("✅✅✅✅✅" + id, name);
+    // console.log("✅✅✅✅✅" + id, name);
     const user = await User.findByIdAndUpdate(
       id,
       {

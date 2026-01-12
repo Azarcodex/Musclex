@@ -8,7 +8,7 @@ import { useGetBanners } from "../../hooks/users/useBanner";
 import { useNavigate } from "react-router-dom";
 
 export function HeroSlider() {
-  const navigate=useNavigate()
+  const navigate = useNavigate();
   const [currentSlide, setCurrentSlide] = useState(0);
   const URL = import.meta.env.VITE_API_URL;
   const { data: slides } = useGetBanners();
@@ -105,7 +105,10 @@ export function HeroSlider() {
                 <p className="mx-auto max-w-lg text-base leading-relaxed text-gray-600 md:mx-0 lg:text-lg">
                   {slide.description}
                 </p>
-                <button onClick={()=>navigate("/user/products")} className="rounded-full bg-pink-500 px-8 py-3 font-bold text-white shadow-lg transition-transform hover:scale-105 hover:bg-pink-600 hover:shadow-pink-500/30">
+                <button
+                  onClick={() => navigate("/user/products")}
+                  className="rounded-full bg-pink-500 px-8 py-3 font-bold text-white shadow-lg transition-transform hover:scale-105 hover:bg-pink-600 hover:shadow-pink-500/30"
+                >
                   Shop Now
                 </button>
               </div>
@@ -117,7 +120,7 @@ export function HeroSlider() {
 
                 {/* IMAGE SIZE CHANGED HERE: max-w-[350px] makes it much smaller */}
                 <img
-                  src={`${URL}/uploads/${slide.image}`}
+                  src={`/uploads/${slide.image}`}
                   alt="Fitness Equipment"
                   className="relative z-10 w-full max-w-[280px] rounded-2xl object-cover shadow-xl transition-transform duration-500 ease-in-out hover:scale-105 md:max-w-[350px]"
                 />

@@ -5,7 +5,7 @@ import Category from "../../../models/products/category.js";
 
 export const getProducts = async (req, res) => {
   try {
-    const URL = process.env.BASE_URL;
+    // const URL = process.env.BASE_URL;
 
     const {
       page = 1,
@@ -125,7 +125,7 @@ export const getProducts = async (req, res) => {
 
             return {
               ...v,
-              images: (v.images || []).map((img) => `${URL}${img}`),
+              images: v.images || [],
               sizes: filteredSizes,
             };
           })

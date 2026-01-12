@@ -28,7 +28,7 @@ import VariantList from "./pages/vendor/VariantList";
 import OwnProducts from "./pages/admin/OwnProducts";
 import Category from "./pages/admin/Category";
 import EditProduct from "./pages/vendor/EditProduct";
-import VendorRoute from "./components/vendor/vendorRoute";
+import VendorRoute from "./components/vendor/VendorRoute";
 import ProductList from "./pages/user/ProductList";
 import WishList from "./pages/user/WishList";
 import EditVariant from "./pages/vendor/EditVariant";

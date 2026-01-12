@@ -125,7 +125,16 @@ export const getProducts = async (req, res) => {
 
             return {
               ...v,
-              images: v.images || [],
+              images: (v.images || []).map((img) => {
+                // remove protocol + domain if present, remove whitespace
+                if (!img) return img;
+                const cleaned = img.trim();
+                const uploadsIndex = cleaned.indexOf("/uploads/");
+                return uploadsIndex !== -1
+                  ? cleaned.substring(uploadsIndex)
+                  : cleaned;
+              }),
+
               sizes: filteredSizes,
             };
           })
@@ -135,6 +144,12 @@ export const getProducts = async (req, res) => {
 
         const defaultVariant = relatedVariants[0];
         const defaultSize = defaultVariant.sizes[0];
+        const rawImage = defaultVariant.images?.[0] || null;
+
+        const prevImage = rawImage
+          ? rawImage.substring(rawImage.indexOf("/uploads/"))
+          : null;
+
         if (!defaultSize) return null;
 
         return {
@@ -142,7 +157,7 @@ export const getProducts = async (req, res) => {
           relatedVariants,
           brand: product.brandID?.brand_name,
           category: product.catgid?.catgName,
-          prevImage: defaultVariant.images?.[0],
+          prevImage: prevImage,
           variants: defaultVariant,
           size: defaultSize,
         };

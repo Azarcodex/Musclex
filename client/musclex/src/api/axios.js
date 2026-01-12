@@ -1,12 +1,15 @@
 import axios from "axios";
 import { toast } from "sonner";
 import { store } from "../store/store";
-import { clearServerDown, setServerDown } from "../store/features/apistatusslice";
+import {
+  clearServerDown,
+  setServerDown,
+} from "../store/features/apistatusslice";
 
-const api_key = import.meta.env.VITE_API_URL;
+// const api_key = import.meta.env.VITE_API_URL;
 // const dispatch = useDispatch();
 const api = axios.create({
-  baseURL: api_key,
+  withCredentials: true,
 });
 export const setAuthtoken = (token) => {
   if (token) {

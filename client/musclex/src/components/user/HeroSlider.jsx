@@ -119,11 +119,11 @@ export function HeroSlider() {
                 <div className="absolute inset-0 translate-x-4 translate-y-4 scale-75 transform rounded-full bg-gradient-to-br from-purple-200 to-pink-200 opacity-40 blur-2xl"></div>
 
                 {/* IMAGE SIZE CHANGED HERE: max-w-[350px] makes it much smaller */}
-                {/* <img
+                <img
                   src={`/uploads/${slide.image}`}
                   alt="Fitness Equipment"
                   className="relative z-10 w-full max-w-[280px] rounded-2xl object-cover shadow-xl transition-transform duration-500 ease-in-out hover:scale-105 md:max-w-[350px]"
-                /> */}
+                />
               </div>
             </div>
           </div>

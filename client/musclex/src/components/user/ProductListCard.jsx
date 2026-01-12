@@ -189,7 +189,7 @@ export default function ProductListCard({ data }) {
                 }`}
               >
                 <img
-                  src={`${PORT}${img}`}
+                  src={`/uploads/${img}`}
                   className={`w-20 h-20 rounded-xl object-cover border-2 ${
                     image === `${PORT}${img}`
                       ? "border-purple-600 shadow-lg"

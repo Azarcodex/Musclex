@@ -11,7 +11,7 @@ import { errorHandler } from "./middlewares/globalError/errorHandle.js";
 const app = express();
 app.use(
   cors({
-    origin: ["http://localhost:5173"],
+    origin: ["http://localhost:5173","https://musclex.vercel.app"],
     credentials: true,
   })
 );

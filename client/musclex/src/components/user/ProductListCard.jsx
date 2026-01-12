@@ -51,7 +51,7 @@ export default function ProductListCard({ data }) {
 
   useEffect(() => {
     if (currentVariant?.images?.length > 0) {
-      setImage(`${PORT}${currentVariant.images[0]}`);
+      setImage(`/uploads/${currentVariant.images[0]}`);
     }
   }, [currentVariant]);
 
